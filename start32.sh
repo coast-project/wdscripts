@@ -16,7 +16,7 @@ else
 fi
 
 # load common os wrapper funcs
-. `dirname $0`/sysfuncs.sh
+. $mypath/sysfuncs.sh
 
 # see if we have to set sniffdir
 if [ -z "${SNIFF_DIR}" ]; then
