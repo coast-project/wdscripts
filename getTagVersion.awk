@@ -1,10 +1,10 @@
 # Erzeugt output des Filenamen mit gefundenem Tag zur aktuellen working revision
-#  bei mehreren Einträgen wird der genommen mit der Struktur vx_xx
+#  bei mehreren Eintr„gen wird der genommen mit der Struktur vx_xx
 #  Grundlage ist ein mit 'cvs status -v' erzeugtes file
 #
 # Parameter:
-#  sep    : eigener separator möglich anstelle von Space " "
-#  width  : Breite der ersten Spalte sonst so breit wie nötig
+#  sep    : eigener separator m÷glich anstelle von Space " "
+#  width  : Breite der ersten Spalte sonst so breit wie n÷tig
 #
 # Beispiele von Ausgabetexten
 # BPC386WIN.HX v1_85 (1.1)
