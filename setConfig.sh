@@ -4,6 +4,15 @@
 
 MYNAME=`basename $0`
 
+# check if the caller already used an absolute path to start this script
+DNAM=`dirname $0`
+if [ "$DNAM" = "${DNAM#/}" ]; then
+	# non absolute path
+	mypath=`pwd`/$DNAM
+else
+	mypath=$DNAM
+fi
+
 function showhelp
 {
 	echo ''
@@ -45,6 +54,7 @@ while getopts ":a:d:l:D" opt; do
 			cfg_dbg=1;
 		;;
 		\?)
+			. $mypath/config.sh $cfg_opt
 			showhelp;
 		;;
 	esac
@@ -54,15 +64,6 @@ shift $(($OPTIND - 1))
 # if a param is specified use it regardless of -a switches
 if [ -n "$1" ]; then
 	cfg_and="${1}";
-fi
-
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-	# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
 fi
 
 # load global config
@@ -117,9 +118,9 @@ fi
 if [ -d "$PROJECTDIR/FunkTest/config" ]; then
 	$SCRIPTDIR/editConfig.sh -p "$PROJECTDIR/FunkTest/config" -e '*.any' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
 fi
-if [ -d "$PROJECTDIR/scripts" ]; then
-	$SCRIPTDIR/editConfig.sh -p "$PROJECTDIR/scripts" -e '*.awk' -e '*.sh' -e '*.pl' -e '*.pm' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
-fi
+#if [ -d "$PROJECTDIR/scripts" ]; then
+#	$SCRIPTDIR/editConfig.sh -p "$PROJECTDIR/scripts" -e '*.awk' -e '*.sh' -e '*.pl' -e '*.pm' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
+#fi
 if [ -n "$PERFTESTDIR" -a -d "$PROJECTDIR/$PERFTESTDIR" ]; then
 	$SCRIPTDIR/editConfig.sh -p "$PROJECTDIR/$PERFTESTDIR" -e '*.sh' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
 	for subcfgname in `find "$PROJECTDIR/$PERFTESTDIR" -name "*config*" -type d`; do
