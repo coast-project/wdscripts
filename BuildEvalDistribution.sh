@@ -52,6 +52,9 @@ exitproc()
 }
 
 trap exitproc INT
+trap exitproc HUP
+trap exitproc TERM
+trap exitproc KILL
 
 checkpath()
 {
