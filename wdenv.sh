@@ -34,7 +34,7 @@ done
 shift $(($OPTIND - 1))
 
 # load common os wrapper funcs
-. /home/scripts/sysfuncs.sh
+. ${SCRIPTS_DIR:-/home/scripts}/sysfuncs.sh
 
 setDevelopmentEnv
 if [ $? -eq 0 ]; then
