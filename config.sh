@@ -5,7 +5,7 @@
 #
 # $Id$
 #
-# configuration for scripts, reads also CONFIGDIR/prjconfig.sh for your
+# configuration for scripts, reads also $CONFIGDIR/prjconfig.sh for your
 #  project specific configuration
 #
 # YOU SHOULD NOT HAVE TO MODIFY THIS FILE, BECAUSE THIS ONE IS HELD GENERIC
@@ -18,54 +18,51 @@
 
 # check if the caller already used an absolute path to start this script
 DNAM=`dirname $0`
-if [ "$DNAM" == "${DNAM#/}" ]; then
+if [ "$DNAM" = "${DNAM#/}" ]; then
 # non absolute path
 	mypath=`pwd`/$DNAM
 else
 	mypath=$DNAM
 fi
 
-if [ "$1" == "-D" ]; then
+if [ "$1" = "-D" ]; then
 	PRINT_DBG=1
-	echo "I am in executing in ["${PWD}"]";
-	echo "Scripts dirname is   ["$mypath"]";
+	echo "I am executing in  ["${PWD}"]";
+	echo "Scripts dirname is ["$mypath"]";
 	echo
 	shift
 else
 	PRINT_DBG=0
 fi
 
-# try to find out on which OS we are currently running, eg. SunOS or Linux
-CURSYSTEM=`(uname -s) 2>/dev/null` || CURSYSTEM="unknown"
+# load os-specific settings and functions
+. ${mypath}/sysfuncs.sh
 
 # points to the directory where the scripts reside
 SCRIPTDIR=`cd $mypath 2> /dev/null && pwd`
 SCRIPTDIRABS=`cd $mypath 2> /dev/null && pwd -P`
 
-# the directory where all starts
+# the directory where all starts is where we call the script from
 # here we can find project specific directories, eg. config, Docs etc.
-PROJECTDIR=`cd $SCRIPTDIR/.. 2> /dev/null && pwd`
-PROJECTDIRABS=`cd $SCRIPTDIR/.. 2> /dev/null && pwd -P`
+PROJECTDIR=${PWD}
+PROJECTDIRABS=`cd ${PROJECTDIR} 2> /dev/null && pwd -P`
 
-if [ ${CURSYSTEM} == "Windows" ]; then
+if [ ${isWindows} -eq 1 ]; then
 	# get projectdir in native NT drive:path notation
-	PROJECTDIRNT=`cd ${PROJECTDIR} && cmd.exe /c 'cd'`
-	# convert path using only forward slashes...
-	export PROJECTDIRNT
-	PROJECTDIRNT=`awk -v myEnvVar="PROJECTDIRNT" '{}END{ myval=ENVIRON[myEnvVar];gsub("\\\\\\\\", "/", myval); print myval;}' $0`
+	getDosDir "${PROJECTDIR}" "PROJECTDIRNT"
 fi
 
 # check if DEV_HOME contains a trailing slash and append one if not for later comparison
-if [ "${DEV_HOME%/}" == "${DEV_HOME}" ]; then
+if [ "${DEV_HOME%/}" = "${DEV_HOME}" ]; then
 	myDEV_HOME=${DEV_HOME}/
 else
 	myDEV_HOME=${DEV_HOME}
 fi
-if [ -z ${DEV_HOME} ]; then
+if [ -z "${DEV_HOME}" ]; then
 	myDEV_HOME=
 fi
 
-if [ "${PROJECTDIR#${myDEV_HOME}}" == "${PROJECTDIR}" -a "${PROJECTDIRABS#${myDEV_HOME}}" == "${PROJECTDIRABS}" ]; then
+if [ "${PROJECTDIR#${myDEV_HOME}}" = "${PROJECTDIR}" -a "${PROJECTDIRABS#${myDEV_HOME}}" = "${PROJECTDIRABS}" ]; then
 	echo
 	echo "WARNING: DEV_HOME does not point to a parent directory where you currently are!"
 	echo
@@ -78,170 +75,118 @@ fi
 PROJECTNAME=${PROJECTDIR##*/}
 
 # needed in deployable version, points to the directory where wd-binaries are in
-BINDIR=`cd $PROJECTDIR/bin 2> /dev/null && pwd`
+BINDIR=`cd $PROJECTDIR/bin 2>/dev/null && pwd`
 
-# Test the find version (GNU/std) because of different options
-find --version 2> /dev/null
-if [ $? == 0 ]; then
-	FINDOPT="-maxdepth 1 -printf %f"
-	FINDOPT1="-maxdepth 1 -printf %f\n"
-else
-	echo using std-find;
-	FINDOPT="-prune -print"
-	FINDOPT1="-prune -print"
+# directory name of the log directory, may be overwritten in the project specific prjconfig.sh
+SearchJoinedDir "LOGDIR" "$PROJECTDIR" "$PROJECTNAME" "log"
+if [ $? -eq 0 ]; then
+	# failed to get dir, use current dir as log-directory
+	LOGDIR=.;
 fi
 
-# system specific settings
-EXEEXT=""
-DLLEXT=".so"
-if [ ${CURSYSTEM%%-*} == "CYGWIN_NT" ]; then
-	CURSYSTEM=Windows
-	EXEEXT=".exe"
-	DLLEXT=".dll"
-fi
+# directory name of the perftest directory, if any
+SearchJoinedDir "PERFTESTDIR" "$PROJECTDIR" "$PROJECTNAME" "perftest"
 
-# directory name of the log directory, may be overwritten in the project specific config.sh
-# for cases where this find does not point to the correct location
-LOGDIR=`cd $PROJECTDIR && find . -name "$PROJECTNAME*log*" -follow -type d ${FINDOPT}`
-
-# check if we have a logdir yet
-if [ -z $LOGDIR ]; then
-	# appropriate log directory not yet found
-	for dname in `cd $PROJECTDIR && find . -name "*log*" -follow -type d ${FINDOPT1}`; do
-		# take the first we find
-		LOGDIR=${dname};
-		break;
-	done
-fi
-LOGDIR=${LOGDIR##*/}
-
-# check again if the log directory exists or create one if necessary
-if [ -z ${LOGDIR} ]; then
-	LOGDIR=logs;
-fi
+# directory name of the source directory
+SearchJoinedDir "PROJECTSRCDIR" "$PROJECTDIR" "$PROJECTNAME" "src"
 
 # directory name of the config directory
-PERFTESTDIR=`cd $PROJECTDIR && find . -name "$PROJECTNAME*perftest*" -follow -type d ${FINDOPT}`
-
-# check if we have a wd_path yet
-if [ -z $PERFTESTDIR ]; then
-	# appropriate log directory not yet found
-	for dname in `cd $PROJECTDIR && find . -name "*perftest*" -follow -type d ${FINDOPT1}`; do
-		# take the first we find
-		PERFTESTDIR=${dname};
-		break;
-	done
-fi
-PERFTESTDIR=${PERFTESTDIR##*/}
-
-# directory name of the config directory
-IntWD_PATH=`cd $PROJECTDIR && find . -name "$PROJECTNAME*config*" -follow -type d ${FINDOPT}`
-
-# check if we have a wd_path yet
-if [ -z $IntWD_PATH ]; then
-	# appropriate log directory not yet found
-	for dname in `cd $PROJECTDIR && find . -name "*config*" -follow -type d ${FINDOPT1} 2>/dev/null`; do
-		# take the first we find
-		IntWD_PATH=${dname};
-		break;
-	done
-fi
-IntWD_PATH=${IntWD_PATH##*/}
-if [ "$PRINT_DBG" == 1 ]; then
+SearchJoinedDir "IntWD_PATH" "$PROJECTDIR" "$PROJECTNAME" "config"
+if [ $PRINT_DBG -eq 1 ]; then
 	echo "IntWD_PATH ["$IntWD_PATH"]"
 fi
 
 # check if we have a wd_path yet
-if [ -z $WD_PATH ]; then
-	# we do not have a wd_path, copy from IntWD_PATH
-	WD_PATH=".:"${IntWD_PATH}
-	CONFIGDIR=${PROJECTDIR}/${IntWD_PATH}
+if [ -z "$WD_PATH" ]; then
+	# we do not have a wd_path, copy from IntWD_PATH or use . if empty
+	WD_PATH=".";
+	appendPath "WD_PATH" ":" "${IntWD_PATH}"
+	CONFIGDIR=${IntWD_PATH:-.};
 else
-	# we have a wd_path, copy first non-dot segment into IntWD_PATH
+	# we have a wd_path, copy first existing segment into CONFIGDIR
 	tmpWD_PATH=${WD_PATH};
-	tmpSegLast="_dummy_";
-	tmpSegment="";
-	cfgWD_PATH="";
-	while [ ! -z ${tmpWD_PATH} -a "${tmpSegment}" != "${tmpSegLast}" ]; do
-		tmpSegLast=${tmpSegment};
-		tmpSegment=${tmpWD_PATH%%:*};
-		echo "tmpSeg ["${tmpSegment}"]"
-		tmpWD_PATH=${tmpWD_PATH#*:};
-		echo "tmpWD ["${tmpWD_PATH}"]"
-		if [ "${tmpSegment}" != "." -a -d "${PROJECTDIR}/${tmpSegment}" ]; then
-			echo "found valid config path ["${tmpSegment}"]";
-			cfgWD_PATH=${tmpSegment};
-			break;
+	WD_PATH="";
+	oldifs="${IFS}";
+	IFS=":";
+	for segname in ${tmpWD_PATH}; do
+		IFS=$oldifs;
+		if [ $PRINT_DBG -eq 1 ]; then echo "segment is ["$segname"]"; fi
+#		if [ "${segname}" != "." -a -d "${PROJECTDIR}/${segname}" ]; then
+		if [ -d "${segname}" ]; then
+			if [ $PRINT_DBG -eq 1 ]; then echo "found valid config path ["${segname}"]"; fi
+			if [ $PRINT_DBG -eq 1 ]; then echo "wd-path before ["$WD_PATH"]"; fi
+			appendPath "WD_PATH" ":" "${segname}";
+			if [ -z "$CONFIGDIR" ]; then
+				CONFIGDIR=${segname};
+			fi
 		fi
 	done;
-	if [ "$PRINT_DBG" == 1 ]; then
-		echo "cfgWD_PATH ["$cfgWD_PATH"]"
-	fi
-	# check if the path exists, else use the path from above
-	if [ ! -z "${cfgWD_PATH}" -a -d "${PROJECTDIR}/${cfgWD_PATH}" ]; then
-		CONFIGDIR=${PROJECTDIR}/${cfgWD_PATH}
-	else
-		CONFIGDIR=${PROJECTDIR}/${IntWD_PATH}
+
+	# if someone would better like to use the path found in IntWD_PATH instead of the existing
+	#  path in WD_PATH he could add a switch to enable the following code
+	if [ 1 -eq 0 ]; then
+		prependPath "WD_PATH" ":" "${IntWD_PATH}"
+		CONFIGDIR=${IntWD_PATH};
 	fi
 fi
+CONFIGDIRABS=${PROJECTDIR}/${CONFIGDIR};
 
 # try to find out on which machine we are running
 HOSTNAME=`(uname -n) 2>/dev/null` || HOSTNAME="unkown"
 
 # check if bindir could be found, when started in development env this is probably not set
 # and this is why I use some 'hard' assumptions
-if [ -z $BINDIR ]; then
-# BINDIR not set, use development defaults
+if [ -n "$DEV_HOME" -a -z "$BINDIR" ]; then
+	# BINDIR not set, use development defaults
 	BINDIR=${DEV_HOME}/WWW/wdapp
-	BINDIR=`cd ${BINDIR} && pwd`
-	WDS_BIN=${BINDIR}/wdapp${EXEEXT}
-	WDA_BIN=${BINDIR}/wdapp${EXEEXT}
-else
-	BINDIR=`cd ${BINDIR} && pwd`
+fi
+if [ -n "$BINDIR" ]; then
+	BINDIR=`cd ${BINDIR} 2>/dev/null && pwd`
 	WDS_BIN=${BINDIR}/wdapp${EXEEXT}
 	WDA_BIN=${BINDIR}/wdapp${EXEEXT}
 fi
 
-if [ "$1" == "quantify" ]; then
+if [ "$1" = "quantify" ]; then
 	export QUANTIFYOPTIONS="-max_threads=500 $QUANTIFYOPTIONS"
 	WDS_BIN=${WDS_BIN}.quantify
 	WDA_BIN=${WDA_BIN}.quantify
-elif [ "$1" == "purify" ]; then
+elif [ "$1" = "purify" ]; then
 	export PURIFYOPTIONS="-max_threads=500 $PURIFYOPTIONS"
 	WDS_BIN=${WDS_BIN}.purify
 	WDA_BIN=${WDA_BIN}.purify
 fi
 
 # directory where WD-Libs are in
-myLIBDIR=`cd $PROJECTDIR/lib 2> /dev/null && pwd`
-if [ -z ${myLIBDIR} ]; then
+if [ -d "$PROJECTDIR/lib" ]; then
+	myLIBDIR=`cd $PROJECTDIR/lib && pwd`
+fi
+if [ -z "${myLIBDIR}" ]; then
 	# now check if WD_LIBDIR is already set
-	if [ -z ${WD_LIBDIR} ]; then
-		# finally use $DEV_HOME/lib
-		myLIBDIR=${DEV_HOME}/lib
+	if [ -z "${WD_LIBDIR}" ]; then
+		if [ -n "$DEV_HOME" ]; then
+			# finally use $DEV_HOME/lib
+			myLIBDIR=${DEV_HOME}/lib
+		fi
 	else
 		# use WD_LIBDIR
 		myLIBDIR=${WD_LIBDIR}
 	fi
 fi
-if [ ! -z ${myLIBDIR} ]; then
+if [ -n "${myLIBDIR}" ]; then
 	WD_LIBDIR=${myLIBDIR}
 else
-cat <<EOT
-
- WARNING: could not find a library directory, looked in:
- PROJECTDIR/lib: [${PROJECTDIR}/lib]
- WD_LIBDIR     : [${WD_LIBDIR}]
- DEV_HOME/lib  : [${DEV_HOME}/lib]
-
-EOT
+	echo 'WARNING: could not find a library directory, looked in:'
+	echo 'PROJECTDIR/lib: ['${PROJECTDIR}/lib']'
+	echo 'WD_LIBDIR     : ['${WD_LIBDIR}']'
+	echo 'DEV_HOME/lib  : ['${DEV_HOME}/lib']'
 fi
 
-if [ ${CURSYSTEM} == "Windows" ]; then
-	PATH=${WD_LIBDIR}:${PATH}
-	export PATH
+if [ $isWindows -eq 1 ]; then
+	cleanPath "PATH" ":"
+	prependPath "PATH" ":" "${WD_LIBDIR}"
 else
-	LD_LIBRARY_PATH=${WD_LIBDIR}:$LD_LIBRARY_PATH
+	cleanPath "LD_LIBRARY_PATH" ":"
+	prependPath "LD_LIBRARY_PATH" ":" "${WD_LIBDIR}"
 fi
 
 SERVERNAME=$PROJECTNAME
@@ -250,32 +195,28 @@ TARGZNAME=$SERVERNAME.tgz
 ALL_CONFIGS="itopiaOnly"
 
 # in case where we are installing the prjconfig.sh has to be located in the install directory
-if [ ! -f $CONFIGDIR/prjconfig.sh -a ! -f $SCRIPTDIR/prjconfig.sh ]; then
-cat << EOT
---------------------------------------------------
-ERROR:
-project specific config file either in
->> $CONFIGDIR/prjconfig.sh
-or
->> $SCRIPTDIR/prjconfig.sh
-could not be found, thus bailing out...
---------------------------------------------------
-EOT
-exit
+if [ ! -f "$CONFIGDIRABS/prjconfig.sh" -a ! -f "$SCRIPTDIR/prjconfig.sh" ]; then
+	echo ''
+	echo 'WARNING: project specific config file not found'
+	echo ' looked in ['$CONFIGDIRABS/prjconfig.sh']'
+	echo ' looked in ['$SCRIPTDIR/prjconfig.sh']'
+	echo ''
 fi
 
-if [ -f $CONFIGDIR/prjconfig.sh ]; then
-	if [ "$PRINT_DBG" == 1 ]; then
-		echo "loading $CONFIGDIR/prjconfig.sh"
-		echo
+if [ -f "$CONFIGDIRABS/prjconfig.sh" ]; then
+	if [ $PRINT_DBG -eq 1 ]; then
+		echo "loading $CONFIGDIRABS/prjconfig.sh"
+		echo ""
 	fi
-	. $CONFIGDIR/prjconfig.sh
-else
-	if [ "$PRINT_DBG" == 1 ]; then
+	. $CONFIGDIRABS/prjconfig.sh
+	PRJCONFIGPATH=$CONFIGDIRABS
+elif [ -f "$SCRIPTDIR/prjconfig.sh" ]; then
+	if [ $PRINT_DBG -eq 1 ]; then
 		echo "loading $SCRIPTDIR/prjconfig.sh"
-		echo
+		echo ""
 	fi
 	. $SCRIPTDIR/prjconfig.sh
+	PRJCONFIGPATH=$SCRIPTDIR
 fi
 
 # test if the wdapp executable exists, or clear the var if not
@@ -288,13 +229,13 @@ if [ ! -x ${WDS_BIN} ]; then
 	WDS_BIN=
 fi
 
-if [ -z ${PID_FILE} ]; then
+if [ -z "${PID_FILE}" ]; then
 	PID_FILE=$PROJECTDIR/$LOGDIR/$SERVERNAME.PID
 fi
 
 # check if WD_ROOT is already set and if so do not overwrite it but warn about
-if [ -z $WD_ROOT  ]; then
-	if [ ${CURSYSTEM} == "Windows" ]; then
+if [ -z "$WD_ROOT"  ]; then
+	if [ $isWindows -eq 1 ]; then
 		WD_ROOT=${PROJECTDIRNT}
 	else
 		WD_ROOT=${PROJECTDIR}
@@ -303,34 +244,40 @@ else
 	echo "WARNING: WD_ROOT already set ["${WD_ROOT}"]"
 fi
 
-export ALL_CONFIGS BINDIR CONFIGDIR CURSYSTEM HOSTNAME LD_LIBRARY_PATH WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT
+export ALL_CONFIGS BINDIR CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT
 
 # for debugging only
-if [ "$PRINT_DBG" == 1 ]; then
-	echo "PID-file:   $PID_FILE"
-	echo "allconfigs: $ALL_CONFIGS"
-	echo "dfltconfig: $DEF_CONF"
-	echo "bindir:     $BINDIR"
-	echo "configdir:  $CONFIGDIR"
-	echo "cursystem:  $CURSYSTEM"
-	echo "hostname:   $HOSTNAME"
-	echo "libdir:     $WD_LIBDIR"
-	echo "logdir:     $LOGDIR"
-if [ ${CURSYSTEM} == "Windows" ]; then
-	echo "path:       $PATH"
+if [ $PRINT_DBG -eq 1 ]; then
+	echo "PID-file:     $PID_FILE"
+	echo "allconfigs:   $ALL_CONFIGS"
+	echo "dfltconfig:   $DEF_CONF"
+	echo "bindir:       $BINDIR"
+	echo "configdir:    $CONFIGDIR"
+	echo "confgdirabs:  $CONFIGDIRABS"
+	echo "cursystem:    $CURSYSTEM"
+	echo "hostname:     $HOSTNAME"
+	echo "logdir:       $LOGDIR"
+	echo "ostype:       $OSTYPE"
+if [ $isWindows -eq 1 ]; then
+	echo "path:         $PATH"
 else
-	echo "ld_libpath: $LD_LIBRARY_PATH"
+	echo "ld_libpath:   $LD_LIBRARY_PATH"
 fi
-	echo "perftest:   $PERFTESTDIR"
-	echo "prjdesc:    $PRJ_DESCRIPTION"
-	echo "projectdir: $PROJECTDIR"
-	echo "prjdir-abs: $PROJECTDIRABS"
-	echo "projectname:$PROJECTNAME"
-	echo "scriptdir:  $SCRIPTDIR"
-	echo "servername: $SERVERNAME"
-	echo "tar-gz-name:$TARGZNAME"
-	echo "wd_path:    $WD_PATH"
-	echo "wd_root:    $WD_ROOT"
-	echo "wdapp:      $WDA_BIN"
-	echo "wdserver:   $WDS_BIN"
+	echo "perftest:     $PERFTESTDIR"
+	echo "prjconfig in: $PRJCONFIGPATH"
+	echo "prjdesc:      $PRJ_DESCRIPTION"
+	echo "prjdir-abs:   $PROJECTDIRABS"
+	echo "projectdir:   $PROJECTDIR"
+	echo "projectname:  $PROJECTNAME"
+	echo "scriptdir:    $SCRIPTDIR"
+	echo "servername:   $SERVERNAME"
+	echo "sourcedir:    $PROJECTSRCDIR"
+	echo "sys-tmpdir:   $SYS_TMP"
+	echo "tar-gz-name:  $TARGZNAME"
+	echo "usr-tmpdir:   $USR_TMP"
+	echo "wd_libdir:    $WD_LIBDIR"
+	echo "wd_path:      $WD_PATH"
+	echo "wd_root:      $WD_ROOT"
+	echo "wdapp:        $WDA_BIN"
+	echo "wdserver:     $WDS_BIN"
 fi

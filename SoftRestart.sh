@@ -17,7 +17,7 @@ if [ $? -ne 0 ]; then
 	exit 4;
 fi
 
-if [ -f $PID_FILE ]; then
+if [ -f "$PID_FILE" ]; then
 	PID=`cat $PID_FILE`;
 	ps -p ${PID} > /dev/null
 	if [ $? -ne 0 ]; then

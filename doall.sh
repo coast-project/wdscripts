@@ -9,156 +9,207 @@
 #
 ############################################################################
 
-MYNAME=`basename $0 .sh`
+MYNAME=`basename $0`
 
-if [ "$1" == "help" -o "$1" == "?" ] ; then
-cat <<EOT
------------------------------------------------------------------------------------------
-
-usage:
-
-$MYNAME.sh
-<tmpDir>        - default "~/tmp/\$PROJECTNAME" - directory for testable project tree
-<cleanTmpDir>   - [yes|no] - determine whether tmpdir is cleaned
-<configuration> - configure which configuration to use, one of the configs specified in
-                  \$ALL_CONFIGS variable (config.sh or prjconfig.sh)
-<removeOtherCfg>- [0|1] - if 1, slots of other configurations will be removed from
-                  all files touched with editConfig.sh
-<performMake>   - [yes|no] - should a full make be performed?
-<makeArchive>   - [no|yes] - should an installable distribution copy be generated
-<ArchiveDir>    - default "/tmp/\$PROJECTNAME_CD" - directory in which to put
-                  distribution content
-<cleanArchiveDir> [yes|no] - determine whether distribution directory is cleaned before
-                  the run
-<versionSuffix> - suffix appended to the configuration param, could be 1.3opt and
-                  would result in a TKFQA1.3opt subdirectory in the tmpDir directory
-                  (only used when creating a CD distribution)
-
------------------------------------------------------------------------------------------
-EOT
-exit
-fi
-
-# load configuration for current project
-. `dirname $0`/config.sh
-
-if [ $? -ne 0 ]; then
-	printf "configuration with %s failed\n" `dirname $0`/config.sh;
+function showhelp
+{
+	echo ''
+	echo 'usage: '$MYNAME' [ options]'
+	echo 'where options are:'
+	echo ' -a <name>: config which must be defined, multiple definitions allowed'
+	echo ' -t <dir> : directory to put testable project tree in, default is ['$USR_TMP/$PROJECTNAME']'
+	echo ' -u <0|1> : delete testable project directory first, default 1'
+	echo ' -d <0|1> : delete lines of unused configurations from files, default 0 - dont delete just uncomment'
+	echo ' -m <0|1> : set to 1 if a full make should be performed, default is 0 do not make, use existing files'
+	echo ' -c <0|1> : create distribution package, eg. tar-gz, default is 0'
+	echo ' -o <dir> : directory for putting distribution package, default is ['${USR_TMP}/${PROJECTNAME}_CD']'
+	echo ' -p <0|1> : delete distribution package directory first, default is 1'
+	echo ' -v <ver> : suffix for directory name when creating distribution package, appended to config-name (-a param)'
+	echo ' -b       : batch mode, do not ask just go on'
+	echo ' -D : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	echo ''
 	exit 4;
+}
+
+cfg_dobatch=0;
+cfg_tmpdir="";
+cfg_deltmp=1;
+cfg_and="";
+cfg_delete=0;
+cfg_make=0;
+cfg_docd=0;
+cfg_cddir="";
+cfg_cleancd=1;
+cfg_suffix="";
+cfg_dbg=0;
+# process command line options
+while getopts ":a:bt:u:d:m:c:o:p:v:D" opt; do
+	case $opt in
+		a)
+			if [ -n "$cfg_and" ]; then
+				cfg_and=${cfg_and}" ";
+			fi
+			cfg_and=${cfg_and}${OPTARG};
+		;;
+		b)
+			cfg_dobatch=1;
+		;;
+		t)
+			cfg_tmpdir="${OPTARG}";
+		;;
+		u)
+			cfg_deltmp=${OPTARG};
+		;;
+		d)
+			cfg_delete=${OPTARG};
+		;;
+		m)
+			cfg_make=${OPTARG};
+		;;
+		c)
+			cfg_docd=${OPTARG};
+		;;
+		o)
+			cfg_cddir="${OPTARG}";
+		;;
+		p)
+			cfg_cleancd=${OPTARG};
+		;;
+		v)
+			cfg_suffix="${OPTARG}";
+		;;
+		D)
+			# propagating this option to config.sh
+			cfg_opt="-D";
+			cfg_dbg=1;
+		;;
+		\?)
+			showhelp;
+		;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+# check if the caller already used an absolute path to start this script
+DNAM=`dirname $0`
+if [ "$DNAM" = "${DNAM#/}" ]; then
+# non absolute path
+	mypath=`pwd`/$DNAM
+else
+	mypath=$DNAM
 fi
 
-TMPDIR=${1:-~/tmp/$PROJECTNAME}
-DELTMPDIR=${2:-yes}
-CONFFLAG=${3:-${DEF_CONF}}
-RMOTHERCFG=${4:-0}
-COMPILEFLAG=${5:-no}
-MAKEDISTR=${6:-no}
-CDDIR=${7:-/tmp/${PROJECTNAME}_CD}
-DELCDDIR=${8:-yes}
-MAKEFLAG=${9}
+# load global config
+. $mypath/config.sh $cfg_opt
 
-export CONFFLAG
-
-cat <<EOT
--------------------------------------------------
-using following params:
-
-temporary dir for testable prj tree:  $TMPDIR
-delete temporary dir before copying:  $DELTMPDIR
-configuration to use:                 $CONFFLAG  of [${ALL_CONFIGS}]
-removing other configurations         ${RMOTHERCFG}
-compile before copying:               $COMPILEFLAG
-make distribution in CD dir:          $MAKEDISTR
-EOT
-if [ "$MAKEDISTR" == "yes" ]
-then
-echo "directory to put CD files in:         $CDDIR"
-echo "delete CD dir before copying:         $DELCDDIR"
-echo "suffix to configuration:              $MAKEFLAG"
+# test if we need to set some default values
+if [ -z "$cfg_tmpdir" ]; then
+	cfg_tmpdir="${USR_TMP}/${PROJECTNAME}";
 fi
-cat <<EOT
--------------------------------------------------
-
-Continue using the settings above [y|n] (y)?
-EOT
-
-read contin
-if [ "$contin" == "n" ]; then
-	exit
-fi;
-
-cat <<EOT
---------------------------------------------
-$MYNAME - $PRJ_DESCRIPTION
-
-EOT
-if [ "$COMPILEFLAG" == "yes" ]; then echo "* Compiling complete application"; fi
-if [ "$DELTMPDIR" == "yes" ]; then echo "* Deleting contents of temporary directory first"; fi
-echo "* Copying distribution files to $TMPDIR"
-echo "* Editing results for '$CONFFLAG'"
-if [ "$MAKEDISTR" == "yes" ]; then
-	echo "* Assembly of delivery CD directories"
-	if [ "$DELCDDIR" == "yes" ]; then echo "* Deleting contents of CD directory first"; fi
-fi
-cat <<EOT
-
---------------------------------------------
-EOT
-
-if [ "$COMPILEFLAG" == "yes" ]; then
-	echo "Making project in $PROJECTDIR"
-	echo
-	$SCRIPTDIR/BuildProject.sh
+if [ $cfg_docd -eq 1 -a -z "$cfg_cddir" ]; then
+	cfg_cddir="${USR_TMP}/${PROJECTNAME}_CD";
 fi
 
-if [ "$MAKEDISTR" == "yes" ]; then
-	# clean CDDIR if requested
-	if [ "$DELCDDIR" == "yes" -a -d "$CDDIR" ]; then
-		rm -rf $CDDIR
+echo 'using following params:'
+echo ''
+echo 'temporary dir for testable prj tree:  ['$cfg_tmpdir']'
+echo 'delete temporary dir before copying:  '$cfg_deltmp
+echo 'configuration to use:                 ['$cfg_and'] of ['${ALL_CONFIGS}']'
+echo 'removing other configurations         '${cfg_delete}
+echo 'compile before copying:               '$cfg_make
+echo 'make distribution in CD dir:          '$cfg_docd
+
+if [ $cfg_docd -eq 1 ]; then
+	echo 'directory to put CD files in:         ['$cfg_cddir']'
+	echo 'delete CD dir before copying:         '$cfg_cleancd
+	echo 'suffix to configuration:              ['$cfg_suffix']'
+fi
+
+if [ -z "$cfg_and" ]; then
+	echo ''
+	echo 'ERROR: configuration not specified, exiting !'
+	showhelp;
+fi
+
+# if it's not batch-mode ask to continue
+if [ $cfg_dobatch -eq 0 ]; then
+	echo ''
+	echo 'Continue using the settings above [y|n] (y)?'
+	echo ''
+
+	read contin
+	# not empty means that some key was pressed
+	if [ -n "$contin" -a ! "$contin" = "y" ]; then
+		echo 'exiting'
+		exit
+	fi;
+fi
+
+# prepare configuration param, need to add -a before each token
+cfg_toks="";
+for cfgtok in $cfg_and; do
+	if [ $cfg_dbg -eq 1 ]; then echo 'curseg is ['$cfgtok']'; fi
+	cfg_toks=$cfg_toks" -a "$cfgtok;
+done
+cfg_and="$cfg_toks";
+
+echo ''
+echo '------------------------------------------------------------------------'
+echo $MYNAME' - '$PRJ_DESCRIPTION
+echo ''
+
+if [ $cfg_make -eq 1 ]; then echo '* Compiling complete application'; fi
+if [ $cfg_deltmp -eq 1 ]; then echo '* Deleting contents of temporary directory first'; fi
+
+echo '* Copying distribution files to ['$cfg_tmpdir']'
+echo '* Editing results for ['$cfg_and']'
+
+if [ $cfg_docd -eq 1 ]; then
+	echo '* Create distribution package'
+	if [ $cfg_cleancd -eq 1 ]; then echo '* Deleting contents of distribution directory first'; fi
+fi
+echo ''
+
+if [ $cfg_make -eq 1 ]; then
+	echo ' ---- Making project in ['$PROJECTDIR']'
+	$SCRIPTDIR/BuildProject.sh $cfg_opt $cfg_and
+fi
+
+if [ $cfg_docd -eq 1 ]; then
+	echo ' ---- cleaning distribution directory'
+	# clean cfg_cddir if requested
+	if [ $cfg_cleancd -eq 1 -a -d "$cfg_cddir" ]; then
+		rm -rf $cfg_cddir 2>/dev/null
 	fi
-	
 	# create CD directory if it does not yet exist
-	if [ ! -d "$CDDIR" ]; then
-		mkdir -p "$CDDIR"
+	if [ ! -d "$cfg_cddir" ]; then
+		mkdir -p "$cfg_cddir" 2>/dev/null
+		if [ $? -ne 0 ]; then
+			echo 'WARNING: could not create package directory ['$cfg_cddir']'
+			cfg_docd=0;
+		fi
 	fi
 fi
 
 # copy distribution files to temporary directory
-$SCRIPTDIR/cpall.sh "$TMPDIR" "$DELTMPDIR"
+echo ' ---- copying all files'
+$SCRIPTDIR/cpall.sh $cfg_opt -t "$cfg_tmpdir" -d $cfg_deltmp
 
 # use specified configuration to customize some distribution files
-if [ -d "$TMPDIR/config" ]; then
-	$SCRIPTDIR/editConfig.sh "$TMPDIR/config" any "$TMPDIR/$LOGDIR/edit.log" ${RMOTHERCFG} "$CONFFLAG" "'$ALL_CONFIGS'"
-	$SCRIPTDIR/editConfig.sh "$TMPDIR/config" sh "$TMPDIR/$LOGDIR/edit.log" ${RMOTHERCFG} "$CONFFLAG" "'$ALL_CONFIGS'"
-fi
-if [ -d "$TMPDIR/scripts" ]; then
-	$SCRIPTDIR/editConfig.sh "$TMPDIR/scripts" sh "$TMPDIR/$LOGDIR/edit.log" ${RMOTHERCFG} "$CONFFLAG" "'$ALL_CONFIGS'"
-	$SCRIPTDIR/editConfig.sh "$TMPDIR/scripts" awk "$TMPDIR/$LOGDIR/edit.log" ${RMOTHERCFG} "$CONFFLAG" "'$ALL_CONFIGS'"
-	$SCRIPTDIR/editConfig.sh "$TMPDIR/scripts" pl "$TMPDIR/$LOGDIR/edit.log" ${RMOTHERCFG} "$CONFFLAG" "'$ALL_CONFIGS'"
-fi
-if [ -d "$TMPDIR/src" ]; then
-	$SCRIPTDIR/editConfig.sh "$TMPDIR/src" sh "$TMPDIR/$LOGDIR/edit.log" ${RMOTHERCFG} "$CONFFLAG" "'$ALL_CONFIGS'"
-	$SCRIPTDIR/editConfig.sh "$TMPDIR/src" pl "$TMPDIR/$LOGDIR/edit.log" ${RMOTHERCFG} "$CONFFLAG" "'$ALL_CONFIGS'"
-fi
-if [ -d "$TMPDIR/perftest" ]; then
-	$SCRIPTDIR/editConfig.sh "$TMPDIR/perftest" sh "$TMPDIR/$LOGDIR/edit.log" ${RMOTHERCFG} "$CONFFLAG" "'$ALL_CONFIGS'"
-	for subcfgname in `find "$TMPDIR/perftest" -name "*config*" -type d`
-	do
-		$SCRIPTDIR/editConfig.sh "$subcfgname" any "$TMPDIR/$LOGDIR/edit.log" ${RMOTHERCFG} "$CONFFLAG" "'$ALL_CONFIGS'"
-	done
+echo ' ---- editing configs'
+if [ -d "$cfg_tmpdir" ]; then
+	( cd $cfg_tmpdir && $SCRIPTDIR/setConfig.sh -l "$cfg_tmpdir/$LOGDIR/edit.log" -d $cfg_delete $cfg_and $cfg_opt )
 fi
 
-if [ "$MAKEDISTR" == "yes" ]
-then
-	$SCRIPTDIR/mktz.sh "$TMPDIR"
+if [ $cfg_docd -eq 1 ]; then
+	echo ' ---- doing distribution package'
+	$SCRIPTDIR/mktz.sh $cfg_opt -t "$cfg_tmpdir"
 
 	# cp utilities scripts and tar to final cd directory
-	$SCRIPTDIR/finalcp.sh $TMPDIR $CDDIR $CONFFLAG $MAKEFLAG
+	echo ' ---- copying distribution package to distribution dir'
+	$SCRIPTDIR/finalcp.sh $cfg_opt -t "$cfg_tmpdir" -c "$cfg_cddir" $cfg_and -n "$SERVERNAME" -v "$cfg_suffix"
 fi
 
-cat <<EOT
---------------------------------------------
-end $MYNAME - $PRJ_DESCRIPTION
-
---------------------------------------------
-EOT
+echo ''
+echo '------------------------------------------------------------------------'
+echo ''

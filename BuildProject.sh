@@ -9,315 +9,288 @@
 #
 ############################################################################
 
+MYNAME=`basename $0`
+
+function showhelp
+{
+	echo ''
+	echo 'usage: '$MYNAME' [options]'
+	echo 'where options are:'
+	echo ' -b : batch mode, no sleeps for messages'
+	echo ' -l : do not use internal lock-file mechanism'
+	echo ' -m : make the given target(s), default is "clean_targets all"'
+	echo ' -n : do not update the makefiles using SNiFF'
+	echo ' -w <we_pattern> : available WorkingEnvironments are matched against this pattern to'
+	echo '                   automatically select a WorkingEnvironment for compilation'
+	echo '                   if we_pattern is the empty string ("") the first WE will be taken'
+	echo ' -D : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	echo ''
+	exit 4;
+}
+
+cfg_batch=0;
+cfg_nolock=0;
+cfg_noupdate=0;
+cfg_weset=0;
+cfg_makeopt="clean_targets all";
+# process command line options
+while getopts ":blm:nw:D" opt; do
+	case $opt in
+		b)
+			# set variable telling we are in batch mode, disabling sleep calls
+			cfg_batch=1;
+		;;
+		l)
+			# do not use internal lock-file
+			cfg_nolock=1;
+		;;
+		m)
+			# only do the given make targets
+			cfg_makeopt="${OPTARG}";
+			echo 'make targets are ['$cfg_makeopt']'
+		;;
+		n)
+			# do not update makefiles
+			cfg_noupdate=1;
+		;;
+		w)
+			# specify pattern to automatically match a working environment for compilation
+			cfg_wepattern="${OPTARG}"
+			cfg_weset=1;
+			echo 'pattern for we is ['${cfg_wepattern}']'
+		;;
+		D)
+			# propagating this option to config.sh
+			cfg_opt="-D";
+		;;
+		\?)
+			showhelp;
+		;;
+	esac
+done
+shift $(($OPTIND - 1))
+
 DNAM=`dirname $0`
-if [ "$DNAM" == "${DNAM#/}" ]; then
+if [ "${DNAM}" = "${DNAM#/}" ]; then
 # non absolute path
 	mypath=`pwd`/$DNAM
 else
 	mypath=$DNAM
 fi
 
-myname=`whoami`
-
 # load configuration for current project
-. ${mypath}/config.sh
+. ${mypath}/config.sh $cfg_opt
 
-if [ $? -ne 0 ]; then
-	printf "configuration with %s failed\n" ${mypath}/config.sh;
+if [ -z "${SNIFF_DIR}" ]; then
+	echo 'ERROR: variable SNIFF_DIR not set!'
 	exit 4;
 fi
 
-if [ -z ${SNIFF_DIR} ]; then
-	printf "\nERROR: variable SNIFF_DIR not set!\n\n"
-	exit 4;
-fi
+# for SNiFF helper functions
+. ${mypath}/SniffUtils.sh
 
 # try to locate the project
 SNIFFPROJNAME=`cd ${PROJECTDIR} && find . -name "${PROJECTNAME}.shared" -type f ${FINDOPT}`
 
-if [ -z ${SNIFFPROJNAME} ]; then
+if [ -z "${SNIFFPROJNAME}" ]; then
 	echo Looking for ${PROJECTNAME}.shared not successful:
 	echo trying to find SNiFF project "("'*.shared'")" in $PROJECTDIR
 	SNIFFPROJNAME=`cd ${PROJECTDIR} && find . -name "*.shared" -type f ${FINDOPT}`
 fi
 SNIFFPROJNAME=${SNIFFPROJNAME##*/}
 
-if [ -z ${SNIFFPROJNAME} ]; then
-	echo giving up to find SNiFF project
+if [ -z "${SNIFFPROJNAME}" ]; then
+	echo 'giving up to find SNiFF project'
 	exit 4
 fi
 
-export LOCK_FILE=$PROJECTDIR/Build.lock
-export SNIFF_SESSION_ID=${PROJECTNAME}
-# use sniff without display
-export SNIFF_BATCH=1
+if [ $cfg_nolock -eq 0 ]; then
+	LOCK_FILE=$PROJECTDIR/Build.lock
+fi
 
-if [ "${PRINT_DBG}" == 1 ]; then
+SNIFF_SESSION_ID=`echo "${USER}_${PROJECTNAME}" | cut -c-15`
+if [ "${USER}_${PROJECTNAME}" != "$SNIFF_SESSION_ID" ]; then
+	echo 'WARNING: SNIFF_SESSION_ID has been cut to ['$SNIFF_SESSION_ID']';
+fi
+
+if [ ${PRINT_DBG} -eq 1 ]; then
 	echo ""
 	echo "SNIFF_DIR: ["${SNIFF_DIR}"]"
 	echo "SNIFFPROJNAME: ["${SNIFFPROJNAME}"]"
 	echo "LOCK_FILE: ["${LOCK_FILE}"]"
 	echo "SNIFF_SESSION_ID: ["${SNIFF_SESSION_ID}"]"
-	echo "I am: ["${myname}"]"
+	echo "I am: ["${USER}"]"
 fi
 
-if [ -e $LOCK_FILE ] ; then
-	# if the lock file is present someone is already running a build
-	echo "Build is already at work or stuck"
-	echo "Please remove the $LOCK_FILE manually if the build is not running anymore"
-	echo " and start over again"
-	exit 4
+if [ $cfg_nolock -eq 0 ]; then
+	if [ -e $LOCK_FILE ] ; then
+		# if the lock file is present someone is already running a build
+		echo "Build is already at work or stuck"
+		echo "Please remove the $LOCK_FILE manually if the build is not running anymore"
+		echo " and start over again"
+		exit 4
+	fi
 fi
 
-cleanfiles()
+function cleanfiles
 {
-	rm -f $LOCK_FILE;
-	rm -f awkin.foo;
-	rm -f SNiFFupdate.do;
+	if [ $cfg_nolock -eq 0 ]; then
+		rm -f $LOCK_FILE;
+	fi
 }
 
-exitproc()
+function build_exitproc
 {
 	cleanfiles;
-	kill -9 ${mySNIFF_PID};
+	SniffQuit "${SNIFF_SESSION_ID}";
 	exit 4;
 }
 
-trap exitproc INT
-trap exitproc HUP
-trap exitproc TERM
-trap exitproc KILL
+trap build_exitproc INT
+trap build_exitproc HUP
+trap build_exitproc TERM
+trap build_exitproc KILL
 
-touch $LOCK_FILE
+if [ $cfg_nolock -eq 0 ]; then
+	touch $LOCK_FILE
+fi
 
+if [ $cfg_batch -eq 0 ]; then
 cat << EOF
 
-Please make sure the project $SNIFFPROJNAME is not already
+
+============== Building project [$SNIFFPROJNAME] in [$PROJECTDIR] with make options [$cfg_makeopt] ==============
+
+Please make sure the project is not already
 opened in a graphical interactive SNiFF Session. SNiFF needs
 exclusive access to the project while executing commands.
 
 EOF
-sleep 3
-
-#StartSniff because it needs some time to start up
-echo ================== starting SNiFF ======================
-${SNIFF_DIR}/bin/sniff -s ${SNIFF_SESSION_ID} &
-
-mySNIFF_PID=$!
+	sleep 3
+fi
 
 cd ${PROJECTDIR}
 
-# AWK-Script to parse SNIFFs WorkingEnv file (${SNIFF_DIR}/workingenvs/WorkingEnvData.sniff)
-# this is used to find all PrivateWorkingEnvironments
-# for the current user
-cat << EOF > awkin.foo
-BEGIN{
-	RS="WorkingEnv";
-	FS="\\r?\\n";
-	mstr="\\"" usrname "\\"";
-	allwes="";
-	projdir=ENVIRON[myEnvVar];
-	projdir2=ENVIRON[myEnvVar2];
-	if (curOS == "Windows")
-	{
-		projdir=tolower(projdir);
-		projdir2=tolower(projdir2);
-	}
-#	print "newprojdir:[" projdir "]";
-}
-{
-	if (match(\$0,mstr))
-	{
-		for (i=1; i< NF; i++)
-		{
-			# get the WorkingEnv name
-			if (match(\$i,"\\t*Name"))
-			{
-				split(\$i, ARR, "\\"");
-#				print "name is: #" ARR[2] "#";
-				wename=ARR[2];
-			}
-			# get the root of the project
-			if (match(\$i,"\\t*PWS"))
-			{
-				split(\$i, ARR, "\\"");
-#				print "root is: #" ARR[2] "#";
-				if ( curOS == "Windows" && ARR[2] != "\$DEV_HOME")
-					weroot=tolower(ARR[2]);
-				else
-					weroot=ARR[2];
-			}
-			if (match(\$i,"\\t*Platform"))
-			{
-				split(\$i, ARR, "\\"");
-#				print "name is: #" ARR[2] "#";
-				platform=ARR[2];
-			}
-		}
-		if (weroot != "" && (index(projdir, weroot) || index(projdir2, weroot) || weroot == "\$DEV_HOME"))
-		{
-#			print "name: " wename " root: " weroot;
-			allwes = allwes " " wename "&" platform "&" weroot;
-		}
-	}
-}
-END{ print allwes; }
-EOF
-
-if [ ${CURSYSTEM} == "Windows" ]; then
+if [ $isWindows -eq 1 ]; then
 	myPROJPATH=${PROJECTDIRNT}
 	myPROJPATHABS=${PROJECTDIRNT}
 else
 	myPROJPATH=${PROJECTDIR}
 	myPROJPATHABS=${PROJECTDIRABS}
 fi
-export myPROJPATH
-export myPROJPATHABS
 
-# try to give a selection of working environments
-# for this I have to scan ${SNIFF_DIR}/workingenvs/WorkingEnvData.sniff
-userWEs=`awk -v usrname="$myname" -v curOS="${CURSYSTEM}" -v myEnvVar="myPROJPATH" -v myEnvVar2="myPROJPATHABS" -f awkin.foo ${SNIFF_DIR}/workingenvs/WorkingEnvData.sniff`
+SniffGetWorkingEnvsForUser "${USER}" "${myPROJPATH}" "${myPROJPATHABS}" "SNIFF_WORKINGENVS"
 
-if [ "${PRINT_DBG}" == 1 ]; then
-	echo "myPROJPATH: ["${myPROJPATH}"]"
-	echo user: $myname
-	echo projdir: ${PROJECTDIR}
-	echo userWEs: ${userWEs}
-fi
-
-echo
-echo Select the PrivateWorkingEnvironment in which you want to compile "("PWE-Name:RootOfWE")"
-echo
-select wename in ${userWEs} eXit; do
-	if [ "${wename}" == "eXit" ]; then
-		exitproc;
-	fi
-	SNIFFWE=${wename%%\&*}
-	SNIFFWEROOT=${wename##*\&}
-	if [ $SNIFFWEROOT = "\$DEV_HOME" ]; then
-		SNIFFWEROOT=${DEV_HOME}
+if [ $cfg_weset -eq 0 ]; then
+	# interactive mode
+	echo
+	echo Select the PrivateWorkingEnvironment in which you want to compile "("PWE-Name:RootOfWE")"
+	echo
+	select wename in ${SNIFF_WORKINGENVS} eXit; do
+		if [ "${wename}" = "eXit" ]; then
+			build_exitproc;
+		fi
+		SNIFFWE=${wename%%\&*}
+		SNIFFWEROOT=${wename##*\&}
+		SNIFFPLATFORMNAME=${wename%\&*}
+		SNIFFPLATFORMNAME=${SNIFFPLATFORMNAME#*\&}
+		if [ "${SNIFFWEROOT}" = "\$DEV_HOME" ]; then
+			SNIFFWEROOT=${DEV_HOME}
+		fi;
+		break;
+	done
+else
+	tmpwe="";
+	for wename in ${SNIFF_WORKINGENVS}; do
+		if [ -z "${cfg_wepattern}" ]; then
+			# empty pattern selects first WE by default
+			tmpwe=${wename};
+			break;
+		fi
+		# check for pattern match
+		grepret=`echo $wename | grep -c "${cfg_wepattern}"`
+		if [ $grepret -ne 0 ]; then
+			tmpwe=${wename};
+			break;
+		fi
+	done
+	if [ -n "${tmpwe}" ]; then
+		SNIFFWE=${tmpwe%%\&*}
+		SNIFFWEROOT=${tmpwe##*\&}
+		SNIFFPLATFORMNAME=${tmpwe%\&*}
+		SNIFFPLATFORMNAME=${SNIFFPLATFORMNAME#*\&}
+		if [ "${SNIFFWEROOT}" = "\$DEV_HOME" ]; then
+			SNIFFWEROOT=${DEV_HOME}
+		fi;
 	fi;
-	break;
-done
+fi
 
-if [ -z ${SNIFFWE} ]; then
+if [ -z "${SNIFFWE}" ]; then
 	echo "Can not continue without valid WorkingEnvironment!"
-	exitproc
+	build_exitproc
+fi
+if [ "${SNIFFPLATFORMNAME}" = "<default>" ]; then
+	echo 'Can not continue without valid Platform, ['${SNIFFPLATFORMNAME}'] can not be used here!'
+	build_exitproc
 fi
 
 echo
-echo using PWE:${SNIFFWE} in ${SNIFFWEROOT}
+echo using PWE:${SNIFFWE} in ${SNIFFWEROOT} with Platformfile ${SNIFFPLATFORMNAME}
 echo
 
-# don't need to check this on NT
-if [ "${CURSYSTEM}" != "Windows" ]; then
-echo ============ checking if SNiFF is running ==============
-# sniff starts a sniffappcomm process which we can use to check if it started up yet
-loop_counter=1
-max_count=20
-while test $loop_counter -le $max_count; do
-	loop_counter=`expr $loop_counter + 1`
-	grepret=`ps -ef | grep -v "grep" | grep -c "sniffappcomm.*${PROJECTNAME}"`
-	if [ $grepret == 0 ]; then
-		printf ".";
-		sleep 2;
-	else
-		loop_counter=`expr $max_count + 1`;
-		printf ".";
-		sleep 2;
-		printf "\n"
-	fi
-done
-fi
-sleep 5
+if [ $cfg_noupdate -eq 0 ]; then
+	# before we start SNIFF in the first place we remove the project cache
+	# of this WorkingEnvironment (Sniff may get confused on certain changes
+	# otherwise)
+	rm -f ${SNIFF_DIR}/workingenvs/WEProjectCache/${USER}_PWE#${SNIFFWE}
+	# need to change hyphen to underscore for directoryname
+	# but only for the following...?!
+	tmpWEName=`echo ${SNIFFWE} | sed "s/-/_/g"`
+	rm -rf ${SNIFF_DIR}/workingenvs/.snifflock/${USER}_PWE_$tmpWEName
+	rm -rf ${SNIFFWEROOT}/.sniffdb
+	rm -rf ${SNIFFWEROOT}/.ProjectCache
 
-WEROOT=`${SNIFF_DIR}/bin/sniffaccess -s ${SNIFF_SESSION_ID}	get_workingenv_root PWE:${SNIFFWE}`
-# shity sniff, writes the returned value on a new line so we have to skip the characters
-# before the real value, seems that we can use echo for that...
-WEROOT=`echo ${WEROOT}`
-if [ ${CURSYSTEM} == "Windows" ]; then
-	# need to have the root lowercased for comparison
-	WEROOT=`awk -v myval="${WEROOT}" '{}END{print tolower(myval)}' \$0`;
-fi
-if [ "${PRINT_DBG}" == 1 ]; then
-	echo "WEROOT: ["${WEROOT}"]"
-fi
-# cut the root part of the directory to get the part relative to WE_ROOT of SNiFF
-RELSNIFFPROJ=${myPROJPATH#${WEROOT}/}
-if [ "${PRINT_DBG}" == 1 ]; then
-	echo "RELSNIFFPROJ: ["${RELSNIFFPROJ}"]"
+	#StartSniff because it needs some time to start up
+	SniffStart "${SNIFF_SESSION_ID}"
 fi
 
-# setup the sniff commands to execute first
-# these load the WorkingEnvironment and update the makefiles
-cat << EOF > SNiFFupdate.do
-set_timeout 3600  # Timeout set to 1 hour to allow some more growth
-set_workingenv PWE:${SNIFFWE}
-open_project ${RELSNIFFPROJ}/${SNIFFPROJNAME}
-update_makefiles ${SNIFFPROJNAME}
-exit
-EOF
+SniffGetPlatformMakefileNameAndMakeCommand "${SNIFFPLATFORMNAME}" "SNIFF_PLATFORM" "SNIFF_MAKECMD"
+if [ ${PRINT_DBG} -eq 1 ]; then
+	echo "SNIFF_MAKECMD: ["${SNIFF_MAKECMD}"]"
+	echo "SNIFF_PLATFORM: ["${SNIFF_PLATFORM}"]"
+fi
+export PLATFORM=${SNIFF_PLATFORM}
 
-# Update makefiles & make
-echo =============== updating makefiles =====================
-${SNIFF_DIR}/bin/sniffaccess -s ${SNIFF_SESSION_ID}	<SNiFFupdate.do
+if [ -z "${SNIFF_MAKECMD}" ]; then
+	echo "Can not continue without valid MakeCommand from SNiFF-Platform file!"
+	build_exitproc
+fi
 
-# OK here it comes
-echo ================ cleaning targets ======================
-${SNIFF_DIR}/bin/sniffaccess -s ${SNIFF_SESSION_ID} make_project ${SNIFFPROJNAME} clean_targets
-
-echo ========= waiting on sniff cleaning targets ============
-sleep 5
-printf ".";
-loop_counter=1
-max_count=60
-while test $loop_counter -le $max_count; do
-	loop_counter=`expr $loop_counter + 1`
-	if [ ${CURSYSTEM} == "Windows" ]; then
-		grepret=`ps -ef | grep -v "grep" | grep -c "make$"`
-	else
-		grepret=`ps -ef | grep -v "grep" | grep -c "make.*clean_targets$"`
+if [ $cfg_noupdate -eq 0 ]; then
+	# only update makefiles when needed
+	SniffCheckRunning "${SNIFF_SESSION_ID}" "${USER}"
+	retcode=$?
+	if [ $retcode -eq 0 ]; then
+		echo "### SNiFF could not be started within 40s ###"
+		build_exitproc
+		# ? maybe quit sniff here and start it over again ?
 	fi
-	if [ ! $grepret -eq 0 ]; then
-		printf ".";
-		sleep 2;
-	else
-		loop_counter=`expr $max_count + 1`;
-		printf ".";
-		sleep 2;
-		printf "\n"
-	fi
-done
 
-echo =================== making all =========================
-${SNIFF_DIR}/bin/sniffaccess -s ${SNIFF_SESSION_ID} make_project ${SNIFFPROJNAME} all
-echo ============ waiting on sniff making all ===============
-sleep 5
-printf ".";
-loop_counter=1
-max_count=1000
-while test $loop_counter -le $max_count; do
-	loop_counter=`expr $loop_counter + 1`
-	if [ ${CURSYSTEM} == "Windows" ]; then
-		grepret=`ps -ef | grep -v "grep" | grep -c "make$"`
-	else
-		grepret=`ps -ef | grep -v "grep" | grep -c "make.*all$"`
+	# cut the root part of the directory to get the part relative to WE_ROOT of SNiFF
+	RELSNIFFPROJ=${myPROJPATH#${SNIFFWEROOT}/}
+	if [ ${PRINT_DBG} -eq 1 ]; then
+		echo "RELSNIFFPROJ: ["${RELSNIFFPROJ}"]"
 	fi
-	if [ ! $grepret -eq 0 ]; then
-		printf ".";
-		sleep 2;
-	else
-		loop_counter=`expr $max_count + 1`;
-		printf ".";
-		sleep 2;
-		printf "\n"
-	fi
-done
 
-sleep 3
-echo =============== terminating sniff ======================
-${SNIFF_DIR}/bin/sniffaccess -s ${SNIFF_SESSION_ID} close_project ${SNIFFPROJNAME}
-${SNIFF_DIR}/bin/sniffaccess -s ${SNIFF_SESSION_ID} quit
+	SniffOpenProject "${SNIFF_SESSION_ID}" "${RELSNIFFPROJ}" "${SNIFFPROJNAME}" "PWE:${SNIFFWE}"
+	SniffUpdateMakefiles "${SNIFF_SESSION_ID}" "${SNIFFPROJNAME}"
+	SniffCloseProject "${SNIFF_SESSION_ID}" "${SNIFFPROJNAME}"
+
+	SniffQuit "${SNIFF_SESSION_ID}"
+fi
+
+echo "============== making targets ["$cfg_makeopt"] for ["${SNIFFPROJNAME}"]"
+${SNIFF_MAKECMD} $cfg_makeopt
 
 cleanfiles;
 

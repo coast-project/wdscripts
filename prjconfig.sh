@@ -37,13 +37,13 @@ DEF_CONF=DevTest
 #WD_PATH=config
 
 # enable logging on syslog, but do not override existing setting
-if [ -z $WD_DOLOG ]; then
+if [ -z "$WD_DOLOG" ]; then
 	# you shouldn't use this at itopia
 #	export WD_DOLOG=1
 	_foodummy=1	# need a statement in if
 fi
 # enable logging on cerr, but do not override existing setting
-if [ -z $WD_LOGONCERR ]; then
+if [ -z "$WD_LOGONCERR" ]; then
 #	export WD_LOGONCERR=1
 	_foodummy=1	# need a statement in if
 fi

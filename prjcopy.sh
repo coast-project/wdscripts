@@ -13,7 +13,7 @@
 ############################################################################
 
 # NOTE: $TMPDIR/bin already created and generic parts copied (wdserver, wdapp)
-# NOTE: $TMPDIR/config already created and generic parts copied (any, sh)
+# NOTE: $TMPDIR/${CONFIGDIR:-config} already created and generic parts copied (any, sh)
 # NOTE: $TMPDIR/lib already created and generic parts copied (so)
 # NOTE: $TMPDIR/scripts already created and generic parts copied (sh, awk)
 
@@ -23,9 +23,9 @@
 
 # you can modify the following parts, these are here as example
 
-#mkdir $TMPDIR/config/HTMLTemplates
-#mkdir $TMPDIR/config/HTMLTemplates/Localized_D
-#mkdir $TMPDIR/config/images
+#mkdir $TMPDIR/${CONFIGDIR:-config}/HTMLTemplates
+#mkdir $TMPDIR/${CONFIGDIR:-config}/HTMLTemplates/Localized_D
+#mkdir $TMPDIR/${CONFIGDIR:-config}/images
 
 #mkdir $TMPDIR/perftest
 #mkdir $TMPDIR/perftest/config
@@ -37,16 +37,16 @@
 #cp $SSL_DIR/bin/openssl $TMPDIR/bin
 
 # copy everything now
-#cp $CONFIGDIR/images/*  $TMPDIR/config/images
-#cp $CONFIGDIR/HTMLTemplates/*.html $TMPDIR/config/HTMLTemplates
-#cp $CONFIGDIR/HTMLTemplates/Localized_D/*.html $TMPDIR/config/HTMLTemplates/Localized_D
+#cp $CONFIGDIRABS/images/*  $TMPDIR/${CONFIGDIR:-config}/images
+#cp $CONFIGDIRABS/HTMLTemplates/*.html $TMPDIR/${CONFIGDIR:-config}/HTMLTemplates
+#cp $CONFIGDIRABS/HTMLTemplates/Localized_D/*.html $TMPDIR/${CONFIGDIR:-config}/HTMLTemplates/Localized_D
 #cp $PROJECTDIR/ftp_perftest/*.sh $TMPDIR/perftest #perftest stuff
 #cp $PROJECTDIR/ftp_perftest/config/*.sh $TMPDIR/perftest/config #perftest stuff
 #cp $PROJECTDIR/ftp_perftest/config/*.any $TMPDIR/perftest/config #perftest stuff
 
-#chmod 664 $TMPDIR/config/HTMLTemplates/*.html
-#chmod 444 $TMPDIR/config/images/*gif
-#chmod 444 $TMPDIR/config/images/*jpg
+#chmod 664 $TMPDIR/${CONFIGDIR:-config}/HTMLTemplates/*.html
+#chmod 444 $TMPDIR/${CONFIGDIR:-config}/images/*gif
+#chmod 444 $TMPDIR/${CONFIGDIR:-config}/images/*jpg
 
 #copy doc
 #cp $PROJECTDIR/doc/*.txt $TMPDIR/doc

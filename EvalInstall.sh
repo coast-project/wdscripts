@@ -11,7 +11,7 @@
 
 MYNAME=`basename $0 .sh`
 
-if [ "$1" == "?" -o "$1" == "help" ]; then
+if [ "$1" = "?" -o "$1" = "help" ]; then
 	echo
 	echo usage: $MYNAME sourcedir sniff_dir
 	echo
@@ -28,13 +28,13 @@ INSTALLDIRABS=$1
 checkpath()
 {
 	while true; do
-		while [ -z ${PATHVAR} ]; do
+		while [ -z "${PATHVAR}" ]; do
 			printf "%s is undefined. Please enter the new value: " "${PATHVAR_NAME}"
 			read PATHVAR
 		done
-		if [ "${PATHVAR}" == "${PATHVAR#\~}" ]; then
+		if [ "${PATHVAR}" = "${PATHVAR#\~}" ]; then
 			# first char is not ~
-			if [ "${PATHVAR}" == "${PATHVAR#/}" ]; then
+			if [ "${PATHVAR}" = "${PATHVAR#/}" ]; then
 				# first char is not /: rel path
 				if [ -d ${PATHVAR} ]; then
 					PATHVAR=`cd ${PATHVAR} && pwd`
@@ -43,7 +43,7 @@ checkpath()
 				else
 					printf "Directory %s does not exist, create it [y|n](y)?" "${PATHVAR}"
 					read yesno
-					if [ "$yesno" == "n" -o "$yesno" == "N" ]; then
+					if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
 						PATHVAR=
 					else
 						mkdir -p "${PATHVAR}"
@@ -57,7 +57,7 @@ checkpath()
 				else
 					printf "Directory %s does not exist, create it [y|n](y)?" "${PATHVAR}"
 					read yesno
-					if [ "$yesno" == "n" -o "$yesno" == "N" ]; then
+					if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
 						PATHVAR=
 					else
 						mkdir -p "${PATHVAR}"
@@ -73,7 +73,7 @@ checkpath()
 			else
 				printf "Directory %s does not exist, create it [y|n](y)?" "${PATHVAR}"
 				read yesno
-				if [ "$yesno" == "n" -o "$yesno" == "N" ]; then
+				if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
 					PATHVAR=
 				else
 					mkdir -p "${PATHVAR}"
@@ -134,7 +134,7 @@ printf "up. The current user name for which this would be set up is [%s].\n" "${
 printf "If you want to change the user enter another user name or press RETURN to keep it.\n"
 printf ">"
 read NEWUSER
-if [ -z ${NEWUSER} ]; then
+if [ -z "${NEWUSER}" ]; then
 	NEWUSER=${USER}
 fi
 cat <<EOT
@@ -176,7 +176,7 @@ Continue extracting the sources [y|n] (y)?
 EOT
 
 read yesno
-if [ "$yesno" == "n" -o "$yesno" == "N" ]; then
+if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
 	exit
 fi
 
@@ -287,7 +287,7 @@ echo ""
 echo "do you want to proceed [y|n] (y)?"
 
 read yesno
-if [ "$yesno" == "n" -o "$yesno" == "N" ]; then
+if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
 	exit
 fi
 
@@ -306,7 +306,7 @@ do you want to proceed [y|n] (y)?
 EOT
 
 read yesno
-if [ "$yesno" == "n" -o "$yesno" == "N" ]; then
+if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
 	exit
 fi
 

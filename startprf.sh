@@ -18,7 +18,7 @@ if [ $? -ne 0 ]; then
 	exit 4;
 fi
 
-if [ ! -z ${PERFTESTDIR} ]; then
+if [ ! -z "${PERFTESTDIR}" ]; then
 	# find all config directories and give a selection
 	select cfgdir in `cd ${PROJECTDIR}/${PERFTESTDIR} && find . -name "*config*" -type d`; do
 		selectedcfg=$cfgdir

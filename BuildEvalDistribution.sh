@@ -12,7 +12,7 @@
 
 MYNAME=`basename $0 .sh`
 
-if [ "$1" == "help" -o "$1" == "?" ] ; then
+if [ "$1" = "help" -o "$1" = "?" ] ; then
 cat <<EOT
 -----------------------------------------------------------------------------------------
 
@@ -35,7 +35,7 @@ OUTFILE=WebDisplay2_${CURDATE}${cmprsext}
 
 # check if the caller already used an absolute path to start this script
 DNAM=`dirname $0`
-if [ "$DNAM" == "${DNAM#/}" ]; then
+if [ "$DNAM" = "${DNAM#/}" ]; then
 # non absolute path
 	mypath=`pwd`/$DNAM
 else
@@ -44,7 +44,7 @@ fi
 # points to the directory where the scripts reside
 SCRIPTDIR=`cd $mypath 2> /dev/null && pwd`
 
-exitproc()
+function exitproc
 {
 	rm -f ${TMPDIR}/${packfiles}
 	rm -f ${TMPDIR}/_repl.sed
@@ -56,16 +56,16 @@ trap exitproc HUP
 trap exitproc TERM
 trap exitproc KILL
 
-checkpath()
+function checkpath
 {
 	while true; do
-		while [ -z ${PATHVAR} ]; do
+		while [ -z "${PATHVAR}" ]; do
 			printf "%s is undefined. Please enter the new value: " "${PATHVAR_NAME}"
 			read PATHVAR
 		done
-		if [ "${PATHVAR}" == "${PATHVAR#\~}" ]; then
+		if [ "${PATHVAR}" = "${PATHVAR#\~}" ]; then
 			# first char is not ~
-			if [ "${PATHVAR}" == "${PATHVAR#/}" ]; then
+			if [ "${PATHVAR}" = "${PATHVAR#/}" ]; then
 				# first char is not /: rel path
 				if [ -d ${PATHVAR} ]; then
 					PATHVAR=`cd ${PATHVAR} && pwd`
@@ -74,7 +74,7 @@ checkpath()
 				else
 					printf "Directory %s does not exist, create it [y|n](n)?" "${PATHVAR}"
 					read yesno
-					if [ "$yesno" == "y" -o "$yesno" == "Y" ]; then
+					if [ "$yesno" = "y" -o "$yesno" = "Y" ]; then
 						mkdir -p "${PATHVAR}"
 					else
 						PATHVAR=
@@ -88,7 +88,7 @@ checkpath()
 				else
 					printf "Directory %s does not exist, create it [y|n](n)?" "${PATHVAR}"
 					read yesno
-					if [ "$yesno" == "y" -o "$yesno" == "Y" ]; then
+					if [ "$yesno" = "y" -o "$yesno" = "Y" ]; then
 						mkdir -p "${PATHVAR}"
 					else
 						PATHVAR=
@@ -104,7 +104,7 @@ checkpath()
 			else
 				printf "Directory %s does not exist, create it [y|n](n)?" "${PATHVAR}"
 				read yesno
-				if [ "$yesno" == "y" -o "$yesno" == "Y" ]; then
+				if [ "$yesno" = "y" -o "$yesno" = "Y" ]; then
 					mkdir -p "${PATHVAR}"
 				else
 					PATHVAR=
@@ -138,7 +138,7 @@ Continue using the settings above [y|n] (y)?
 EOT
 
 read contin
-if [ "$contin" == "n" ]; then
+if [ "$contin" = "n" ]; then
 	exit
 fi;
 

@@ -10,7 +10,7 @@
 ############################################################################
 
 MYNAME=`basename $0 .sh`
-if [ "$1" == "help" -o "$1" == "?" ] ; then
+if [ "$1" = "help" -o "$1" = "?" ] ; then
 	echo
 	echo "usage: $MYNAME [CDdir]"
 	echo
@@ -40,8 +40,8 @@ EOT
 # to do issues - autotag each CD burning
 # and add new version number, edit into Any.
 
-$SCRIPTDIR/doall.sh ~/tmp/$PROJECTNAME yes TKFQA 1 no yes $CDDIR yes 1.1dbg		# use current files
-#$SCRIPTDIR/doall.sh ~/tmp/$PROJECTNAME yes TKFQA 1 yes yes $CDDIR yes 1.1dbg		# compile before copying
+$SCRIPTDIR/doall.sh -a "TKFQA" -d 1 -c 1 -o "$CDDIR" -v "1.1dbg"		# use current files
+#$SCRIPTDIR/doall.sh -a "TKFQA" -d 1 -c 1 -o "$CDDIR" -v "1.1dbg" -m 1	# compile before copying
 
 cat <<EOT
 --------------------------------------------

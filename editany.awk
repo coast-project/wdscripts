@@ -11,77 +11,95 @@
 #   all_config    : specifies all configurations
 #   logfile       : file where changed files are logged
 #   forceDeletion : (0|1) specifies if nonconfigured lines should be deleted
+#   comment       : specify commenting string, default '#'
 #
 ############################################################################
-function switchIT( CURRENTLINE, OPTION, DELFLAG ) { 	
-	dd = CURRENTLINE;
-	printf("we want [%s], current is [%s] in line: [%s]%s", set_config, OPTION, dd, ORS) >> logfile;
-
-	# if TKF set as input and option is TKF
-	# if itopia set as input and option is itopia
-	if ( OPTION == set_config ) 
-	{
-		printf(" writing [") >> logfile;
-		#print "set was " set_config " and it matched" >> logfile
-		if ( 0 !~ n = index( $1, "#" ) )
-		{
-			# remove first comment from line
-			sub( /#/, "", dd )
-	 	}
-		DELFLAG = 0;	
-	}
-	else
-	{
-		#print "set was " set_config " and it did not match" >> logfile
-		# if no comment at start of line..
-		if ( 0 ~ n = index( $1, "#" ) )
-		{
-			# add comment
-			dd = "#" $0
-	 	}	
-		if ( DELFLAG ~ 0 )
-			printf(" disabling [") >> logfile;
-		else
-			printf(" deleting [") >> logfile;
-	}
-
-	# sometimes resulting line should be suppressed
-	if ( DELFLAG ~ 0 )
-	{
-		print dd
-	}
-	printf("%s] %s", dd, ORS) >> logfile;
-}
-BEGIN {
-	# strip leading and trailing '
-	gsub("'","",all_config);
-	n_configs=split(all_config,ALL_CFG);
-}
+function checkMatch(line, cfg_and, doAnd, patternStart, patternEnd, patternSet, bmatch, nAnds, ANDCFG)
 {
-	if (match($0,"#"))
+	patternStart="[ \t]";
+	patternEnd="([ \t]|[ \t]*$)?";
+	bmatch=0;
+	if (match(line,comment))
 	{
-		patternStart="^.*[^ \t].*#[^#]*[ \t]";
-		patternEnd="([ \t]|$)";
-		patternSet = patternStart set_config patternEnd;
-		if (match($0,patternSet))
+		nAnds=split(cfg_and, ANDCFG);
+		for (i in ANDCFG)
 		{
-			switchIT( $0, set_config, forceDeletion );
-			next;
-		} else {	
-			for (i in ALL_CFG)
+			#if (doLog) print "  testing ["ANDCFG[i]"]" >> logfile;
+			patternSet = patternStart ANDCFG[i] patternEnd;
+			if (match(line,patternSet))
 			{
-				dis_config = patternStart ALL_CFG[i] patternEnd;
-				if (match($0,dis_config))
+				bmatch=1;
+				# if OR mode, terminate as soon as it matches
+				if (!doAnd)
 				{
-					# if it's the one to set don't look any further
-					switchIT( $0, ALL_CFG[i], forceDeletion );
-					next;
+					break;
+				}
+			}
+			else
+			{
+				bmatch=0;
+				# if AND mode, terminate as soon as it does not match
+				if (doAnd)
+				{
+					break;
 				}
 			}
 		}
 	}
+	return bmatch;
+}
+function enableLine(line)
+{
+	# only remove the first hash on line if we have at least two of them
+	if (match(line, "^[ \t]*" comment ".*" comment))
+	{
+		sub(comment, "", line );
+		if (doLog) print " enabling  ["line"]" >> logfile;
+		bChanges++;
+	}
+	print line;
+}
+function disableLine(line, doDel)
+{
+	if (doDel)
+	{
+		# nothing but logging to do
+		if (doLog) print " deleting  ["line"]" >> logfile;
+		bChanges++;
+	}
+	else
+	{
+		# only add hash if there is none
+		if (!match(line, "^[ \t]*" comment))
+		{
+			line = comment line;
+			if (doLog) print " disabling ["line"]" >> logfile;
+			bChanges++;
+		}
+		print line;
+	}
+}
+BEGIN {
+	# strip leading and trailing '
+	gsub("'","",all_config);
+	bChanges=0;
+	doLog=0;
+	if (logfile != "")
+		doLog=1;
+	if (comment == "")
+		comment="#";
+}
+{
+	if (checkMatch($0, set_config, 1))
+	{
+		enableLine($0);
+		next;	# read next inputline
+	}
+	else if (checkMatch($0, all_config, 0))
+	{
+		disableLine( $0, forceDeletion );
+		next;	# read next inputline
+	}
 	print $0;
 }
- 
- 
-END { close( logfile ) }
+END { if (doLog) close( logfile ); exit bChanges; }

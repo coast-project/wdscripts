@@ -37,8 +37,8 @@ function WaitOnTermination
 	max_count=30
 	while test $loop_counter -le $max_count; do
 		loop_counter=`expr $loop_counter + 1`
-		if [ -f $PID_FILE ] ; then
-			if [ "${CURSYSTEM}" == "Windows" ]; then
+		if [ -f "$PID_FILE" ] ; then
+			if [ $isWindows -eq 1 ]; then
 				# use -q to suppress output and exit with 0 when matched
 				ps -ef | grep -q "${PID}.*${WDS_BIN}"
 			else
@@ -53,16 +53,16 @@ function WaitOnTermination
 			sleep 2
 		else
 			printf "%s\n" "done"
-			printf  "%s on %s with pid %s...stopped\n" ${SERVERNAME} ${HOSTNAME} ${PID} >> $PROJECTDIR/$LOGDIR/server.msg;
 			date +'---- [%a %b %e %T %Z %Y] ----' >> $PROJECTDIR/$LOGDIR/server.msg;
+			printf  "%s on %s with pid %s...stopped\n" ${SERVERNAME} ${HOSTNAME} ${PID} >> $PROJECTDIR/$LOGDIR/server.msg;
 			exit 0
 		fi
 	done
 }
 
-if [ -f $PID_FILE ]; then
+if [ -f "$PID_FILE" ]; then
 	PID=`cat $PID_FILE`;
-	if [ "${CURSYSTEM}" == "Windows" ]; then
+	if [ $isWindows -eq 1 ]; then
 		# use -q to suppress output and exit with 0 when matched
 		ps -ef | grep -q "${PID}.*${WDS_BIN}"
 	else

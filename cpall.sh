@@ -12,97 +12,179 @@
 #
 ############################################################################
 
-MYNAME=`basename $0 .sh`
-if [ -z $1 ]; then
-	echo
-	echo "usage: $MYNAME tempdir [deletefirst(yes|no)]"
-	echo
-	exit 0;
-fi
+MYNAME=`basename $0`
 
-TMPDIR=$1
-DELTMPDIR=${2:-no}
-
-shift
-
-# load configuration for current project
-. `dirname $0`/config.sh
-
-if [ $? -ne 0 ]; then
-	printf "configuration with %s failed\n" `dirname $0`/config.sh;
+function showhelp
+{
+	echo ''
+	echo 'usage: '$MYNAME' [ options]'
+	echo 'where options are:'
+	echo ' -t <dir> : directory to put testable project tree in, default is ['$USR_TMP/$PROJECTNAME']'
+	echo ' -d <0|1> : delete testable project directory first, default 1'
+	echo ' -D : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	echo ''
 	exit 4;
+}
+
+cfg_tmpdir="";
+cfg_deltmp=1;
+cfg_dbg=0;
+# process command line options
+while getopts ":t:d:D" opt; do
+	case $opt in
+		t)
+			cfg_tmpdir="${OPTARG}";
+		;;
+		d)
+			cfg_deltmp=${OPTARG};
+		;;
+		D)
+			# propagating this option to config.sh
+			cfg_opt="-D";
+			cfg_dbg=1;
+		;;
+		\?)
+			showhelp;
+		;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+# check if the caller already used an absolute path to start this script
+DNAM=`dirname $0`
+if [ "$DNAM" = "${DNAM#/}" ]; then
+# non absolute path
+	mypath=`pwd`/$DNAM
+else
+	mypath=$DNAM
 fi
 
-cat <<EOT
---------------------------------------------------
-$MYNAME - $PRJ_DESCRIPTION
+# load global config
+. $mypath/config.sh $cfg_opt
 
-Making temporary directories under $TMPDIR/
-where deployed files are temporarily stored
---------------------------------------------------
-EOT
+echo ''
+echo '------------------------------------------------------------------------'
+echo $MYNAME' - '$PRJ_DESCRIPTION
+echo ''
+echo 'Making temporary directories in ['$cfg_tmpdir']'
+echo ''
 
 # clean temporary dir if specified
-if [ "$DELTMPDIR" == "yes" -a -d "$TMPDIR" ]; then
-	rm -rf $TMPDIR
+if [ $cfg_deltmp -eq 1 -a -d "$cfg_tmpdir" ]; then
+	echo ' ---- Cleaning temporary directory'
+	rm -rf $cfg_tmpdir 2>/dev/null
 fi
 
 # create temporary directory if it does not yet exist
-if [ ! -d "$TMPDIR" ]; then
-	mkdir -p "$TMPDIR"
+if [ ! -d "$cfg_tmpdir" ]; then
+	mkdir -p "$cfg_tmpdir" 2>/dev/null
+	if [ $? -ne 0 ]; then
+		echo 'ERROR: creation of ['$cfg_tmpdir'] failed, exiting!'
+		exit 4;
+	fi
 fi
+
+# need to export TMPDIR variable because it is needed from other scripts...
+export TMPDIR=$cfg_tmpdir
 
 ###########################################################################
 #
 # create and copy generic things which should be common to all projects
 # especially scripts and configuration
 
-mkdir $TMPDIR/bin
-mkdir $TMPDIR/config
-mkdir $TMPDIR/lib
-mkdir $TMPDIR/scripts
-mkdir $TMPDIR/${LOGDIR}
-
-if [ -f $WDS_BIN ]; then cp $WDS_BIN $TMPDIR/bin; fi
-if [ -f $WDA_BIN ]; then cp $WDA_BIN $TMPDIR/bin; fi
-
-cp $CONFIGDIR/*.sh $TMPDIR/config
-cp $CONFIGDIR/*.any $TMPDIR/config
-
-chmod 664 $TMPDIR/config/*any
-chmod 775 $TMPDIR/config/*sh
-
-#copy scripts
-cp $PROJECTDIR/src/*.sh $TMPDIR/scripts
-cp $PROJECTDIR/src/*.pl $TMPDIR/scripts
-cp $SCRIPTDIR/*.sh $TMPDIR/scripts
-cp $SCRIPTDIR/*.pl $TMPDIR/scripts
-cp $SCRIPTDIR/*.awk $TMPDIR/scripts
-chmod 775 $TMPDIR/scripts/*sh
-chmod 775 $TMPDIR/scripts/*pl
-chmod 664 $TMPDIR/scripts/*awk
-
-# cp lib entries
-cp ${WD_LIBDIR}/*${DLLEXT} $TMPDIR/lib
-
-# now let the project specific subscript copy its additional things
-
-if [ ! -f $CONFIGDIR/prjcopy.sh ]; then
-cat << EOT
---------------------------------------------------
-ERROR:
-project specific copy file
->> $CONFIGDIR/prjcopy.sh
-could not be found, thus copying only generic part
---------------------------------------------------
-EOT
+echo ' ---- Making project directories'
+if [ "$LOGDIR" = "." ]; then
+	tmpLogDir=logs
 else
-. $CONFIGDIR/prjcopy.sh
+	tmpLogDir=${LOGDIR}
 fi
 
-cat <<EOT1
---------------------------------------------
-$MYNAME - $PRJ_DESCRIPTION
-End
---------------------------------------------
-EOT1
+for mkdirname in $cfg_tmpdir/bin $cfg_tmpdir/${CONFIGDIR:-config} $cfg_tmpdir/lib $cfg_tmpdir/scripts $cfg_tmpdir/$tmpLogDir; do
+	printf "  --- %-8s [%s] ... " "mkdir" "$mkdirname"
+	mkdir $mkdirname 2>/dev/null
+	if [ $? -eq 0 ]; then
+		printf "done\n"
+	else
+		printf "failed\n"
+	fi
+done
+
+echo ' ---- Copying binaries'
+for cpfilname in $WDS_BIN $WDA_BIN; do
+	if [ -f "$cpfilname" -a -x "$cpfilname" ]; then
+		printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
+		cp $cpfilname $cfg_tmpdir/bin 2>/dev/null
+		if [ $? -eq 0 ]; then
+			printf "done\n"
+		else
+			printf "failed\n"
+		fi
+	fi
+done
+# copy libraries
+for cpfilname in ${WD_LIBDIR}/*${DLLEXT}; do
+	if [ -f "$cpfilname" -a -x "$cpfilname" ]; then
+		printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
+		cp $cpfilname $cfg_tmpdir/lib 2>/dev/null
+		if [ $? -eq 0 ]; then
+			printf "done\n"
+		else
+			printf "failed\n"
+		fi
+	fi
+done
+
+echo ' ---- Copying config files'
+oldifs="$IFS";
+IFS=":";
+for cfgseg in $WD_PATH; do
+	IFS=$oldifs;
+	for cpfilname in $PROJECTDIR/$cfgseg/*.sh $PROJECTDIR/$cfgseg/*.any; do
+		if [ -f "$cpfilname" ]; then
+			printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
+			cp $cpfilname $cfg_tmpdir/${CONFIGDIR:-config} 2>/dev/null
+			if [ $? -eq 0 ]; then
+				printf "done\n"
+			else
+				printf "failed\n"
+			fi
+		fi
+	done
+done;
+
+echo ' ---- Changing mode of config files'
+chmod 664 $cfg_tmpdir/${CONFIGDIR:-config}/*any 2>/dev/null
+chmod 775 $cfg_tmpdir/${CONFIGDIR:-config}/*sh 2>/dev/null
+
+echo ' ---- Copying scripts'
+for cpfilname in $PROJECTSRCDIR/*.sh $PROJECTSRCDIR/*.pl $SCRIPTDIR/*.sh $SCRIPTDIR/*.pl $SCRIPTDIR/*.awk; do
+	if [ -f "$cpfilname" ]; then
+		printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
+		cp $cpfilname $cfg_tmpdir/scripts 2>/dev/null
+		if [ $? -eq 0 ]; then
+			printf "done\n"
+		else
+			printf "failed\n"
+		fi
+	fi
+done
+echo ' ---- Changing mode of script files'
+chmod 775 $cfg_tmpdir/scripts/*sh 2>/dev/null
+chmod 775 $cfg_tmpdir/scripts/*pl 2>/dev/null
+chmod 664 $cfg_tmpdir/scripts/*awk 2>/dev/null
+
+# now let the project specific subscript copy its additional things
+if [ ! -f "$CONFIGDIRABS/prjcopy.sh" ]; then
+	echo ''
+	echo 'WARNING:'
+	echo ' project specific copy file ['$CONFIGDIRABS/prjcopy.sh']'
+	echo ' could not be found, thus copying only generic part'
+	echo ''
+else
+	echo ' ---- Executing project specific prjcopy.sh'
+	. $CONFIGDIRABS/prjcopy.sh
+fi
+
+echo ''
+echo '------------------------------------------------------------------------'
+echo ''

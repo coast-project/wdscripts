@@ -27,7 +27,7 @@ dir=${UPDATEDIRS%%:*}
 CVSFLAGS=${CVSFLAGS:-"-A -d"}
 
 # the webdisplay2 core directories
-WDCORE=${WDCORE:-"WWW/webdisplay2 WWW/wdserver WWW/wdapp testfw scripts WWW/perfTest"}
+WDCORE=${WDCORE:-"WWW/webdisplay2 WWW/wdapp testfw scripts WWW/perfTest"}
 
 # any additional project directories
 WDPROJS=${WDPROJS:-""}
