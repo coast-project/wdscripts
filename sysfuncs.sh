@@ -39,8 +39,15 @@ if [ ${isWindows} -eq 1 ]; then
 fi
 
 # Test the find version (GNU/std) because of different options
-find --version 2>/dev/null 1>/dev/null
+FINDEXE=find
+gfind --version >/dev/null 2>&1
 if [ $? -eq 0 ]; then
+	# we found a gnu find
+	FINDEXE=gfind
+fi
+$FINDEXE --version >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+	# we found a gnu find
 	FINDOPT="-maxdepth 1 -printf %f"
 	FINDOPT1="-maxdepth 1 -printf %f\n"
 else
@@ -101,12 +108,12 @@ function SearchJoinedDir
 	local pathsep=${5:-:};
 	local tmppath="";
 	# search for a 'compound' directory name in the given directory
-	tmppath=`cd $testpath && find . -name "${firstseg}*${lastseg}*" -follow -type d ${FINDOPT}`;
+	tmppath=`cd $testpath && $FINDEXE . -name "${firstseg}*${lastseg}*" -follow -type d ${FINDOPT}`;
 
 	# check if we have found a directory yet
 	if [ -z "$tmppath" ]; then
 		# directory not yet found, only search with last segment specifier
-		for dname in `cd $testpath && find . -name "*${lastseg}*" -follow -type d ${FINDOPT1}`; do
+		for dname in `cd $testpath && $FINDEXE . -name "*${lastseg}*" -follow -type d ${FINDOPT1}`; do
 			# take the first we find
 			if [ -n "$tmppath" ]; then
 				tmppath="${tmppath}${pathsep}";
@@ -259,7 +266,7 @@ function selectDevelopDir
 	echo ""
 	echo "Where Do you want to develop today?"
 	echo ""
-	select myenv in `cd && find -path "./DEV*" ${FINDOPT1}`
+	select myenv in `cd && $FINDEXE -path "./DEV*" ${FINDOPT1}`
 	do
 		# use pwd -P to follow links and get 'real' directory
 		# especially needed for windows! but shouldn't matter for Unix
