@@ -126,8 +126,8 @@ if [ $cfg_nolock -eq 0 ]; then
 	if [ -e $LOCK_FILE ] ; then
 		# if the lock file is present someone is already running a build
 		echo "Build is already at work or stuck"
-		echo "Please remove the $LOCK_FILE manually if the build is not running anymore"
-		echo " and start over again"
+		echo "Contents of the $LOCK_FILE are:"
+		cat $LOCK_FILE
 		exit 4
 	fi
 fi
@@ -152,7 +152,9 @@ trap build_exitproc TERM
 trap build_exitproc KILL
 
 if [ $cfg_nolock -eq 0 ]; then
-	touch $LOCK_FILE
+	local TIME_STAMP=`date +%Y%m%d%H%M`
+	echo "users: $LOGNAME" > ${LOCK_FILE}
+	echo "started on ${TIME_STAMP}" >> ${LOCK_FILE}
 fi
 
 if [ $cfg_batch -eq 0 ]; then
@@ -282,11 +284,7 @@ if [ $cfg_noupdate -eq 0 ]; then
 		echo "RELSNIFFPROJ: ["${RELSNIFFPROJ}"]"
 	fi
 
-	SniffOpenProject "${SNIFF_SESSION_ID}" "${RELSNIFFPROJ}" "${SNIFFPROJNAME}" "PWE:${SNIFFWE}"
-	SniffUpdateMakefiles "${SNIFF_SESSION_ID}" "${SNIFFPROJNAME}"
-	SniffCloseProject "${SNIFF_SESSION_ID}" "${SNIFFPROJNAME}"
-
-	SniffQuit "${SNIFF_SESSION_ID}"
+	SniffOpenUpdateCloseQuitProject "${SNIFF_SESSION_ID}" "${RELSNIFFPROJ}" "${SNIFFPROJNAME}" "PWE:${SNIFFWE}"
 fi
 
 echo "============== making targets ["$cfg_makeopt"] for ["${SNIFFPROJNAME}"]"

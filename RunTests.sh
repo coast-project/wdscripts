@@ -8,7 +8,9 @@ function showhelp
 	echo 'usage: '$MYNAME' [options] -- TestName...'
 	echo 'where options are:'
 	echo ' -a <config> : config which you want to switch to, multiple definitions allowed'
+	echo ' -e          : enable error-logging to console, default no logging'
 	echo ' -m <mailaddr> : mail address of test output receiver'
+	echo ' -s          : enable error-logging into SysLog, eg. /var/[adm|log]/messages, default no logging into SysLog'
 	echo ' -D          : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo 'where TestName is:'
 	echo ' -all        : do all tests of this suite'
@@ -21,8 +23,10 @@ cfg_and="";
 cfg_opt="";
 cfg_dbg=0;
 cfg_mailaddr="";
+cfg_errorlog=0;
+cfg_syslog=0;
 # process command line options
-while getopts ":a:m:-D" opt; do
+while getopts ":a:em:s-D" opt; do
 	case $opt in
 		a)
 			if [ -n "$cfg_and" ]; then
@@ -30,8 +34,14 @@ while getopts ":a:m:-D" opt; do
 			fi
 			cfg_and=${cfg_and}${OPTARG};
 		;;
+		e)
+			cfg_errorlog=1;
+		;;
 		m)
 			cfg_mailaddr="${OPTARG}";
+		;;
+		s)
+			cfg_syslog=1;
 		;;
 		D)
 			# propagating this option to config.sh
@@ -89,6 +99,14 @@ fi
 
 # now prepare the test configuration, do not log changes to file
 $mypath/setConfig.sh $cfg_opt $cfg_toks -l /dev/null
+
+# enable logging if wanted
+if [ $cfg_errorlog -eq 1 ]; then
+	export WD_LOGONCERR=1;
+fi
+if [ $cfg_syslog -eq 1 ]; then
+	export WD_DOLOG=1;
+fi
 
 # do the tests now
 if [ -f "${cfg_subscript}" ]; then

@@ -105,6 +105,7 @@ if [ -z "$WD_PATH" ]; then
 else
 	# we have a wd_path, copy first existing segment into CONFIGDIR
 	tmpWD_PATH=${WD_PATH};
+	CONFIGDIR="";
 	WD_PATH="";
 	oldifs="${IFS}";
 	IFS=":";
@@ -212,6 +213,7 @@ if [ -f "$CONFIGDIRABS/prjconfig.sh" ]; then
 	PRJCONFIGPATH=$CONFIGDIRABS
 elif [ -f "$SCRIPTDIR/prjconfig.sh" ]; then
 	if [ $PRINT_DBG -eq 1 ]; then
+		echo "configuration/project specific $CONFIGDIRABS/prjconfig.sh not found!"
 		echo "loading $SCRIPTDIR/prjconfig.sh"
 		echo ""
 	fi

@@ -79,6 +79,7 @@ function getDosDir
 # param $2 is the path where we search
 # param $3 is the name of the beginning segment
 # param $4 is the name of the ending segment
+# param $5, optional, is the field separator when all segments found are required
 #
 # returning 1 if it the path was found, 0 otherwise
 #
@@ -93,22 +94,30 @@ function SearchJoinedDir
 	local testpath=${2};
 	local firstseg=${3};
 	local lastseg=${4};
+	local showalldirs=0;
+	if [ -n "$5" ]; then
+		showalldirs=1;
+	fi;
+	local pathsep=${5:-:};
 	local tmppath="";
-	# directory name of the log directory, may be overwritten in the project specific config.sh
-	# for cases where this find does not point to the correct location
+	# search for a 'compound' directory name in the given directory
 	tmppath=`cd $testpath && find . -name "${firstseg}*${lastseg}*" -follow -type d ${FINDOPT}`;
 
-	# check if we have a logdir yet
+	# check if we have found a directory yet
 	if [ -z "$tmppath" ]; then
-		# appropriate log directory not yet found
+		# directory not yet found, only search with last segment specifier
 		for dname in `cd $testpath && find . -name "*${lastseg}*" -follow -type d ${FINDOPT1}`; do
 			# take the first we find
-			tmppath="${dname}";
-			break;
+			if [ -n "$tmppath" ]; then
+				tmppath="${tmppath}${pathsep}";
+			fi;
+			# strip trailing slash
+			tmppath="${tmppath}${dname##*/}";
+			if [ $showalldirs -eq 0 ]; then
+				break;
+			fi;
 		done
 	fi
-	# strip trailing slash
-	tmppath="${tmppath##*/}";
 	if [ -z "${tmppath}" ]; then
 		return 0;
 	else

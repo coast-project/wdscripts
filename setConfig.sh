@@ -91,7 +91,8 @@ if [ -z "${cfg_filename}" ]; then
 fi
 
 # if the file prjconfig exists, first switch it - it might contain switchable data - and then re-source the config.sh
-if [ -d "$PRJCONFIGPATH" -a -f "$PRJCONFIGPATH/prjconfig.sh" ]; then
+# but only switch it if its not the generic one
+if [ "$PRJCONFIGPATH" != "$SCRIPTDIR" -a -d "$PRJCONFIGPATH" -a -f "$PRJCONFIGPATH/prjconfig.sh" ]; then
 	echo ' - switching prjconfig.sh'
 	$SCRIPTDIR/editConfig.sh -p "$PRJCONFIGPATH" -e 'prjconfig.sh' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
 	echo ' - re-sourcing config.sh'

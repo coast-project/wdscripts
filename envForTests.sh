@@ -28,8 +28,8 @@ case "${CURSYSTEM}" in
 		if [ -z "${LDAP_DIR}" ]; then
 			export LDAP_DIR=/home/ldap/ldap41
 		fi
-		DO_CHECKOUT=${DO_CHECKOUT}" WWW/fds"
-		DO_PROJECTS=${DO_PROJECTS}" WWW/fds"
+		DO_CHECKOUT=${DO_CHECKOUT}" WWW/fds WWW/ftpFrontdoor"
+		DO_PROJECTS=${DO_PROJECTS}" WWW/fds WWW/ftpFrontdoor"
 	;;
 	Linux)
 		export DATE_EXEC=date
@@ -72,25 +72,26 @@ fi
 
 if [ "${USER}" = "wdtester" ]; then
 	export BUILD_OUTPUT_DIR=/home/wdtester/DailyBuildOutput
+	export LOCK_FILE=${SCRIPTDIR}/Build.${HOSTNAME}.lock
 else
 	export BUILD_OUTPUT_DIR=${DEV_HOME}/DailyBuildOutput
+	export LOCK_FILE=${DEV_HOME}/Build.${HOSTNAME}.lock
 fi
 # test if logfile directory already exists
 if [ ! -d "${BUILD_OUTPUT_DIR}" ]; then
 	mkdir -p ${BUILD_OUTPUT_DIR};
 fi
- 
-export LOCK_FILE=${SCRIPTDIR}/Build.${CURSYSTEM}.lock
-export LOGFILENAME=wdtestmake.${CURSYSTEM}
-export FAILUREFILENAME=TodaysFailures.${CURSYSTEM}
-export RESULTFILENAME=DailyBuildResult.${CURSYSTEM}
+
+export LOGFILENAME=wdtestmake.${HOSTNAME}
+export FAILUREFILENAME=TodaysFailures.${HOSTNAME}
+export RESULTFILENAME=DailyBuildResult.${HOSTNAME}
 export LOGFILE=${LOGFILE:-${BUILD_OUTPUT_DIR}/${LOGFILENAME}.${TIME_STAMP}}
 export FAILURE_FILE=${BUILD_OUTPUT_DIR}/${FAILUREFILENAME}.${TIME_STAMP}
 export RESULTFILE=${BUILD_OUTPUT_DIR}/${RESULTFILENAME}.${TIME_STAMP}
-export ATRAXISLOGFILE=${LOGFILE:-${BUILD_OUTPUT_DIR}/wdtestmake.Atraxis.${CURSYSTEM}.${TIME_STAMP}}
+export ATRAXISLOGFILE=${LOGFILE:-${BUILD_OUTPUT_DIR}/wdtestmake.Atraxis.${HOSTNAME}.${TIME_STAMP}}
 
-export WDTEST_ERRFILE=/tmp/wdtests.${USER}.cerr
-export WDTEST_OUTFILE=/tmp/wdtests.${USER}.cout
+export WDTEST_ERRFILE=${BUILD_OUTPUT_DIR}/wdtests.${HOSTNAME}.${TIME_STAMP}.cerr
+export WDTEST_OUTFILE=${BUILD_OUTPUT_DIR}/wdtests.${HOSTNAME}.${TIME_STAMP}.cout
 
 prependPath "LD_LIBRARY_PATH" ":" "${LDAP_DIR}/lib"
 prependPath "LD_LIBRARY_PATH" ":" "${WD_LIBDIR}"

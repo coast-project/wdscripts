@@ -72,7 +72,7 @@ fi
 cd ${DEV_HOME}/WWW/${NewProjectName}
 ln -s $DEV_HOME/scripts scripts
 
-# remark - im Moment gibt es nur einen Projekttyp (Standard). Weitere k÷nnten dann als zus„tzliche 
+# remark - im Moment gibt es nur einen Projekttyp (Standard). Weitere könnten dann als zusätzliche 
 # Unterverzeichnisse definiert werden.
 echo "i am in: ["`pwd`"]"
 tar cf - -C $SNIFF_ITOPIA_TEMPLATES/ProjectTemplate/$Project_Type . | tar xf -

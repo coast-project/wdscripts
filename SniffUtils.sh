@@ -1,6 +1,3 @@
-# temporary file in which to store sniffaccess-scripts
-SNIFFSCRIPT=./doSniffUpdate.${CURSYSTEM}
-
 # use sniff without display
 export SNIFF_BATCH=1
 
@@ -20,12 +17,10 @@ function SniffStart
 function SniffQuit
 {
 	echo "================== quitting SNiFF ["$1"]  ===================="
-cat <<EOT >${SNIFFSCRIPT}
+	${SNIFF_DIR}/bin/sniffaccess -s $1 <<EOT
 set_timeout 20
 quit
 EOT
-	${SNIFF_DIR}/bin/sniffaccess -s $1 <${SNIFFSCRIPT}
-	rm -f ${SNIFFSCRIPT}
 }
 
 # param $1 is the SNiFF session id
@@ -65,51 +60,19 @@ function SniffCheckRunning
 # param $2 is the WE-relative path to the project
 # param $3 is the projectname including extension, eg. myProject.shared
 # param $4 is the WE-name, like PWE:LinuxWWW
-function SniffOpenProject
+function SniffOpenUpdateCloseQuitProject
 {
 	local prjdir=$2
 	local prjname=$3
 	echo "=============== loading project ["${prjname}"] in dir ["${prjdir}"]"
-cat <<EOT >${SNIFFSCRIPT}
+	$SNIFF_DIR/bin/sniffaccess -s $1 <<EOT
 set_timeout 3600
 set_workingenv $4
 open_project ${prjdir}/${prjname}
-exit
-EOT
-	$SNIFF_DIR/bin/sniffaccess -s $1 <${SNIFFSCRIPT}
-	rm -f ${SNIFFSCRIPT}
-}
-
-# param $1 is the SNiFF session id
-# param $2 is the projectname including extension, eg. myProject.shared
-function SniffUpdateMakefiles
-{
-	local prjname=$2
-	echo "=============== updating makefiles for ["${prjname}"]"
-	# update_makefiles is a blocking access
-cat <<EOT >${SNIFFSCRIPT}
-set_timeout 3600
 update_makefiles ${prjname}
-exit
-EOT
-	${SNIFF_DIR}/bin/sniffaccess -s $1 <${SNIFFSCRIPT}
-	rm -f ${SNIFFSCRIPT}
-}
-
-# param $1 is the SNiFF session id
-# param $2 is the projectname including extension, eg. myProject.shared
-function SniffCloseProject
-{
-	local prjname=$2
-	echo "=============== closing project ["${prjname}"]"
-	# close_project is a blocking access
-cat <<EOT >${SNIFFSCRIPT}
-set_timeout 120
 close_project ${prjname}
-exit
+quit
 EOT
-	${SNIFF_DIR}/bin/sniffaccess -s $1 <${SNIFFSCRIPT}
-	rm -f ${SNIFFSCRIPT}
 }
 
 # param $1 is the name of the user, usually $USER or $LOGNAME

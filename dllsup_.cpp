@@ -65,7 +65,7 @@ BOOL WINAPI	DllMain(HANDLE hinstDLL,	// DLL module handle
 			break;
 	}
 
-	return TRUE;
+	return true;
 	UNREFERENCED_PARAMETER(hinstDLL);
 	UNREFERENCED_PARAMETER(lpvReserved);
 }

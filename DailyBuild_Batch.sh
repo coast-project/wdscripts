@@ -70,7 +70,7 @@ if [ $retCode -eq 0 ]; then
 	# there seems to be no errors of the tests but...
 	if [ ! -e "$FAILURE_FILE" ]; then
 		# ...nothing, everything is fine
-		${DATE_EXEC} > ${DEV_HOME}/LastSuccessfulBuildTest.${CURSYSTEM}
+		${DATE_EXEC} > ${DEV_HOME}/LastSuccessfulBuildTest.${HOSTNAME}
 		# ... but still leave a trace of the successful tests
 		mailSubject=$mailHostPattern": HOORAY, builds and tests OK";
 		${MAIL_PRG} -s "${mailSubject}" $SENDER_EMAIL "$tester_email"  < ${RESULTFILE}

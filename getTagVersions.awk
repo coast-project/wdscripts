@@ -2,8 +2,8 @@
 #  Grundlage ist ein mit 'cvs status -v' erzeugtes file
 #
 # Parameter:
-#  sep    : eigener separator m÷glich anstelle von Space " "
-#  width  : Breite der ersten Spalte sonst so breit wie n÷tig
+#  sep    : eigener separator möglich anstelle von Space " "
+#  width  : Breite der ersten Spalte sonst so breit wie nötig
 #
 # Beispiele von Ausgabetexten
 # BPC386WIN.HX v1_85 (1.1)

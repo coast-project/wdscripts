@@ -1,7 +1,7 @@
 //Any:AnyPrettyIO 
 ProjectAttributes (
 	DependenciesFile   : "dependencies.incl",
-	FileCount          : 63,
+	FileCount          : 60,
 	FileSet            : array (
 		"SoftRestart.sh",
 		"config.sh",
@@ -62,10 +62,7 @@ ProjectAttributes (
 		"dllsup.sh",
 		"dllsup_.cpp",
 		"dllsup_.h",
-		"dllsup_class.awk",
-		"getTagVersion.awk",
-		"getVersion.sh",
-		"swconfig.sh"
+		"dllsup_class.awk"
 	),
 	FileTypes          : struct (
 		Anything            : File_Types_Info (

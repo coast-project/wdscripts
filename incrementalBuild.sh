@@ -111,16 +111,18 @@ if [ -e ${LOCK_FILE} ]; then
 	# if the return of find is the empty string the lockfile was not older than we expected so exit
 	nRET=`find ${LOCK_FILE} -cmin +240 -exec rm -f {} \; -print`
 	if [ -z "$nRET" ]; then
-		echo "Build is already at work: $LOCK_FILE exists " 
+		echo "Build is already at work: $LOCK_FILE exists and contains:"
+		cat $LOCK_FILE;
 		exit 4
 	else
-		echo BROKE LOCK and running build now
+		echo 'BROKE LOCK and running build now'
 	fi
 fi
 
 Result=1;
-echo "users email: $1" > ${LOCK_FILE}
-echo "started on ${TIME_STAMP}" >> ${LOCK_FILE}
+echo "given email: $cfg_mailaddr" > ${LOCK_FILE}
+echo "user name  : $LOGNAME" >> ${LOCK_FILE}
+echo "started    : ${TIME_STAMP}" >> ${LOCK_FILE}
 
 function exitproc
 {
