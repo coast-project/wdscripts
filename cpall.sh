@@ -83,7 +83,7 @@ chmod 775 $TMPDIR/scripts/*pl
 chmod 664 $TMPDIR/scripts/*awk
 
 # cp lib entries
-cp $LIBDIR/*${DLLEXT} $TMPDIR/lib
+cp ${WD_LIBDIR}/*${DLLEXT} $TMPDIR/lib
 
 # now let the project specific subscript copy its additional things
 

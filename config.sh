@@ -150,7 +150,7 @@ IntWD_PATH=${IntWD_PATH##*/}
 if [ "$PRINT_DBG" == 1 ]; then
 	echo "IntWD_PATH ["$IntWD_PATH"]"
 fi
- 
+
 # check if we have a wd_path yet
 if [ -z $WD_PATH ]; then
 	# we do not have a wd_path, copy from IntWD_PATH
@@ -185,9 +185,6 @@ else
 	fi
 fi
 
-# directory where WD-Libs are in
-LIBDIR=`cd $PROJECTDIR/lib 2> /dev/null && pwd`
-
 # try to find out on which machine we are running
 HOSTNAME=`(uname -n) 2>/dev/null` || HOSTNAME="unkown"
 
@@ -215,19 +212,36 @@ elif [ "$1" == "purify" ]; then
 	WDA_BIN=${WDA_BIN}.purify
 fi
 
-# check if libdir could be found, when started in development env this is probably not set
-if [ -z $LIBDIR ]; then
-	LIBDIR=$DEV_HOME/lib
-else
-	LD_LIBRARY_PATH=
+# directory where WD-Libs are in
+myLIBDIR=`cd $PROJECTDIR/lib 2> /dev/null && pwd`
+if [ -z ${myLIBDIR} ]; then
+	# now check if WD_LIBDIR is already set
+	if [ -z ${WD_LIBDIR} ]; then
+		# finally use $DEV_HOME/lib
+		myLIBDIR=${DEV_HOME}/lib
+	else
+		# use WD_LIBDIR
+		myLIBDIR=${WD_LIBDIR}
+	fi
 fi
-LIBDIR=`cd ${LIBDIR} && pwd`
+if [ ! -z ${myLIBDIR} ]; then
+	WD_LIBDIR=${myLIBDIR}
+else
+cat <<EOT
+
+ WARNING: could not find a library directory, looked in:
+ PROJECTDIR/lib: [${PROJECTDIR}/lib]
+ WD_LIBDIR     : [${WD_LIBDIR}]
+ DEV_HOME/lib  : [${DEV_HOME}/lib]
+
+EOT
+fi
 
 if [ ${CURSYSTEM} == "Windows" ]; then
-	PATH=${LIBDIR}:${PATH}
+	PATH=${WD_LIBDIR}:${PATH}
 	export PATH
 else
-	LD_LIBRARY_PATH=$LIBDIR:$LD_LIBRARY_PATH
+	LD_LIBRARY_PATH=${WD_LIBDIR}:$LD_LIBRARY_PATH
 fi
 
 SERVERNAME=$PROJECTNAME
@@ -289,7 +303,7 @@ else
 	echo "WARNING: WD_ROOT already set ["${WD_ROOT}"]"
 fi
 
-export ALL_CONFIGS BINDIR CONFIGDIR CURSYSTEM HOSTNAME LD_LIBRARY_PATH LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT
+export ALL_CONFIGS BINDIR CONFIGDIR CURSYSTEM HOSTNAME LD_LIBRARY_PATH WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT
 
 # for debugging only
 if [ "$PRINT_DBG" == 1 ]; then
@@ -300,7 +314,7 @@ if [ "$PRINT_DBG" == 1 ]; then
 	echo "configdir:  $CONFIGDIR"
 	echo "cursystem:  $CURSYSTEM"
 	echo "hostname:   $HOSTNAME"
-	echo "libdir:     $LIBDIR"
+	echo "libdir:     $WD_LIBDIR"
 	echo "logdir:     $LOGDIR"
 if [ ${CURSYSTEM} == "Windows" ]; then
 	echo "path:       $PATH"
