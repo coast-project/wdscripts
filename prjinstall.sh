@@ -11,7 +11,7 @@
 # do additional things here
 # check install.sh for an overview of pre defined variables
 
-cd $cfg_pathparent
+cd $cfg_path
 
 # creating log directories
 if [ -d ${LOGDIR}/rotate ]; then
