@@ -28,7 +28,7 @@ function showhelp
 
 cfg_tmpdir="";
 cfg_and="";
-cfg_cddir="";
+cfg_pkgdir="";
 cfg_suffix="";
 cfg_dirname="";
 cfg_name="";
@@ -49,7 +49,7 @@ while getopts ":a:n:t:c:v:D" opt; do
 			cfg_tmpdir="${OPTARG}";
 		;;
 		c)
-			cfg_cddir="${OPTARG}";
+			cfg_pkgdir="${OPTARG}";
 		;;
 		v)
 			cfg_suffix="${OPTARG}";
@@ -86,7 +86,7 @@ if [ -z "$cfg_tmpdir" ]; then
 	echo 'ERROR: you have to specify the directory with the compressed distribution files, exiting !'
 	showhelp;
 fi
-if [ -z "$cfg_cddir" ]; then
+if [ -z "$cfg_pkgdir" ]; then
 	echo 'ERROR: you have to specify the destination directory, exiting !'
 	showhelp;
 fi
@@ -94,14 +94,34 @@ if [ -z "$cfg_name" ]; then
 	cfg_name="${TARGZNAME%.*}";
 fi
 
-cfg_dirname=${cfg_and}${cfg_suffix};
+cfg_dirname=${cfg_and};
+if [ -n "${cfg_suffix}" ]; then
+	cfg_dirname=${cfg_dirname}_${cfg_suffix};
+fi
 
 echo ''
 echo '------------------------------------------------------------------------'
 echo $MYNAME' - '$PRJ_DESCRIPTION
 echo ''
 
-INSTALLDIR=$cfg_cddir/${cfg_dirname}
+INSTALLDIR=$cfg_pkgdir/${cfg_dirname}
+
+# check if directory exists and ask to delete
+if [ -d "$INSTALLDIR" ]; then
+	echo ''
+	echo 'Package directory ['$INSTALLDIR'] already exists!'
+	echo 'Delete it [y|n] (y)?'
+	echo ''
+
+	read contin
+	# not empty means that some key was pressed
+	if [ -n "$contin" -a ! "$contin" = "y" ]; then
+		echo 'exiting due to existing destination directory ['$INSTALLDIR']'
+		exit
+	fi;
+	( cd $INSTALLDIR && rm -rf * >/dev/null 2>&1 );
+	rmdir $INSTALLDIR;
+fi
 
 mkdir -p $INSTALLDIR 2>/dev/null
 if [ $? -ne 0 ]; then
@@ -145,7 +165,11 @@ done
 rm -f $cfg_tmpdir/$TARGZNAME 2>/dev/null
 
 # creating final tar file for delivery
-( cd $INSTALLDIR && tar cf ${cfg_name}_${cfg_suffix}.tar * )
+cfg_tarfilename=${cfg_name}_${cfg_and};
+if [ -n "${cfg_suffix}" ]; then
+	cfg_tarfilename=${cfg_tarfilename}_${cfg_suffix};
+fi
+( cd $INSTALLDIR && tar cf ${cfg_tarfilename}.tar * )
 
 echo ''
 echo '------------------------------------------------------------------------'

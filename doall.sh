@@ -33,8 +33,8 @@ function showhelp
 	echo ' -c <0|1>    : create distribution package, eg. tar-gz, default is 0'
 	echo ' -d <0|1>    : delete lines of unused configurations from files, default 0 - do not delete just uncomment'
 	echo ' -m <0|1>    : set to 1 if a full make should be performed, default is 0 do not make, use existing files'
-	echo ' -o <dir>    : directory for putting distribution package, default is ['$locTmp/${locSrv}_CD']'
-	echo ' -p <0|1>    : delete distribution package directory first, default is 1'
+	echo ' -o <dir>    : directory for putting distribution package, default is ['$locTmp/${locSrv}_PKG']'
+	echo ' -p <0|1>    : delete distribution package directory first, default is 0'
 	echo ' -t <dir>    : directory to put testable project tree in, default is ['$locTmp/${locSrv}']'
 	echo ' -u <0|1>    : delete testable project directory first, default 1'
 	echo ' -v <ver>    : suffix for directory name when creating distribution package, appended to config-name (-a param)'
@@ -52,8 +52,8 @@ cfg_toks="";
 cfg_delete=0;
 cfg_make=0;
 cfg_docd=0;
-cfg_cddir="";
-cfg_cleancd=1;
+cfg_pkgdir="";
+cfg_cleancd=0;
 cfg_suffix="";
 cfg_dbg=0;
 # process command line options
@@ -80,7 +80,7 @@ while getopts ":a:bc:d:m:o:p:t:u:v:C:D" opt; do
 			cfg_make=${OPTARG};
 		;;
 		o)
-			cfg_cddir="${OPTARG}";
+			cfg_pkgdir="${OPTARG}";
 		;;
 		p)
 			cfg_cleancd=${OPTARG};
@@ -128,8 +128,8 @@ if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 if [ -z "$cfg_tmpdir" ]; then
 	cfg_tmpdir="${USR_TMP}/${SERVERNAME:-$PROJECTNAME}";
 fi
-if [ $cfg_docd -eq 1 -a -z "$cfg_cddir" ]; then
-	cfg_cddir="${USR_TMP}/${SERVERNAME:-$PROJECTNAME}_CD";
+if [ $cfg_docd -eq 1 -a -z "$cfg_pkgdir" ]; then
+	cfg_pkgdir="${USR_TMP}/${SERVERNAME:-$PROJECTNAME}_PKG";
 fi
 
 echo 'using following params:'
@@ -139,11 +139,11 @@ echo 'delete temporary dir before copying:  '$cfg_deltmp
 echo 'configuration to use:                 ['$cfg_toks'] of ['${ALL_CONFIGS}']'
 echo 'removing other configurations         '${cfg_delete}
 echo 'compile before copying:               '$cfg_make
-echo 'make distribution in CD dir:          '$cfg_docd
+echo 'make distribution in package dir:     '$cfg_docd
 
 if [ $cfg_docd -eq 1 ]; then
-	echo 'directory to put CD files in:         ['$cfg_cddir']'
-	echo 'delete CD dir before copying:         '$cfg_cleancd
+	echo 'directory to put package files in:    ['$cfg_pkgdir']'
+	echo 'delete package dir before copying:    '$cfg_cleancd
 	echo 'suffix to configuration:              ['$cfg_suffix']'
 fi
 
@@ -185,15 +185,15 @@ fi
 
 if [ $cfg_docd -eq 1 ]; then
 	echo ' ---- cleaning distribution directory'
-	# clean cfg_cddir if requested
-	if [ $cfg_cleancd -eq 1 -a -d "$cfg_cddir" ]; then
-		rm -rf $cfg_cddir 2>/dev/null
+	# clean cfg_pkgdir if requested
+	if [ $cfg_cleancd -eq 1 -a -d "$cfg_pkgdir" ]; then
+		rm -rf $cfg_pkgdir 2>/dev/null
 	fi
 	# create CD directory if it does not yet exist
-	if [ ! -d "$cfg_cddir" ]; then
-		mkdir -p "$cfg_cddir" 2>/dev/null
+	if [ ! -d "$cfg_pkgdir" ]; then
+		mkdir -p "$cfg_pkgdir" 2>/dev/null
 		if [ $? -ne 0 ]; then
-			echo 'WARNING: could not create package directory ['$cfg_cddir']'
+			echo 'WARNING: could not create package directory ['$cfg_pkgdir']'
 			cfg_docd=0;
 		fi
 	fi
@@ -215,7 +215,7 @@ if [ $cfg_docd -eq 1 ]; then
 
 	# cp utilities scripts and tar to final cd directory
 	echo ' ---- copying distribution package to distribution dir'
-	$SCRIPTDIR/finalcp.sh $cfg_opt -t "$cfg_tmpdir" -c "$cfg_cddir" $cfg_and -n "$SERVERNAME" -v "$cfg_suffix"
+	$SCRIPTDIR/finalcp.sh $cfg_opt -t "$cfg_tmpdir" -c "$cfg_pkgdir" $cfg_and -n "$SERVERNAME" -v "$cfg_suffix"
 fi
 
 echo ''
