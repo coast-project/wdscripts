@@ -11,6 +11,15 @@
 
 MYNAME=`basename $0`
 
+# check if the caller already used an absolute path to start this script
+DNAM=`dirname $0`
+if [ "$DNAM" = "${DNAM#/}" ]; then
+# non absolute path
+	mypath=`pwd`/$DNAM
+else
+	mypath=$DNAM
+fi
+
 function showhelp
 {
 	echo ''
@@ -84,20 +93,12 @@ while getopts ":a:bt:u:d:m:c:o:p:v:D" opt; do
 			cfg_dbg=1;
 		;;
 		\?)
+			. $mypath/config.sh $cfg_opt;
 			showhelp;
 		;;
 	esac
 done
 shift $(($OPTIND - 1))
-
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
 
 # load global config
 . $mypath/config.sh $cfg_opt
