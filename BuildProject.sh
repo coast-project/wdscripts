@@ -139,7 +139,7 @@ BEGIN{
 			{
 				split(\$i, ARR, "\\"");
 #				print "root is: #" ARR[2] "#";
-				if ( curOS == "Windows" )
+				if ( curOS == "Windows" && ARR[2] != "\$DEV_HOME")
 					weroot=tolower(ARR[2]);
 				else
 					weroot=ARR[2];
@@ -151,7 +151,7 @@ BEGIN{
 				platform=ARR[2];
 			}
 		}
-		if (weroot != "" && (index(projdir, weroot) || index(projdir2, weroot)))
+		if (weroot != "" && (index(projdir, weroot) || index(projdir2, weroot) || weroot == "\$DEV_HOME"))
 		{
 #			print "name: " wename " root: " weroot;
 			allwes = allwes " " wename "&" platform "&" weroot;
@@ -191,6 +191,9 @@ select wename in ${userWEs} eXit; do
 	fi
 	SNIFFWE=${wename%%\&*}
 	SNIFFWEROOT=${wename##*\&}
+	if [ $SNIFFWEROOT = "\$DEV_HOME" ]; then
+		SNIFFWEROOT=${DEV_HOME}
+	fi;
 	break;
 done
 
