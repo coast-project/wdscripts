@@ -26,7 +26,7 @@ shift
 
 cat << EOT
 ------------------------------------
-$MYNAME - switching configurations in $path
+$MYNAME - switching configurations to $3 in $path
 ------------------------------------
 EOT
 
