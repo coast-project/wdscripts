@@ -24,7 +24,7 @@ function showhelp
 {
 	local locTmp=`. $mypath/config.sh; echo $USR_TMP;`;
 	local locSrv=`. $mypath/config.sh; echo ${SERVERNAME:-$PROJECTNAME};`;
-	local locPrjDir=` . $mypath/config.sh ; echo $PROJECTDIR`;
+	local locPrjDir=`. $mypath/config.sh; echo $PROJECTDIR`;
 	echo ''
 	echo 'usage: '$MYNAME' [options]'
 	echo 'where options are:'
@@ -177,6 +177,17 @@ if [ $cfg_docd -eq 1 ]; then
 	if [ $cfg_cleancd -eq 1 ]; then echo '* Deleting contents of distribution directory first'; fi
 fi
 echo ''
+ 
+############################
+# here we start do do things
+
+# check if a function called preDoallFunc is defined and call it
+typeset -f | grep "function.*preDoallFunc" >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+	# there is such a function, now call it
+	echo ' ---- calling preDoallFunc'
+	preDoallFunc
+fi
 
 if [ $cfg_make -eq 1 ]; then
 	echo ' ---- Making project in ['$PROJECTDIR']'
