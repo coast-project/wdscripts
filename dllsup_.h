@@ -1,14 +1,13 @@
 /*
- * Copyright (c) 1999-2000 itopia
- * All Rights Reserved
+ * Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
+ * All rights reserved.
  *
- * $Id$
+ * This library/application is free software; you can redistribute and/or modify it under the terms of
+ * the license that is included with this library/application in the file license.txt.
  */
 
 #ifndef _CONFIG_TMPL_H
 #define _CONFIG_TMPL_H
-
-#define config_TMPL_H_ID "itopia, ($Id$)"
 
 // WIN32 settings for Windows NT
 #if defined(WIN32)

@@ -1,15 +1,10 @@
 /*
- * Copyright (c) 2000 itopia
- * All Rights Reserved
+ * Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
+ * All rights reserved.
  *
- * initialization of tmpl library
- *
- * $Id$
+ * This library/application is free software; you can redistribute and/or modify it under the terms of
+ * the license that is included with this library/application in the file license.txt.
  */
-
-#ifdef __GNUG__
-	#pragma implementation
-#endif
 
 //--- c-library modules used ---------------------------------------------------
 #if defined(WIN32)
@@ -22,14 +17,6 @@
 
 //--- interface include --------------------------------------------------------
 #include "config_tmpl.h"
-
-static char static_c_rcs_id[] = "itopia, ($Id$)";
-static char	static_h_rcs_id[] = config_TMPL_H_ID;
-#ifdef __GNUG__
-	#define USE(name1,name2) static void use##name1() { if(!name1 && !name2) { use##name1(); } }
-	USE(static_h_rcs_id,static_c_rcs_id)
-	#undef USE
-#endif
 
 //--- used modules
 #if defined(WIN32)

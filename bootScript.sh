@@ -1,19 +1,21 @@
-#--------------------------------------------------------------------
-# Copyright (c) 2000 itopia
-# All Rights Reserved
+#-----------------------------------------------------------------------------------------------------
+# Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
+# All rights reserved.
 #
-# $RCSfile$: generic script to start and stop services
+# This library/application is free software; you can redistribute and/or modify it under the terms of
+# the license that is included with this library/application in the file license.txt.
+#-----------------------------------------------------------------------------------------------------
 #
 # specify SCRIPTDIR and copy this script to /sbin/init.d ( for System V )
 #
-#--------------------------------------------------------------------
+
 . /etc/rc.config
 
 # The echo return value for success (defined in /etc/rc.config).
 return=$rc_done
 
 export SERVICENAME=$PROJECTNAME
-export SCRIPTDIR=/opt/esport/Actual/scripts
+export SCRIPTDIR=/home/scripts
 
 case "$1" in
     start)
@@ -42,7 +44,6 @@ case "$1" in
     echo "Usage: $0 {start|stop|restart|reload}"
     exit 1
 esac
-
 
 # Inform the caller not only verbosely and set an exit status.
 test "$return" = "$rc_done" || exit 1

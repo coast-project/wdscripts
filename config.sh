@@ -1,9 +1,11 @@
 #!/bin/ksh
-###########################################################################
-# Copyright (c) 1999-2000 itopia
-# All Rights Reserved
+#-----------------------------------------------------------------------------------------------------
+# Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
+# All rights reserved.
 #
-# $Id$
+# This library/application is free software; you can redistribute and/or modify it under the terms of
+# the license that is included with this library/application in the file license.txt.
+#-----------------------------------------------------------------------------------------------------
 #
 # configuration for scripts, reads also $CONFIGDIR/prjconfig.sh for your
 #  project specific configuration
@@ -14,7 +16,6 @@
 # params:
 #   $1 : set to -D for debugging output
 #
-############################################################################
 
 if [ "$1" = "-D" ]; then
 	PRINT_DBG=1
@@ -127,7 +128,6 @@ function SetWD_PATH
 		for segname in ${tmpWD_PATH}; do
 			IFS=$oldifs;
 			if [ $PRINT_DBG -eq 1 ]; then echo "segment is ["$segname"]"; fi
-	#		if [ "${segname}" != "." -a -d "${PROJECTDIR}/${segname}" ]; then
 			if [ -d "${segname}" ]; then
 				if [ $PRINT_DBG -eq 1 ]; then echo "found valid config path ["${segname}"]"; fi
 				if [ $PRINT_DBG -eq 1 ]; then echo "wd-path before ["$WD_PATH"]"; fi
@@ -158,7 +158,7 @@ HOSTNAME=`(uname -n) 2>/dev/null` || HOSTNAME="unkown"
 # and this is why I use some 'hard' assumptions
 if [ -n "$DEV_HOME" -a -z "$BINDIR" ]; then
 	# BINDIR not set, use development defaults
-	BINDIR=${DEV_HOME}/WWW/wdapp
+	BINDIR=${DEV_HOME}/wdapp
 fi
 if [ -n "$BINDIR" ]; then
 	BINDIR=`cd ${BINDIR} 2>/dev/null && pwd`
@@ -210,9 +210,8 @@ else
 fi
 
 SERVERNAME=$PROJECTNAME
-PRJ_DESCRIPTION="itopia $SERVERNAME"
+PRJ_DESCRIPTION="$SERVERNAME"
 TARGZNAME=$SERVERNAME.tgz
-ALL_CONFIGS="itopiaOnly"
 
 # in case where we are installing the prjconfig.sh has to be located in the install directory
 if [ ! -f "$CONFIGDIRABS/prjconfig.sh" -a ! -f "$SCRIPTDIR/prjconfig.sh" ]; then
@@ -281,13 +280,11 @@ else
 	fi;
 fi
 
-export ALL_CONFIGS BINDIR CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT
+export BINDIR CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT
 
 # for debugging only
 if [ $PRINT_DBG -eq 1 ]; then
 	echo "PID-file:     $PID_FILE"
-	echo "allconfigs:   $ALL_CONFIGS"
-	echo "dfltconfig:   $DEF_CONF"
 	echo "bindir:       $BINDIR"
 	echo "configdir:    $CONFIGDIR"
 	echo "confgdirabs:  $CONFIGDIRABS"

@@ -1,14 +1,15 @@
 #!/bin/ksh
-###########################################################################
-# Copyright (c) 1999-2000 itopia
-# All Rights Reserved
+#-----------------------------------------------------------------------------------------------------
+# Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
+# All rights reserved.
 #
-# $Id$
+# This library/application is free software; you can redistribute and/or modify it under the terms of
+# the license that is included with this library/application in the file license.txt.
+#-----------------------------------------------------------------------------------------------------
 #
 # starts a perftest app, assumes that perftest specific things are stored
 #  in a *perftest* directory
 #
-############################################################################
 
 MYNAME=`basename $0`
 # check if the caller already used an absolute path to start this script

@@ -1,12 +1,13 @@
-###########################################################################
-# Copyright (c) 1999-2000 itopia
-# All Rights Reserved
+#-----------------------------------------------------------------------------------------------------
+# Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
+# All rights reserved.
 #
-# $Id$
+# This library/application is free software; you can redistribute and/or modify it under the terms of
+# the license that is included with this library/application in the file license.txt.
+#-----------------------------------------------------------------------------------------------------
 #
 # project specific variables and directories, loaded from within config.sh
 #
-############################################################################
 
 ############################################################################
 #
@@ -17,21 +18,13 @@
 # overwrite this one ONLY if the LOGDIR variable points to the wrong place
 #LOGDIR=log
 
-#SERVERNAME="ftp-fd"
-#PRJ_DESCRIPTION="Telekurs FTP-Frontdoor"
+#SERVERNAME="myApp"
+#PRJ_DESCRIPTION="SomeCompany myApp"
 #PID_FILE=$PROJECTDIR/$LOGDIR/$SERVERNAME.PID
 
 # name of the tared and gzipped distribution file, caution: try to use short names
 # because some CD burning software do only store 8.3 names
 #TARGZNAME=$SERVERNAME.tgz
-
-# specify ALL of your filterable configurations, to build for a specific configuration
-# you have to specify ONE one the command line on case of a doall.sh execution
-# or use setConfig.sh to set a specific config
-ALL_CONFIGS="itopiaOnly DevTest Prod"
-
-# use setConfig.sh to set this default config
-DEF_CONF=DevTest
 
 # overwrite this one ONLY if the WD_PATH variable points to the wrong place
 #WD_PATH=config
