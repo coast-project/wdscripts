@@ -16,23 +16,40 @@
 #
 ############################################################################
 
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
-
 if [ "$1" = "-D" ]; then
 	PRINT_DBG=1
-	echo "I am executing in  ["${PWD}"]";
-	echo "Scripts dirname is ["$mypath"]";
-	echo
 	shift
 else
 	PRINT_DBG=0
+fi
+
+if [ $PRINT_DBG -eq 1 ]; then echo 'value of mypath before setting ['$mypath']'; fi
+if [ $PRINT_DBG -eq 1 ]; then
+	echo 'arg0 is ['$0']'
+	echo 'basename of arg0 is ['`basename $0`']'
+fi
+if [ `basename $0` == "config.sh" ]; then
+	# check if the caller already used an absolute path to start this script
+	DNAM=`dirname $0`
+
+	if [ "$DNAM" = "${DNAM#/}" ]; then
+		# non absolute path
+		mypath=`pwd`/$DNAM
+	else
+		mypath=$DNAM
+	fi
+else
+	if [ $PRINT_DBG -eq 1 ]; then echo 'I got sourced from within ['$0']'; fi
+	# check if the calling script defined mypath variable
+	if [ -z "$mypath" ]; then
+		echo 'WARNING: calling script or function ['$0'] should define the mypath variable!'
+	fi
+fi
+
+if [ $PRINT_DBG -eq 1 ]; then
+	echo "I am executing in  ["${PWD}"]";
+	echo "Scripts dirname is ["$mypath"]";
+	echo
 fi
 
 # load os-specific settings and functions
