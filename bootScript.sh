@@ -3,9 +3,9 @@
 # All Rights Reserved
 #
 # $RCSfile$: generic script to start and stop services
-# 
+#
 # specify SCRIPTDIR and copy this script to /sbin/init.d ( for System V )
-# 
+#
 #--------------------------------------------------------------------
 . /etc/rc.config
 
@@ -21,7 +21,7 @@ case "$1" in
 	$SCRIPTDIR/startwds.sh > /dev/null 2>&1 || return=$rc_failed
 
 	echo -e "$return"
-	
+
     ;;
     stop)
 	echo -n "Shutting down service $SERVICENAME"

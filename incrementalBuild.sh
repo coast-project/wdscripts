@@ -140,7 +140,7 @@ cleanopt="clean_targets"
 if [ ${cfg_fullbuild} -eq 1 ] ; then
 	echo "============== Fullbuild: moving old build"
 	rm -rf ${DEV_HOME}/testfw.old
-	mv ${DEV_HOME}/testfw ${DEV_HOME}/testfw.old 
+	mv ${DEV_HOME}/testfw ${DEV_HOME}/testfw.old
 	rm -rf ${DEV_HOME}/WWW.old
 	mv ${DEV_HOME}/WWW ${DEV_HOME}/WWW.old
 	#/home/scripts/bin/MakeNewProject.sh TestStdProject MySQLBasedStandard

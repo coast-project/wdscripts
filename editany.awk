@@ -6,7 +6,7 @@
 #
 # used to strip specific lines from a file
 #
-# params: 
+# params:
 #   set_config    : specifies which configuration to enable in the file, all others in all_config are removed
 #   all_config    : specifies all configurations
 #   logfile       : file where changed files are logged

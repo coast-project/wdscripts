@@ -1,5 +1,5 @@
 #!/bin/ksh
-# 
+#
 
 MYNAME=`basename $0`
 

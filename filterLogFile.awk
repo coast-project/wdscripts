@@ -1,5 +1,5 @@
 BEGIN {
-	RS="============================================================================="; 
+	RS="=============================================================================";
 	FS="----------------------------";
 	first = 1;
 	revstr = substr(revstr,3);
@@ -16,7 +16,7 @@ BEGIN {
 		{
 			if (ARR[1] == "")
 			{
-				fname = fname "-"; 
+				fname = fname "-";
 				tofieldsub = 0;
 			}
 			fname = fname ARR[2];
@@ -33,7 +33,7 @@ BEGIN {
 	if (NF > 1)
 	{
 		if (!match($1,"cvs server: warning: no revision"))
-		{   
+		{
 			msgprinted = 0;
 			split($1,ARR,"\r?\n");
 			if (first)

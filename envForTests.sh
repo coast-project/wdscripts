@@ -7,7 +7,7 @@
 # system independant project to build
 DO_CHECKOUT="WDCore WWW/helloworld WWW/loggingProxy"
 DO_PROJECTS="WWW/webdisplay2/wdtest WWW/helloworld WWW/loggingProxy"
- 
+
 # be somewhat of nice and define host specific settings
 #################
 case "${CURSYSTEM}" in

@@ -71,7 +71,7 @@ globalTestScript="${mypath}/RunTests.sh"
 globalTestScriptOpts="-m "$cfg_mailaddr" $cfg_and $cfg_opt -- -all"
 testExecutable=./wdtest${EXEEXT}
 testExecutableOpts="-all"
- 
+
 . ${mypath}/envForTests.sh $cfg_opt
 
 mailHostPattern=${mailHostPattern:-"DailyBuild on ["${HOSTNAME}"]"};
@@ -86,7 +86,7 @@ function runTests
 		echo ${l_prjUnderTest}' test executable found in '`pwd` | tee -a ${RESULTFILE};
 		if [ -f "${prjTestScript}" -a -x "${globalTestScript}" ]; then
 			echo ' doing tests with ['${globalTestScript}']' | tee -a ${RESULTFILE};
-			${globalTestScript} ${globalTestScriptOpts} 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE} 
+			${globalTestScript} ${globalTestScriptOpts} 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE}
 		else
 			echo ' doing tests with ['${testExecutable}']' | tee -a ${RESULTFILE};
 			${testExecutable} ${testExecutableOpts} 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE}

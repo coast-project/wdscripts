@@ -159,7 +159,7 @@ function existInPath
 
 # append given path-segment if it does not exist in the path
 #
-# param $1 is the name of the 'path'-variable 
+# param $1 is the name of the 'path'-variable
 # param $2 is the path-segment separator
 # param $3 is the path-segment to append
 #
@@ -188,7 +188,7 @@ function appendPath
 
 # prepend given path-segment if it does not exist in the path
 #
-# param $1 is the name of the 'path'-variable 
+# param $1 is the name of the 'path'-variable
 # param $2 is the path-segment separator
 # param $3 is the path-segment to prepend
 #
@@ -217,7 +217,7 @@ function prependPath
 
 # clean the given path, eg. test for single existance of a path segment
 #
-# param $1 is the name of the 'path'-variable 
+# param $1 is the name of the 'path'-variable
 # param $2 is the path-segment separator
 #
 # output exporting new path into given name ($1)

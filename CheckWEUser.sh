@@ -5,7 +5,7 @@
 #
 # $Id$
 #
-# check WorkingEnvUser.sniff to see if user already has permissions to 
+# check WorkingEnvUser.sniff to see if user already has permissions to
 # create a PWE
 #
 ############################################################################

@@ -105,7 +105,7 @@ cat <<EOT
 This installation script can be used to install the WebDisplay2 sources into a
 directory. It further modifies some SNiFF make-support files to fix some
 missing things and to extend them for easier usage with different make options
-like debug/optimized or sharedlib/statically-linked targets without having to 
+like debug/optimized or sharedlib/statically-linked targets without having to
 create multiple <platform>.mk files.
 
 As a prerequisite you should have installed the following software to test the
@@ -123,7 +123,7 @@ SSL_DIR  (e.g. "setenv SSS_DIR /home/ssl"   with c-shell or "export SSL_DIR=/hom
 LDAP_DIR (e.g. "setenv LDAP_DIR /home/ldap" with c-shell or "export SSL_DIR=/home/ldap" with k- or bash-shell)
 
 To simplify setting various variables needed for building the sources there are
-two files called itopia.csh and itopia.ksh which can be used to set them. They 
+two files called itopia.csh and itopia.ksh which can be used to set them. They
 are located in the directory where the sources are installed. Using
 csh you can 'source' the itopia.csh file (e.g. "source itopia.csh"  from command line),
 using ksh/bash you can '.' the itopia.ksh file (e.g. ". itopia.ksh" from command line).
@@ -180,7 +180,7 @@ if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
 	exit
 fi
 
-cat <<EOT	
+cat <<EOT
 
 currently in `pwd`
 installing WebDisplay2 sources of $WDDATE into $INSTALLDIRABS
@@ -189,14 +189,14 @@ using: $GUNZIP $TARGZNAME
 EOT
 
 if [ -f $TARGZNAME ]; then
-	printf "copying %s to %s ... " $TARGZNAME $INSTALLDIRABS 
+	printf "copying %s to %s ... " $TARGZNAME $INSTALLDIRABS
 	cp ./$TARGZNAME $INSTALLDIRABS
 	if [ $? -ne 0 ]; then
 		printf "failed\n"
 		exit 1
 	else
 		printf "done\n"
-	fi	
+	fi
 else
 	printf "%s does not exist in %s\n" $TARGZNAME $CURRENT_DIR
 	exit 1
@@ -238,7 +238,7 @@ EOT
 
 cat <<EOT >${INSTALLDIRABS}/itopia_vars.csh
 setenv DEV_HOME ${INSTALLDIRABS}
-#setenv SSL_DIR 
+#setenv SSL_DIR
 #setenv LDAP_DIR
 EOT
 

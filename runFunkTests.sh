@@ -10,7 +10,7 @@ function runAllFunkTests
 	MAILMSG=
 	WDRetCode=0
 	if [ -x ./$TestScript ]; then
-		./$TestScript -all 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE} 
+		./$TestScript -all 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE}
 	fi
 	RetCode=$?
 	fname=`date "+$1%y%j"`

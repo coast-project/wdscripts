@@ -1,6 +1,6 @@
 #!/bin/ksh
 #
-# Daily Build script for cron batch - sends resultmails 
+# Daily Build script for cron batch - sends resultmails
 
 MYNAME=`basename $0`
 

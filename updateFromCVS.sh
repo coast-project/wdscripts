@@ -45,7 +45,7 @@ if [[ DOUPDATE -eq 0 ]]; then
   do
 	if [[ -x $dir ]]; then
 	  echo "updating [" $dir "]" >> $RESLOG;
-	  cd $dir; 
+	  cd $dir;
 	  cvs update $CVSFLAGS $WDCORE $WDPROJS >> $RESLOG 2>&1;
 	  cd;
 	fi

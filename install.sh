@@ -102,7 +102,7 @@ else
 	printf "done\n"
 fi
 
-printf "  --- copying    [%s] to [%s] ... " $TARGZNAME $cfg_path 
+printf "  --- copying    [%s] to [%s] ... " $TARGZNAME $cfg_path
 cp ./$TARGZNAME $cfg_path 2>/dev/null
 if [ $? -ne 0 ]; then
 	printf "failed\n"

@@ -37,16 +37,16 @@ function isort(A, n, qq,   i, j, hold, prcnt)
       A[j] = hold;
       if (qq && i%prcnt == 0)
         printf(".");
-    }      
+    }
   }
   if (qq)
     printf("\n");
 }
 function printARRAY(ARRAY,  TF,tmptag, tag, fname, tagfname)
-{                                 
+{
   tmptag = "";
   for ( tagfname in ARRAY )
-  {                                                
+  {
     split(tagfname,TF,SUBSEP);
     tag = TF[1];
     fname = TF[2];
@@ -59,15 +59,15 @@ function printARRAY(ARRAY,  TF,tmptag, tag, fname, tagfname)
   }
 }
 BEGIN {
-  RS="==================================================================="; 
-  delete NAMEARR; 
+  RS="===================================================================";
+  delete NAMEARR;
   if (!outfile)
     outfile = "tags.txt";
   if (sep)
     OFS=sep;
   nacnt = 0;
 }
-{                                                                                            
+{
   nsp = split($0,LINEARR,"\r?\n");
   delete VERTAG;
   delete TAGARR;
@@ -80,7 +80,7 @@ BEGIN {
     # line 11+: contains Tag entries
     if (debug) print "#9#filenameline:#"LINEARR[2]"#";
     if (!match(LINEARR[2],"File: no file "))
-    {                      
+    {
       split(LINEARR[2],ARR,"\t");
       match(ARR[1],"^File: ");
       if (debug) print "#10#"ARR[1]"#";
@@ -114,24 +114,24 @@ BEGIN {
         }
       }
       if (tcnt > 0) isort(TAGARR,tcnt,0);
-                              
+
       if (!longfmt)
         print fname > outfile;
-      if (debug) print "#5#Anzahl Tags:"tcnt;      
+      if (debug) print "#5#Anzahl Tags:"tcnt;
       for (i=1; i <= tcnt; i++)
-      {              
+      {
         if (!match(TAGARR[i],"^[ \t]*$"))
-        {                             
+        {
           split(TAGARR[i],A,OFS);
           NAMEARR[nacnt++] = A[1] SUBSEP fname SUBSEP A[2];
-  
+
           if (longfmt)
             outline = A[1] OFS fname OFS "("A[2]")";
           else
-          {       
+          {
             outline = " " A[1] OFS "("A[2]")";
             if (width)
-            {                     
+            {
               format= "%" width "s";
               outline = sprintf(format, outline);
             }
@@ -148,7 +148,7 @@ END { print "sorting names ->";
   currtag = "";
   outf2 = "tags2.txt";
   for (i=1; i <= nacnt; i++)
-  { 
+  {
     split(NAMEARR[i],B,SUBSEP);
     if (currtag != B[1])
     {

@@ -17,7 +17,7 @@ if [[ -a .automaticUpdate ]]; then
 . .automaticUpdate
 fi
 
-cd - 
+cd -
 
 WDTESTER_HOME=${WDTESTER_HOME:-"/home/wdtester"}
 

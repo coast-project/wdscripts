@@ -72,13 +72,13 @@ fi
 cd ${DEV_HOME}/WWW/${NewProjectName}
 ln -s $DEV_HOME/scripts scripts
 
-# remark - im Moment gibt es nur einen Projekttyp (Standard). Weitere könnten dann als zusätzliche 
+# remark - im Moment gibt es nur einen Projekttyp (Standard). Weitere könnten dann als zusätzliche
 # Unterverzeichnisse definiert werden.
 echo "i am in: ["`pwd`"]"
 tar cf - -C $SNIFF_ITOPIA_TEMPLATES/ProjectTemplate/$Project_Type . | tar xf -
 
 # delete CVS dirs
-find . -type d -name CVS -exec rm -rf {} \; > /dev/null 2>&1 
+find . -type d -name CVS -exec rm -rf {} \; > /dev/null 2>&1
 
 $SNIFF_ITOPIA_TEMPLATES/SetProjectName.pl $NewProjectName
 
