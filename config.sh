@@ -251,9 +251,9 @@ fi
 
 # check if WD_ROOT is already set and if so do not overwrite it but warn about
 if [ $isWindows -eq 1 ]; then
-	local locWD_ROOT=${PROJECTDIRNT};
+	locWD_ROOT=${PROJECTDIRNT};
 else
-	local locWD_ROOT=${PROJECTDIR};
+	locWD_ROOT=${PROJECTDIR};
 fi
 if [ -z "$WD_ROOT"  ]; then
 	WD_ROOT=$locWD_ROOT;

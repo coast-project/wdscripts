@@ -74,7 +74,7 @@ if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 . $mypath/config.sh $cfg_opt
 
 # for WIN32 the .exe extension is not shown in the process list, so cut it away
-local locWDS_BIN=${WDS_BIN};
+locWDS_BIN=${WDS_BIN};
 if [ $isWindows -eq 1 ]; then
 	locWDS_BIN=${locWDS_BIN%${EXEEXT}};
 else

@@ -106,7 +106,7 @@ fi
 if [ "$PRJCONFIGPATH" != "$SCRIPTDIR" -a -d "$PRJCONFIGPATH" -a -f "$PRJCONFIGPATH/prjconfig.sh" ]; then
 	if [ $cfg_dbg -eq 1 ]; then echo ' - switching prjconfig.sh'; fi;
 	$SCRIPTDIR/editConfig.sh -p "$PRJCONFIGPATH" -e 'prjconfig.sh' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
-	local prjcWdPath=`. $PRJCONFIGPATH/prjconfig.sh; echo $WD_PATH`;
+	prjcWdPath=`. $PRJCONFIGPATH/prjconfig.sh; echo $WD_PATH`;
 	if [ $cfg_dbg -eq 1 ]; then echo ' - re-sourcing config.sh'; fi;
 	if [ "$prjcWdPath" != "$WD_PATH" ]; then
 		# unset WD_PATH to prevent wrong setting

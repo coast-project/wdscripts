@@ -78,8 +78,8 @@ shift $(($OPTIND - 1))
 
 cfg_srvopts="$*";
 
-local locPERFTESTDIR=`. $mypath/config.sh; echo \$PERFTESTDIR`;
-local locPROJECTDIR=`. $mypath/config.sh; echo \$PROJECTDIR`;
+locPERFTESTDIR=`. $mypath/config.sh; echo \$PERFTESTDIR`;
+locPROJECTDIR=`. $mypath/config.sh; echo \$PROJECTDIR`;
 
 if [ -z "${locPERFTESTDIR}" ]; then
 	echo ''

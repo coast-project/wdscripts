@@ -152,7 +152,7 @@ trap build_exitproc TERM
 trap build_exitproc KILL
 
 if [ $cfg_nolock -eq 0 ]; then
-	local TIME_STAMP=`date +%Y%m%d%H%M`
+	TIME_STAMP=`date +%Y%m%d%H%M`
 	echo "users: $LOGNAME" > ${LOCK_FILE}
 	echo "started on ${TIME_STAMP}" >> ${LOCK_FILE}
 fi

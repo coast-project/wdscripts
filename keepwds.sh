@@ -103,7 +103,8 @@ function killIt
 	$mypath/stopwds.sh $cfg_opt $cfg_and $cfg_cfgdir
 }
 
-local doRun=1;
+doRun=1;
+
 # stops possible running processes
 function exitproc
 {
@@ -122,7 +123,7 @@ echo 'PID-File is ['$PID_FILE']';
 startIt;
 if [ $? -eq 0 ]; then
 	# keep pid information for later usage
-	local PID=`cat $PID_FILE`;
+	PID=`cat $PID_FILE`;
 	while [ $doRun -eq 1 ]; do
 		# don't waste too many cycles
 		sleep 10;
