@@ -79,7 +79,7 @@ if [ -z "${DEV_HOME}" ]; then
 	myDEV_HOME=
 fi
 
-if [ "${PROJECTDIR#${myDEV_HOME}}" = "${PROJECTDIR}" -a "${PROJECTDIRABS#${myDEV_HOME}}" = "${PROJECTDIRABS}" ]; then
+if [ -n "$DEV_HOME" -a "${PROJECTDIR#${myDEV_HOME}}" = "${PROJECTDIR}" -a "${PROJECTDIRABS#${myDEV_HOME}}" = "${PROJECTDIRABS}" ]; then
 	echo ''
 	echo 'WARNING: DEV_HOME already set to ['$DEV_HOME'] but projectdir is ['$PROJECTDIR']'
 	echo ''

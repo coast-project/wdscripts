@@ -90,12 +90,12 @@ fi
 . ${mypath}/SniffUtils.sh
 
 # try to locate the project
-SNIFFPROJNAME=`cd ${PROJECTDIR} && find . -name "${PROJECTNAME}.shared" -type f ${FINDOPT}`
+SNIFFPROJNAME=`cd ${PROJECTDIR} && $FINDEXE . -name "${PROJECTNAME}.shared" -type f ${FINDOPT}`
 
 if [ -z "${SNIFFPROJNAME}" ]; then
 	echo Looking for ${PROJECTNAME}.shared not successful:
 	echo trying to find SNiFF project "("'*.shared'")" in $PROJECTDIR
-	SNIFFPROJNAME=`cd ${PROJECTDIR} && find . -name "*.shared" -type f ${FINDOPT}`
+	SNIFFPROJNAME=`cd ${PROJECTDIR} && $FINDEXE . -name "*.shared" -type f ${FINDOPT}`
 fi
 SNIFFPROJNAME=${SNIFFPROJNAME##*/}
 

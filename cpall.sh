@@ -198,13 +198,13 @@ oldifs="$IFS";
 IFS=":";
 for cfgseg in $WD_PATH; do
 	IFS=$oldifs;
-	find $cfg_tmpdir/$cfgseg -type f -exec chmod 444 {} 2>/dev/null \;
-	find $cfg_tmpdir/$cfgseg -name '*.any' -type f -exec chmod 664 {} 2>/dev/null \;
-	find $cfg_tmpdir/$cfgseg -name '*.sh' -type f -exec chmod 775 {} 2>/dev/null \;
+	$FINDEXE $cfg_tmpdir/$cfgseg -type f -exec chmod 444 {} 2>/dev/null \;
+	$FINDEXE $cfg_tmpdir/$cfgseg -name '*.any' -type f -exec chmod 664 {} 2>/dev/null \;
+	$FINDEXE $cfg_tmpdir/$cfgseg -name '*.sh' -type f -exec chmod 775 {} 2>/dev/null \;
 done;
 
 echo ' ---- Changing mode of script files'
-find $cfg_tmpdir/scripts -type f -exec chmod 444 {} 2>/dev/null \;
+$FINDEXE $cfg_tmpdir/scripts -type f -exec chmod 444 {} 2>/dev/null \;
 chmod 775 $cfg_tmpdir/scripts/*.sh 2>/dev/null
 chmod 775 $cfg_tmpdir/scripts/*.pl 2>/dev/null
 chmod 664 $cfg_tmpdir/scripts/*.awk 2>/dev/null
