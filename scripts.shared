@@ -1,8 +1,9 @@
 //Any:AnyPrettyIO 
 ProjectAttributes (
-	DependenciesFile    : "dependencies.incl",
-	FileCount           : 29,
-	FileSet             : array (
+	DependenciesFile           : "dependencies.incl",
+	DoPreprocessing            : 1,
+	FileCount                  : 29,
+	FileSet                    : array (
 		"SoftRestart.sh",
 		"config.sh",
 		"cpall.sh",
@@ -33,7 +34,7 @@ ProjectAttributes (
 		"CheckWEUser.sh",
 		"EvalInstall.sh"
 	),
-	FileTypes           : struct (
+	FileTypes                  : struct (
 		Anything            : File_Types_Info (
 			Icon                     : "$SNIFF_DIR/config/icons/FT_ANY.gif",
 			"Is Default File Type"     : 1,
@@ -111,19 +112,23 @@ ProjectAttributes (
 			Type                     : "Shell"
 		)
 	),
-	GenerateDir         : ".sniffdir",
-	HelpTarget          : "all:symbolic_links:clean:clean_targets:help",
-	IncludeFilesFile    : "include.incl",
-	IncludeMacro        : array ( ),
-	MacrosFile          : "macros.incl",
-	ObjectFilesFile     : "ofiles.incl",
-	PreprocessorSwitch  : array ( ),
-	ProjectDir          : "scripts",
-	ProjectType         : 2,
-	Release             : "V3.0",
-	SharedProject       : 1,
-	SubProj             : array ( ),
-	TabLength           : 4,
-	VCSystem            : "CVS",
-	VPathFile           : "vpath.incl"
+	GenerateDir                : ".sniffdir",
+	HelpTarget                 : "all:symbolic_links:clean:clean_targets:help",
+	IncludeFilesFile           : "include.incl",
+	IncludeMacro               : array ( ),
+	MacrosFile                 : "macros.incl",
+	ObjectFilesFile            : "ofiles.incl",
+	PreprocessorSwitch         : array ( ),
+	ProjectDir                 : "scripts",
+	ProjectType                : 2,
+	Release                    : "V3.0",
+	SharedProject              : 1,
+	SubDirs                    : array (
+		""
+	),
+	SubProj                    : array ( ),
+	TabLength                  : 4,
+	UseParserComments          : 1,
+	VCSystem                   : "CVS",
+	VPathFile                  : "vpath.incl"
 )
