@@ -121,7 +121,7 @@ if [ -d "$PROJECTDIR/scripts" ]; then
 fi
 if [ -n "$PERFTESTDIR" -a -d "$PROJECTDIR/$PERFTESTDIR" ]; then
 	$SCRIPTDIR/editConfig.sh -p "$PROJECTDIR/$PERFTESTDIR" -e '*.sh' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
-	for subcfgname in `find "$PROJECTDIR/$PERFTESTDIR" -path "*config*" -type d`; do
+	for subcfgname in `find "$PROJECTDIR/$PERFTESTDIR" -name "*config*" -type d`; do
 		$SCRIPTDIR/editConfig.sh -p "$subcfgname" -e '*.any' -e '*.sh' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
 	done
 fi

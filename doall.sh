@@ -193,7 +193,7 @@ fi
 
 # copy distribution files to temporary directory
 echo ' ---- copying all files'
-$SCRIPTDIR/cpall.sh $cfg_opt -t "$cfg_tmpdir" -d $cfg_deltmp
+$SCRIPTDIR/cpall.sh $cfg_opt -t "$cfg_tmpdir" -d $cfg_deltmp $cfg_and
 
 # use specified configuration to customize some distribution files
 echo ' ---- editing configs'

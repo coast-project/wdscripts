@@ -19,6 +19,7 @@ function showhelp
 	echo ''
 	echo 'usage: '$MYNAME' [ options]'
 	echo 'where options are:'
+	echo ' -a <name>: config which must be defined, multiple definitions allowed'
 	echo ' -t <dir> : directory to put testable project tree in, default is ['$USR_TMP/$PROJECTNAME']'
 	echo ' -d <0|1> : delete testable project directory first, default 1'
 	echo ' -D : print debugging information of scripts, sets PRINT_DBG variable to 1'
@@ -27,11 +28,18 @@ function showhelp
 }
 
 cfg_tmpdir="";
+cfg_and="";
 cfg_deltmp=1;
 cfg_dbg=0;
 # process command line options
-while getopts ":t:d:D" opt; do
+while getopts ":a:t:d:D" opt; do
 	case $opt in
+		a)
+			if [ -n "$cfg_and" ]; then
+				cfg_and=${cfg_and}" ";
+			fi
+			cfg_and=${cfg_and}${OPTARG};
+		;;
 		t)
 			cfg_tmpdir="${OPTARG}";
 		;;
@@ -61,6 +69,14 @@ fi
 
 # load global config
 . $mypath/config.sh $cfg_opt
+
+# prepare configuration param, need to add -a before each token
+cfg_toks="";
+for cfgtok in $cfg_and; do
+	if [ $cfg_dbg -eq 1 ]; then echo 'curseg is ['$cfgtok']'; fi
+	cfg_toks=$cfg_toks" -a "$cfgtok;
+done
+cfg_and="$cfg_toks";
 
 echo ''
 echo '------------------------------------------------------------------------'
@@ -113,7 +129,7 @@ echo ' ---- Copying binaries'
 for cpfilname in $WDS_BIN $WDA_BIN; do
 	if [ -f "$cpfilname" -a -x "$cpfilname" ]; then
 		printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
-		cp $cpfilname $cfg_tmpdir/bin 2>/dev/null
+		cp -p $cpfilname $cfg_tmpdir/bin 2>/dev/null
 		if [ $? -eq 0 ]; then
 			printf "done\n"
 		else
@@ -125,7 +141,20 @@ done
 for cpfilname in ${WD_LIBDIR}/*${DLLEXT}; do
 	if [ -f "$cpfilname" -a -x "$cpfilname" ]; then
 		printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
-		cp $cpfilname $cfg_tmpdir/lib 2>/dev/null
+		cp -p $cpfilname $cfg_tmpdir/lib 2>/dev/null
+		if [ $? -eq 0 ]; then
+			printf "done\n"
+		else
+			printf "failed\n"
+		fi
+	fi
+done
+
+echo ' ---- Copying scripts'
+for cpfilname in $PROJECTSRCDIR/*.sh $PROJECTSRCDIR/*.pl $SCRIPTDIR/*; do
+	if [ -f "$cpfilname" ]; then
+		printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
+		cp -p $cpfilname $cfg_tmpdir/scripts 2>/dev/null
 		if [ $? -eq 0 ]; then
 			printf "done\n"
 		else
@@ -139,39 +168,21 @@ oldifs="$IFS";
 IFS=":";
 for cfgseg in $WD_PATH; do
 	IFS=$oldifs;
-	for cpfilname in $PROJECTDIR/$cfgseg/*.sh $PROJECTDIR/$cfgseg/*.any; do
-		if [ -f "$cpfilname" ]; then
-			printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
-			cp $cpfilname $cfg_tmpdir/${CONFIGDIR:-config} 2>/dev/null
-			if [ $? -eq 0 ]; then
-				printf "done\n"
-			else
-				printf "failed\n"
+	if [ -d "$PROJECTDIR/$cfgseg" ]; then
+		mkdir -p $cfg_tmpdir/$cfgseg;
+		for cpfilname in $PROJECTDIR/$cfgseg/*.sh $PROJECTDIR/$cfgseg/*.any; do
+			if [ -f "$cpfilname" ]; then
+				printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
+				cp -p $cpfilname $cfg_tmpdir/$cfgseg 2>/dev/null
+				if [ $? -eq 0 ]; then
+					printf "done\n"
+				else
+					printf "failed\n"
+				fi
 			fi
-		fi
-	done
+		done
+	fi;
 done;
-
-echo ' ---- Changing mode of config files'
-chmod 664 $cfg_tmpdir/${CONFIGDIR:-config}/*any 2>/dev/null
-chmod 775 $cfg_tmpdir/${CONFIGDIR:-config}/*sh 2>/dev/null
-
-echo ' ---- Copying scripts'
-for cpfilname in $PROJECTSRCDIR/*.sh $PROJECTSRCDIR/*.pl $SCRIPTDIR/*.sh $SCRIPTDIR/*.pl $SCRIPTDIR/*.awk; do
-	if [ -f "$cpfilname" ]; then
-		printf "  --- %-8s [%s] ... " "copying" "$cpfilname"
-		cp $cpfilname $cfg_tmpdir/scripts 2>/dev/null
-		if [ $? -eq 0 ]; then
-			printf "done\n"
-		else
-			printf "failed\n"
-		fi
-	fi
-done
-echo ' ---- Changing mode of script files'
-chmod 775 $cfg_tmpdir/scripts/*sh 2>/dev/null
-chmod 775 $cfg_tmpdir/scripts/*pl 2>/dev/null
-chmod 664 $cfg_tmpdir/scripts/*awk 2>/dev/null
 
 # now let the project specific subscript copy its additional things
 if [ ! -f "$CONFIGDIRABS/prjcopy.sh" ]; then
@@ -182,8 +193,26 @@ if [ ! -f "$CONFIGDIRABS/prjcopy.sh" ]; then
 	echo ''
 else
 	echo ' ---- Executing project specific prjcopy.sh'
+	# first switch config of prjcopy to copy only the right things
+	$mypath/editConfig.sh -p "$CONFIGDIRABS" -e 'prjcopy.sh' $cfg_and -f "$ALL_CONFIGS" $cfg_opt
 	. $CONFIGDIRABS/prjcopy.sh
 fi
+
+echo ' ---- Changing mode of config files'
+oldifs="$IFS";
+IFS=":";
+for cfgseg in $WD_PATH; do
+	IFS=$oldifs;
+	find $cfg_tmpdir/$cfgseg -type f -exec chmod 444 {} 2>/dev/null \;
+	find $cfg_tmpdir/$cfgseg -name '*.any' -type f -exec chmod 664 {} 2>/dev/null \;
+	find $cfg_tmpdir/$cfgseg -name '*.sh' -type f -exec chmod 775 {} 2>/dev/null \;
+done;
+
+echo ' ---- Changing mode of script files'
+find $cfg_tmpdir/scripts -type f -exec chmod 444 {} 2>/dev/null \;
+chmod 775 $cfg_tmpdir/scripts/*.sh 2>/dev/null
+chmod 775 $cfg_tmpdir/scripts/*.pl 2>/dev/null
+chmod 664 $cfg_tmpdir/scripts/*.awk 2>/dev/null
 
 echo ''
 echo '------------------------------------------------------------------------'

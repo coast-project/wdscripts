@@ -19,7 +19,9 @@ fi
 # OSTYPE is needed for compilation using makefiles, ensure it is set
 if [ -z "${OSTYPE}" ]; then
 	# use bash to get ostype, only bash defines it...
-	export OSTYPE="`bash -c 'echo $OSTYPE'`";
+	if [ -x "/bin/bash" ]; then
+		export OSTYPE="`bash -c 'echo $OSTYPE'`";
+	fi
 fi
 
 # it seems that some shells do not set the USER variable but the variable LOGNAME
