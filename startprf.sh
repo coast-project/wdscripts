@@ -22,14 +22,15 @@ fi
 
 function showhelp
 {
+	local locPrjDir=` . $mypath/config.sh ; echo $PROJECTDIR`;
 	echo ''
 	echo 'usage: '$MYNAME' [options] [perftest-params]...'
 	echo 'where options are:'
 	echo ' -a <config> : config which you want to switch to, multiple definitions allowed'
-	echo ' -c <cfgdir> : config directory to use within ['`( . $mypath/config.sh ; echo ${PERFTESTDIR} )`'] directory'
 	echo ' -e          : enable error-logging to console, default no logging'
 	echo ' -h <num>    : number of file handles to set for the process, default 1024'
 	echo ' -s          : enable error-logging into SysLog, eg. /var/[adm|log]/messages, default no logging into SysLog'
+	echo ' -C <cfgdir> : config directory to use within ['$locPrjDir'] directory'
 	echo ' -D          : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ''
 	exit 4;
@@ -43,7 +44,7 @@ cfg_errorlog=0;
 cfg_syslog=0;
 cfg_cfgdir="";
 # process command line options
-while getopts ":a:c:eh:sD" opt; do
+while getopts ":a:C:eh:sD" opt; do
 	case $opt in
 		a)
 			if [ -n "$cfg_and" ]; then
@@ -51,7 +52,7 @@ while getopts ":a:c:eh:sD" opt; do
 			fi
 			cfg_and=${cfg_and}"-a "${OPTARG};
 		;;
-		c)
+		C)
 			cfg_cfgdir=${OPTARG};
 		;;
 		e)
@@ -77,24 +78,18 @@ shift $(($OPTIND - 1))
 
 cfg_srvopts="$*";
 
-# load global config
-. $mypath/config.sh $cfg_opt
+local locPERFTESTDIR=`. $mypath/config.sh; echo \$PERFTESTDIR`;
+local locPROJECTDIR=`. $mypath/config.sh; echo \$PROJECTDIR`;
 
-if [ -z "${PERFTESTDIR}" ]; then
+if [ -z "${locPERFTESTDIR}" ]; then
 	echo ''
 	echo 'ERROR: could not locate perftest directory, exiting !'
 	showhelp;
 fi
 
-# add SERVERNAME to application options as default
-if [ -n "$cfg_srvopts" ]; then
-	cfg_srvopts=$cfg_srvopts" ";
-fi
-cfg_srvopts=${cfg_srvopts}${SERVERNAME};
-
 if [ -z "$cfg_cfgdir" ]; then
 	# find all config directories and give a selection
-	SearchJoinedDir "tmpWD_PATH" "${PROJECTDIR}/${PERFTESTDIR}" "a" "config" ":";
+	SearchJoinedDir "tmpWD_PATH" "${locPROJECTDIR}/${locPERFTESTDIR}" "a" "config" ":";
 	oldifs="${IFS}";
 	IFS=":";
 	select segname in ${tmpWD_PATH}; do
@@ -107,20 +102,22 @@ fi
 export WD_PATH=${cfg_cfgdir};
 
 # change into perftest directory for correct settings of config directory
-cd ${PERFTESTDIR}
-export WD_ROOT=$PWD;
-
-# need to re-source the config.sh because we changed working directory
-echo ' - re-sourcing config.sh'
-. $mypath/config.sh $cfg_opt
+cd ${locPERFTESTDIR}
 
 if [ -n "$cfg_and" ]; then
 	echo ' ---- switching configurations to ['$cfg_and'] prior to starting'
 	echo ''
 	$mypath/setConfig.sh $cfg_and $cfg_opt
-	echo ' - re-sourcing config.sh'
-	. $mypath/config.sh $cfg_opt
 fi
+
+if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
+. $mypath/config.sh $cfg_opt
+
+# add SERVERNAME to application options as default
+if [ -n "$cfg_srvopts" ]; then
+	cfg_srvopts=$cfg_srvopts" ";
+fi
+cfg_srvopts=${cfg_srvopts}${SERVERNAME};
 
 echo ''
 echo '------------------------------------------------------------------------'

@@ -14,15 +14,24 @@
 
 MYNAME=`basename $0`
 
+# check if the caller already used an absolute path to start this script
+DNAM=`dirname $0`
+if [ "$DNAM" = "${DNAM#/}" ]; then
+# non absolute path
+	mypath=`pwd`/$DNAM
+else
+	mypath=$DNAM
+fi
+
 function showhelp
 {
 	echo ''
 	echo 'usage: '$MYNAME' [ options]'
 	echo 'where options are:'
 	echo ' -a <name>: config which must be defined, multiple definitions allowed'
-	echo ' -t <dir> : directory to put testable project tree in, default is ['$USR_TMP/$PROJECTNAME']'
 	echo ' -d <0|1> : delete testable project directory first, default 1'
-	echo ' -D : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	echo ' -t <dir> : directory to put testable project tree in, default is ['$USR_TMP/$PROJECTNAME']'
+	echo ' -D       : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ''
 	exit 4;
 }
@@ -38,13 +47,13 @@ while getopts ":a:t:d:D" opt; do
 			if [ -n "$cfg_and" ]; then
 				cfg_and=${cfg_and}" ";
 			fi
-			cfg_and=${cfg_and}${OPTARG};
-		;;
-		t)
-			cfg_tmpdir="${OPTARG}";
+			cfg_and=${cfg_and}"-a "${OPTARG};
 		;;
 		d)
 			cfg_deltmp=${OPTARG};
+		;;
+		t)
+			cfg_tmpdir="${OPTARG}";
 		;;
 		D)
 			# propagating this option to config.sh
@@ -58,25 +67,8 @@ while getopts ":a:t:d:D" opt; do
 done
 shift $(($OPTIND - 1))
 
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
-
 # load global config
 . $mypath/config.sh $cfg_opt
-
-# prepare configuration param, need to add -a before each token
-cfg_toks="";
-for cfgtok in $cfg_and; do
-	if [ $cfg_dbg -eq 1 ]; then echo 'curseg is ['$cfgtok']'; fi
-	cfg_toks=$cfg_toks" -a "$cfgtok;
-done
-cfg_and="$cfg_toks";
 
 echo ''
 echo '------------------------------------------------------------------------'
@@ -192,9 +184,12 @@ if [ ! -f "$CONFIGDIRABS/prjcopy.sh" ]; then
 	echo ' could not be found, thus copying only generic part'
 	echo ''
 else
+	echo ''
 	echo ' ---- Executing project specific prjcopy.sh'
 	# first switch config of prjcopy to copy only the right things
-	$mypath/editConfig.sh -p "$CONFIGDIRABS" -e 'prjcopy.sh' $cfg_and -f "$ALL_CONFIGS" $cfg_opt
+	if [ -n "$cfg_and" ]; then
+		$mypath/editConfig.sh -p "$CONFIGDIRABS" -e 'prjcopy.sh' $cfg_and -f "$ALL_CONFIGS" $cfg_opt >/dev/null 2>&1;
+	fi
 	. $CONFIGDIRABS/prjcopy.sh
 fi
 

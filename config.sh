@@ -63,12 +63,9 @@ if [ -z "${DEV_HOME}" ]; then
 fi
 
 if [ "${PROJECTDIR#${myDEV_HOME}}" = "${PROJECTDIR}" -a "${PROJECTDIRABS#${myDEV_HOME}}" = "${PROJECTDIRABS}" ]; then
-	echo
-	echo "WARNING: DEV_HOME does not point to a parent directory where you currently are!"
-	echo
-	echo "DEV_HOME is:   [${DEV_HOME}]"
-	echo "PROJECTDIR is: [${PROJECTDIR}]"
-	echo
+	echo ''
+	echo 'WARNING: DEV_HOME already set to ['$DEV_HOME'] but projectdir is ['$PROJECTDIR']'
+	echo ''
 fi
 
 # get projectname from projectdirectory, should be the last path segment
@@ -96,40 +93,46 @@ if [ $PRINT_DBG -eq 1 ]; then
 	echo "IntWD_PATH ["$IntWD_PATH"]"
 fi
 
-# check if we have a wd_path yet
-if [ -z "$WD_PATH" ]; then
-	# we do not have a wd_path, copy from IntWD_PATH or use . if empty
-	appendPath "WD_PATH" ":" "${IntWD_PATH:-.}"
-	CONFIGDIR=${IntWD_PATH:-.};
-else
-	# we have a wd_path, copy first existing segment into CONFIGDIR
-	tmpWD_PATH=${WD_PATH};
-	CONFIGDIR="";
-	WD_PATH="";
-	oldifs="${IFS}";
-	IFS=":";
-	for segname in ${tmpWD_PATH}; do
-		IFS=$oldifs;
-		if [ $PRINT_DBG -eq 1 ]; then echo "segment is ["$segname"]"; fi
-#		if [ "${segname}" != "." -a -d "${PROJECTDIR}/${segname}" ]; then
-		if [ -d "${segname}" ]; then
-			if [ $PRINT_DBG -eq 1 ]; then echo "found valid config path ["${segname}"]"; fi
-			if [ $PRINT_DBG -eq 1 ]; then echo "wd-path before ["$WD_PATH"]"; fi
-			appendPath "WD_PATH" ":" "${segname}";
-			if [ -z "$CONFIGDIR" ]; then
-				CONFIGDIR=${segname};
+function SetWD_PATH
+{
+	# check if we have a wd_path yet
+	if [ -z "$WD_PATH" ]; then
+		# we do not have a wd_path, copy from IntWD_PATH or use . if empty
+		appendPath "WD_PATH" ":" "${IntWD_PATH:-.}"
+		CONFIGDIR=${IntWD_PATH:-.};
+	else
+		# we have a wd_path, copy first existing segment into CONFIGDIR
+		tmpWD_PATH=${WD_PATH};
+		CONFIGDIR="";
+		WD_PATH="";
+		oldifs="${IFS}";
+		IFS=":";
+		for segname in ${tmpWD_PATH}; do
+			IFS=$oldifs;
+			if [ $PRINT_DBG -eq 1 ]; then echo "segment is ["$segname"]"; fi
+	#		if [ "${segname}" != "." -a -d "${PROJECTDIR}/${segname}" ]; then
+			if [ -d "${segname}" ]; then
+				if [ $PRINT_DBG -eq 1 ]; then echo "found valid config path ["${segname}"]"; fi
+				if [ $PRINT_DBG -eq 1 ]; then echo "wd-path before ["$WD_PATH"]"; fi
+				appendPath "WD_PATH" ":" "${segname}";
+				if [ -z "$CONFIGDIR" ]; then
+					CONFIGDIR=${segname};
+				fi
 			fi
-		fi
-	done;
+		done;
 
-	# if someone would better like to use the path found in IntWD_PATH instead of the existing
-	#  path in WD_PATH he could add a switch to enable the following code
-	if [ 1 -eq 0 ]; then
-		prependPath "WD_PATH" ":" "${IntWD_PATH}"
-		CONFIGDIR=${IntWD_PATH};
+		# if someone would better like to use the path found in IntWD_PATH instead of the existing
+		#  path in WD_PATH he could add a switch to enable the following code
+		if [ 1 -eq 0 ]; then
+			prependPath "WD_PATH" ":" "${IntWD_PATH}"
+			CONFIGDIR=${IntWD_PATH};
+		fi
 	fi
-fi
-CONFIGDIRABS=${PROJECTDIR}/${CONFIGDIR};
+	CONFIGDIRABS=${PROJECTDIR}/${CONFIGDIR};
+}
+
+# set the WD_PATH
+SetWD_PATH
 
 # try to find out on which machine we are running
 HOSTNAME=`(uname -n) 2>/dev/null` || HOSTNAME="unkown"
@@ -210,6 +213,16 @@ if [ -f "$CONFIGDIRABS/prjconfig.sh" ]; then
 	fi
 	. $CONFIGDIRABS/prjconfig.sh
 	PRJCONFIGPATH=$CONFIGDIRABS
+	# re-evaluate WD_PATH, sets CONFIGDIR and CONFIGDIRABS again
+	SetWD_PATH
+elif [ -f "$PRJCONFIGPATH/prjconfig.sh" ]; then
+	if [ $PRINT_DBG -eq 1 ]; then
+		echo "loading $PRJCONFIGPATH/prjconfig.sh"
+		echo ""
+	fi
+	. $PRJCONFIGPATH/prjconfig.sh
+	# re-evaluate WD_PATH, sets CONFIGDIR and CONFIGDIRABS again
+	SetWD_PATH
 elif [ -f "$SCRIPTDIR/prjconfig.sh" ]; then
 	if [ $PRINT_DBG -eq 1 ]; then
 		echo "configuration/project specific $CONFIGDIRABS/prjconfig.sh not found!"
@@ -218,6 +231,8 @@ elif [ -f "$SCRIPTDIR/prjconfig.sh" ]; then
 	fi
 	. $SCRIPTDIR/prjconfig.sh
 	PRJCONFIGPATH=$SCRIPTDIR
+	# re-evaluate WD_PATH, sets CONFIGDIR and CONFIGDIRABS again
+	SetWD_PATH
 fi
 
 # test if the wdapp executable exists, or clear the var if not
@@ -235,14 +250,18 @@ if [ -z "${PID_FILE}" ]; then
 fi
 
 # check if WD_ROOT is already set and if so do not overwrite it but warn about
-if [ -z "$WD_ROOT"  ]; then
-	if [ $isWindows -eq 1 ]; then
-		WD_ROOT=${PROJECTDIRNT}
-	else
-		WD_ROOT=${PROJECTDIR}
-	fi
+if [ $isWindows -eq 1 ]; then
+	local locWD_ROOT=${PROJECTDIRNT};
 else
-	echo "WARNING: WD_ROOT already set ["${WD_ROOT}"]"
+	local locWD_ROOT=${PROJECTDIR};
+fi
+if [ -z "$WD_ROOT"  ]; then
+	WD_ROOT=$locWD_ROOT;
+else
+	# warn only if the root dir is not the same
+	if [ "$WD_ROOT" != "$locWD_ROOT" ]; then
+		echo "WARNING: WD_ROOT already set to ["$WD_ROOT"] but it should be ["$locWD_ROOT"]"
+	fi;
 fi
 
 export ALL_CONFIGS BINDIR CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT

@@ -21,6 +21,7 @@ fi
 
 function showhelp
 {
+	local locPrjDir=` . $mypath/config.sh ; echo $PROJECTDIR`;
 	echo ''
 	echo 'usage: '$MYNAME' [options] [app-params]...'
 	echo 'where options are:'
@@ -28,6 +29,7 @@ function showhelp
 	echo ' -e          : enable error-logging to console, default no logging'
 	echo ' -h <num>    : number of file handles to set for the process, default 1024'
 	echo ' -s          : enable error-logging into SysLog, eg. /var/[adm|log]/messages, default no logging into SysLog'
+	echo ' -C <cfgdir> : config directory to use within ['$locPrjDir'] directory'
 	echo ' -D          : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ''
 	exit 4;
@@ -35,18 +37,22 @@ function showhelp
 
 cfg_and="";
 cfg_opt="";
+cfg_cfgdir="";
 cfg_handles=1024;
 cfg_dbg=0;
 cfg_errorlog=0;
 cfg_syslog=0;
 # process command line options
-while getopts ":a:eh:sD" opt; do
+while getopts ":a:C:eh:sD" opt; do
 	case $opt in
 		a)
 			if [ -n "$cfg_and" ]; then
 				cfg_and=${cfg_and}" ";
 			fi
 			cfg_and=${cfg_and}"-a "${OPTARG};
+		;;
+		C)
+			cfg_cfgdir=${OPTARG};
 		;;
 		e)
 			cfg_errorlog=1;
@@ -71,7 +77,17 @@ shift $(($OPTIND - 1))
 
 cfg_srvopts="$*";
 
-# load global config
+if [ -n "$cfg_cfgdir" ]; then
+	export WD_PATH=${cfg_cfgdir};
+fi
+
+if [ -n "$cfg_and" ]; then
+	echo ' ---- switching configurations to ['$cfg_and'] prior to starting'
+	echo ''
+	$mypath/setConfig.sh $cfg_and $cfg_opt
+fi
+
+if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 . $mypath/config.sh $cfg_opt
 
 # add SERVERNAME to application options as default
@@ -84,15 +100,6 @@ echo ''
 echo '------------------------------------------------------------------------'
 echo $MYNAME' - script to start application ['${SERVERNAME}'] on ['${HOSTNAME}']'
 echo ''
-
-if [ -n "$cfg_and" ]; then
-	echo ' ---- switching configurations to ['$cfg_and'] prior to starting'
-	echo ''
-	$mypath/setConfig.sh $cfg_and $cfg_opt
-	# need to re-source the config.sh - might have switched something needed here like WD_PATH
-	echo ' - re-sourcing config.sh'
-	. $mypath/config.sh $cfg_opt
-fi
 
 # set the file handle limit
 ulimit -n $cfg_handles
