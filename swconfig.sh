@@ -16,4 +16,7 @@ case $1 in
 	;;
 esac
 
-echo Aktuelle Konfig $1 
+echo Starte aktuelle Konfig $1 ...
+
+scripts/startwda.sh
+
