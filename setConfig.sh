@@ -107,7 +107,7 @@ for cfgseg in $WD_PATH; do
 	IFS=$oldifs;
 	$SCRIPTDIR/editConfig.sh -p "$PROJECTDIR/$cfgseg" -e '*.any' -e '*.sh' -e '*.sql' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
 done;
-if [ -d "$PROJECTSRCDIR" ]; then
+if [ -n "$PROJECTSRCDIR" -a -d "$PROJECTSRCDIR" ]; then
 	$SCRIPTDIR/editConfig.sh -p "$PROJECTSRCDIR" -e "*.pl" -e '*.sh' -e '*.pm' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
 fi
 if [ -d "$PROJECTDIR/FunkTest" ]; then
@@ -119,7 +119,7 @@ fi
 if [ -d "$PROJECTDIR/scripts" ]; then
 	$SCRIPTDIR/editConfig.sh -p "$PROJECTDIR/scripts" -e '*.awk' -e '*.sh' -e '*.pl' -e '*.pm' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
 fi
-if [ -d "$PROJECTDIR/$PERFTESTDIR" ]; then
+if [ -n "$PERFTESTDIR" -a -d "$PROJECTDIR/$PERFTESTDIR" ]; then
 	$SCRIPTDIR/editConfig.sh -p "$PROJECTDIR/$PERFTESTDIR" -e '*.sh' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
 	for subcfgname in `find "$PROJECTDIR/$PERFTESTDIR" -path "*config*" -type d`; do
 		$SCRIPTDIR/editConfig.sh -p "$subcfgname" -e '*.any' -e '*.sh' -l "$cfg_filename" -d $cfg_delete $cfg_and -f "$ALL_CONFIGS" $cfg_opt
