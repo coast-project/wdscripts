@@ -36,17 +36,9 @@ DEF_CONF=DevTest
 # overwrite this one ONLY if the WD_PATH variable points to the wrong place
 #WD_PATH=config
 
-# enable logging on syslog, but do not override existing setting
-if [ -z "$WD_DOLOG" ]; then
-	# you shouldn't use this at itopia
-#	export WD_DOLOG=1
-	_foodummy=1	# need a statement in if
-fi
-# enable logging on cerr, but do not override existing setting
-if [ -z "$WD_LOGONCERR" ]; then
-#	export WD_LOGONCERR=1
-	_foodummy=1	# need a statement in if
-fi
+# use this function to do preparations prior to creating the distribution package
+# e.g. increment a build number 
+#function preDoallFunc {}
 
 ############################################################################
 #
