@@ -16,8 +16,8 @@
 ############################################################################
 function checkMatch(line, cfg_and, doAnd, patternStart, patternEnd, patternSet, bmatch, nAnds, ANDCFG)
 {
-	patternStart="[ \t]";
-	patternEnd="([ \t]|[ \t]*$)?";
+	patternStart="[ \t]+";
+	patternEnd="([ \t]|[ \t]*$)+";
 	bmatch=0;
 	if (match(line,comment))
 	{
