@@ -99,8 +99,7 @@ fi
 # check if we have a wd_path yet
 if [ -z "$WD_PATH" ]; then
 	# we do not have a wd_path, copy from IntWD_PATH or use . if empty
-	WD_PATH=".";
-	appendPath "WD_PATH" ":" "${IntWD_PATH}"
+	appendPath "WD_PATH" ":" "${IntWD_PATH:-.}"
 	CONFIGDIR=${IntWD_PATH:-.};
 else
 	# we have a wd_path, copy first existing segment into CONFIGDIR
