@@ -23,6 +23,12 @@ if [ "$1" = "-D" ]; then
 else
 	PRINT_DBG=0
 fi
+export PRINT_DBG
+
+do_quantify=0;
+do_purify=0;
+if [ "$1" = "quantify" ]; then do_quantify=1; fi
+if [ "$1" = "purify" ]; then do_purify=1; fi
 
 if [ $PRINT_DBG -eq 1 ]; then echo 'value of mypath before setting ['$mypath']'; fi
 if [ $PRINT_DBG -eq 1 ]; then
@@ -33,7 +39,11 @@ if [ `basename $0` == "config.sh" ]; then
 	# check if the caller already used an absolute path to start this script
 	DNAM=`dirname $0`
 
-	if [ "$DNAM" = "${DNAM#/}" ]; then
+	if [ "$DNAM" != "${DNAM#*:}" ]; then
+		# Windows-style pathname !
+		# take care, this one is absolute
+		mypath=$DNAM
+	elif [ "$DNAM" = "${DNAM#/}" ]; then
 		# non absolute path
 		mypath=`pwd`/$DNAM
 	else
@@ -68,6 +78,8 @@ PROJECTDIRABS=`cd ${PROJECTDIR} 2> /dev/null && pwd -P`
 if [ ${isWindows} -eq 1 ]; then
 	# get projectdir in native NT drive:path notation
 	getDosDir "${PROJECTDIR}" "PROJECTDIRNT"
+	getUnixDir "${PROJECTDIR}" "PROJECTDIR"
+	getUnixDir "${SCRIPTDIR}" "SCRIPTDIR"
 fi
 
 # check if DEV_HOME contains a trailing slash and append one if not for later comparison
@@ -80,7 +92,7 @@ if [ -z "${DEV_HOME}" ]; then
 	myDEV_HOME=
 fi
 
-if [ -n "$DEV_HOME" -a "${PROJECTDIR#${myDEV_HOME}}" = "${PROJECTDIR}" -a "${PROJECTDIRABS#${myDEV_HOME}}" = "${PROJECTDIRABS}" ]; then
+if [ -n "$DEV_HOME" -a "$DEV_HOME" != "$PROJECTDIR" -a "${PROJECTDIR#${myDEV_HOME}}" = "${PROJECTDIR}" -a "${PROJECTDIRABS#${myDEV_HOME}}" = "${PROJECTDIRABS}" ]; then
 	echo ''
 	echo 'WARNING: DEV_HOME already set to ['$DEV_HOME'] but projectdir is ['$PROJECTDIR']'
 	echo ''
@@ -91,6 +103,11 @@ PROJECTNAME=${PROJECTDIR##*/}
 
 # needed in deployable version, points to the directory where wd-binaries are in
 BINDIR=`cd $PROJECTDIR/bin 2>/dev/null && pwd`
+
+# set default binary name to execute either in foreground or background
+# in case of Coast this is almost always wdapp
+APP_NAME=wdapp
+TEST_NAME=wdtest
 
 # directory name of the log directory, may be overwritten in the project specific prjconfig.sh
 SearchJoinedDir "LOGDIR" "$PROJECTDIR" "$PROJECTNAME" "log"
@@ -111,7 +128,7 @@ if [ $PRINT_DBG -eq 1 ]; then
 	echo "IntWD_PATH ["$IntWD_PATH"]"
 fi
 
-function SetWD_PATH
+SetWD_PATH()
 {
 	# check if we have a wd_path yet
 	if [ -z "$WD_PATH" ]; then
@@ -137,6 +154,9 @@ function SetWD_PATH
 				fi
 			fi
 		done;
+		if [ -z "$CONFIGDIR" ]; then
+			CONFIGDIR=".";
+		fi
 
 		# if someone would better like to use the path found in IntWD_PATH instead of the existing
 		#  path in WD_PATH he could add a switch to enable the following code
@@ -153,28 +173,85 @@ SetWD_PATH
 
 # try to find out on which machine we are running
 HOSTNAME=`(uname -n) 2>/dev/null` || HOSTNAME="unkown"
+DOMAIN=$(getdomain "${HOSTNAME}")
 
-# check if bindir could be found, when started in development env this is probably not set
-# and this is why I use some 'hard' assumptions
-if [ -n "$DEV_HOME" -a -z "$BINDIR" ]; then
-	# BINDIR not set, use development defaults
-	BINDIR=${DEV_HOME}/wdapp
-fi
-if [ -n "$BINDIR" ]; then
-	BINDIR=`cd ${BINDIR} 2>/dev/null && pwd`
-	WDS_BIN=${BINDIR}/wdapp${EXEEXT}
-	WDA_BIN=${BINDIR}/wdapp${EXEEXT}
-fi
+SetBindir()
+{
+	# check if bindir could be found, when started in development env this is probably not set
+	if [ -z "$BINDIR" ]; then
+		if [ -n "$DEV_HOME" ]; then
+			# we are in development environment
+			if [ "${APP_NAME}" == "wdapp" ]; then
+				# BINDIR not set, use development defaults
+				BINDIR=${DEV_HOME}/wdapp/${OSREL}
+			else
+				BINDIR=${PROJECTDIR}/${OSREL}
+			fi
+		else
+			# we are in deployed env but nothing could be found...
+			echo "failed when looking for a valid BINDIR..."
+		fi
+	fi
+	BINDIRABS=`cd ${BINDIR} 2>/dev/null && pwd -P`;
+}
 
-if [ "$1" = "quantify" ]; then
-	export QUANTIFYOPTIONS="-max_threads=500 $QUANTIFYOPTIONS"
-	WDS_BIN=${WDS_BIN}.quantify
-	WDA_BIN=${WDA_BIN}.quantify
-elif [ "$1" = "purify" ]; then
-	export PURIFYOPTIONS="-max_threads=500 $PURIFYOPTIONS"
-	WDS_BIN=${WDS_BIN}.purify
-	WDA_BIN=${WDA_BIN}.purify
-fi
+SetBinary()
+{
+	if [ -n "$BINDIR" ]; then
+		WDS_BIN=${BINDIR}/${APP_NAME}${APP_SUFFIX}
+		WDA_BIN=${BINDIR}/${APP_NAME}${APP_SUFFIX}
+		WDS_BINABS=${BINDIRABS}/${APP_NAME}${APP_SUFFIX}
+		WDA_BINABS=${BINDIRABS}/${APP_NAME}${APP_SUFFIX}
+	fi
+
+	if [ $do_quantify -eq 1 ]; then
+		export QUANTIFYOPTIONS="-max_threads=500 $QUANTIFYOPTIONS"
+		WDS_BIN=${WDS_BIN}.quantify
+		WDA_BIN=${WDA_BIN}.quantify
+	elif [ $do_purify -eq 1 ]; then
+		export PURIFYOPTIONS="-max_threads=500 $PURIFYOPTIONS"
+		WDS_BIN=${WDS_BIN}.purify
+		WDA_BIN=${WDA_BIN}.purify
+	fi
+}
+
+TestExecWdBinaries()
+{
+	# test if the wdapp executable exists, or clear the var if not
+	if [ ! -x ${WDA_BIN} ]; then
+		WDA_BIN=
+	fi
+
+	# test if the server executable exists, or clear the var if not
+	if [ ! -x ${WDS_BIN} ]; then
+		WDS_BIN=
+	fi
+}
+
+SetupTestExe()
+{
+	##foo maybe move this out into RunTests.sh
+	# check for wdtest executable
+	if [ -d "${OSREL}" ]; then
+		for exename in ${OSREL}/${TEST_NAME}${APP_SUFFIX} `ls ${OSREL}/${TEST_NAME}* 2>/dev/null`; do
+			if [ $PRINT_DBG -eq 1 ]; then echo 'testing excutable ['${exename}']'; fi;
+			if [ -f "$exename" -a -x "$exename" ]; then
+				if [ $PRINT_DBG -eq 1 ]; then echo 'using excutable ['${exename}']'; fi;
+				TEST_EXE=$exename;
+				break;
+			fi
+		done
+	else
+		for exename in ${BINDIR}/${TEST_NAME}* ${PROJECTDIR}/${TEST_NAME}*; do
+			if [ $PRINT_DBG -eq 1 ]; then echo 'trying executable ['$exename']'; fi
+			if [ -n "$exename" -a -f "$exename" -a -x "$exename" ]; then
+				export TEST_EXE=$exename;
+				if [ $PRINT_DBG -eq 1 ]; then echo 'exporting TEST_EXE=['$exename']'; fi
+				break;
+			fi
+		done
+	fi
+}
 
 # directory where WD-Libs are in
 if [ -d "$PROJECTDIR/lib" ]; then
@@ -209,7 +286,9 @@ else
 	prependPath "LD_LIBRARY_PATH" ":" "${WD_LIBDIR}"
 fi
 
-SERVERNAME=$PROJECTNAME
+if [ -z "${SERVERNAME}" ]; then
+	SERVERNAME=$PROJECTNAME
+fi;
 PRJ_DESCRIPTION="$SERVERNAME"
 TARGZNAME=$SERVERNAME.tgz
 
@@ -251,18 +330,20 @@ elif [ -f "$SCRIPTDIR/prjconfig.sh" ]; then
 	SetWD_PATH
 fi
 
-# test if the wdapp executable exists, or clear the var if not
-if [ ! -x ${WDA_BIN} ]; then
-	WDA_BIN=
-fi
-
-# test if the server executable exists, or clear the var if not
-if [ ! -x ${WDS_BIN} ]; then
-	WDS_BIN=
-fi
+SetBindir
+SetBinary
+TestExecWdBinaries
+SetupTestExe
 
 if [ -z "${PID_FILE}" ]; then
 	PID_FILE=$PROJECTDIR/$LOGDIR/$SERVERNAME.PID
+fi
+
+if [ -z "${ServerMsgLog}" ]; then
+	ServerMsgLog=$PROJECTDIR/$LOGDIR/server.msg
+fi
+if [ -z "${ServerErrLog}" ]; then
+	ServerErrLog=$PROJECTDIR/$LOGDIR/server.err
 fi
 
 # check if WD_ROOT is already set and if so do not overwrite it but warn about
@@ -280,38 +361,12 @@ else
 	fi;
 fi
 
-export BINDIR CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT
+export BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT
 
 # for debugging only
 if [ $PRINT_DBG -eq 1 ]; then
-	echo "PID-file:     $PID_FILE"
-	echo "bindir:       $BINDIR"
-	echo "configdir:    $CONFIGDIR"
-	echo "confgdirabs:  $CONFIGDIRABS"
-	echo "cursystem:    $CURSYSTEM"
-	echo "hostname:     $HOSTNAME"
-	echo "logdir:       $LOGDIR"
-	echo "ostype:       $OSTYPE"
-if [ $isWindows -eq 1 ]; then
-	echo "path:         $PATH"
-else
-	echo "ld_libpath:   $LD_LIBRARY_PATH"
-fi
-	echo "perftest:     $PERFTESTDIR"
-	echo "prjconfig in: $PRJCONFIGPATH"
-	echo "prjdesc:      $PRJ_DESCRIPTION"
-	echo "prjdir-abs:   $PROJECTDIRABS"
-	echo "projectdir:   $PROJECTDIR"
-	echo "projectname:  $PROJECTNAME"
-	echo "scriptdir:    $SCRIPTDIR"
-	echo "servername:   $SERVERNAME"
-	echo "sourcedir:    $PROJECTSRCDIR"
-	echo "sys-tmpdir:   $SYS_TMP"
-	echo "tar-gz-name:  $TARGZNAME"
-	echo "usr-tmpdir:   $USR_TMP"
-	echo "wd_libdir:    $WD_LIBDIR"
-	echo "wd_path:      $WD_PATH"
-	echo "wd_root:      $WD_ROOT"
-	echo "wdapp:        $WDA_BIN"
-	echo "wdserver:     $WDS_BIN"
+	for varname in PID_FILE BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME DOMAIN LOGDIR ServerMsgLog ServerErrLog OSREL OSTYPE PATH LD_LIBRARY_PATH PERFTESTDIR PRJCONFIGPATH PRJ_DESCRIPTION PROJECTDIRABS PROJECTDIR PROJECTDIRNT PROJECTNAME RUN_USER SCRIPTDIR SERVERNAME PROJECTSRCDIR SYS_TMP TARGZNAME TEST_NAME TEST_EXE USR_TMP WD_LIBDIR WD_PATH WD_ROOT APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS; do
+		locVar="echo $"$varname;
+		printf "%-16s: [%s]\n" $varname "`eval $locVar`"
+	done
 fi

@@ -19,31 +19,47 @@ else
 	mypath=$DNAM
 fi
 
-# load configuration for current project
-. $mypath/config.sh
+. $mypath/config.sh "$@"
 
 if [ $? -ne 0 ]; then
 	printf "configuration with %s failed\n" "$mypath/config.sh";
 	exit 4;
 fi
 
+# source server handling funcs
+. $mypath/serverfuncs.sh
+
+myExit()
+{
+	locRetCode=${1:-4};
+	LogLeaveScript ${locRetCode}
+	exit ${locRetCode};
+}
+
+LogEnterScript
+
+# get pid to send signal to
+# - normally, there is a PID-File which we use to get the signal-handling PID of the process
+#   especially needed on Linux where each thread gets its own process list entry
+sigPids="";
 if [ -f "$PID_FILE" ]; then
-	PID=`cat $PID_FILE`;
-	ps -p ${PID} > /dev/null
-	if [ $? -ne 0 ]; then
-		printf "%s with pid %s does not exist anymore\n" ${SERVERNAME} ${PID}
-		rm $PID_FILE;
-		exit 2
-	fi
-	printf "soft-restarting %s on %s " ${SERVERNAME} ${HOSTNAME}
-	kill -1 ${PID} 2> /dev/null
-	if [ $? -ne 0 ]; then
-		printf "%s\n" "failed"
-		exit 3
-	else
-		printf "%s\n" "successful"
-	fi
+	sigPids="`cat $PID_FILE`";
+fi
+
+if [ -n "${sigPids}" ]; then
+	sigToSend=1;
+	sigToSendName="HUP";
+	locWDS_BIN="${WDS_BIN:-${WDA_BIN}}";
+	locWDS_BINABS="${WDS_BINABS:-${WDA_BINABS}}";
+	SignalToServer ${sigToSend} "${sigToSendName}" "${sigPids}" "pidKilled" "${locWDS_BIN}"
+	if [ $? -eq 1 -a "${locWDS_BIN}" != "${locWDS_BINABS}" ]; then
+		# server seems not to be running anymore
+		# -> check for dereferenced binary signature in process list too
+		SignalToServer ${sigToSend} "${sigToSendName}" "${sigPids}" "pidKilled" "${locWDS_BINABS}"
+	fi;
+	myExit $?;
 else
-	printf "%s %s\n" ${SERVERNAME} "not running (no PID-file)"
-	exit 2
+	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog};
+	echo "no process id from PID-File given, exiting..." | tee -a ${ServerMsgLog}
+	myExit 4;
 fi

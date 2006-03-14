@@ -6,21 +6,13 @@
  * the license that is included with this library/application in the file license.txt.
  */
 
-//--- c-library modules used ---------------------------------------------------
-#if defined(WIN32)
-	#include <windows.h>
-	#include "ITOString.h"
-	#include "SysLog.h"
-#endif
-
-//--- standard modules used ----------------------------------------------------
-
 //--- interface include --------------------------------------------------------
 #include "config_tmpl.h"
 
 //--- used modules
 #if defined(WIN32)
 	#ifdef _DLL
+		#include "SystemLog.h"
 
 // DllMain() is the entry-point function for this DLL.
 BOOL WINAPI	DllMain(HANDLE hinstDLL,	// DLL module handle
@@ -32,7 +24,7 @@ BOOL WINAPI	DllMain(HANDLE hinstDLL,	// DLL module handle
 		// The DLL is loading due to process
 		// initialization or a call to LoadLibrary.
 		case DLL_PROCESS_ATTACH:
-			SysLog::Info("tmpl: DLL_PROCESS_ATTACH called");
+			SystemLog::Info("tmpl: DLL_PROCESS_ATTACH called");
 			break;
 
 		// The attached process creates a new thread.
@@ -45,7 +37,7 @@ BOOL WINAPI	DllMain(HANDLE hinstDLL,	// DLL module handle
 
 		// The DLL unloading due to process termination or call to FreeLibrary
 		case DLL_PROCESS_DETACH:
-			SysLog::Info("tmpl: DLL_PROCESS_DETACH called");
+			SystemLog::Info("tmpl: DLL_PROCESS_DETACH called");
 			break;
 
 		default:

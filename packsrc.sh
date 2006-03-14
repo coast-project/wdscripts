@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/ksh
 #-----------------------------------------------------------------------------------------------------
 # Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
 # All rights reserved.
@@ -7,9 +7,18 @@
 # the license that is included with this library/application in the file license.txt.
 #-----------------------------------------------------------------------------------------------------
 
+myVersion="$Id$"
 MYNAME=`basename $0`
 
-function showhelp
+DNAM=`dirname $0`
+if [ "${DNAM}" = "${DNAM#/}" ]; then
+# non absolute path
+	mypath=`pwd`/$DNAM
+else
+	mypath=$DNAM
+fi
+
+showhelp()
 {
 	echo ''
 	echo 'usage: '$MYNAME' [options] <directories...>'
@@ -22,8 +31,10 @@ function showhelp
 	echo ' -m <0|1|2> : mode for sorting files before adding, one of:'
 	echo '    0 : files sorted by directory and extension'
 	echo '    1 : files sorted by extension'
-	echo '    2 : files sorted by extension, the filename will be taken as extension for files without extension'
+	echo '    2 : files sorted by extension, default, the filename will be taken as extension for files without extension'
 	echo ' -n <archivename> : specify another archive name, default is first directory name'
+	echo ' -f <filename> : use only files newer than given file'
+	echo ' -t [[CC]YY]MMDDhhmm[.ss] : use only files newer than timestamp given'
 	echo ' -x <files...> : additional files to be excluded from packing'
 	echo ' -X <dir...> : additional directories to be excluded from packing'
 	echo ' -D : print debugging information of scripts, sets PRINT_DBG variable to 1'
@@ -33,26 +44,30 @@ function showhelp
 
 fileexcl=""
 pathexcl=""
-packfiles=_f_.txt
+newerfile="";
+newertime="";
 # default compressor settings
-cmprs='tar cf - -v -T $packfiles | bzip2 --repetitive-best > $outfile'
+cmprs='tar cf - -v -T ${locPackFiles} | bzip2 --repetitive-best > $outfile'
 cmprsext=.tar.bz2
 
 # process command line options
-while getopts ":c:m:n:x:X:D" opt; do
+while getopts ":c:f:m:n:t:x:X:D" opt; do
 	case $opt in
 		c)
 			# set compressor
 			if [ "${OPTARG}" = "zip" ]; then
-				cmprs='cat $packfiles | zip $outfile -@'
+				cmprs='cat ${locPackFiles} | zip $outfile -@'
 				cmprsext=.zip
 			elif [ "${OPTARG}" = "tgz" ]; then
-				cmprs='tar cf - -v -T $packfiles | gzip > $outfile'
+				cmprs='tar cf - -v -T ${locPackFiles} | gzip > $outfile'
 				cmprsext=.tgz
 			elif [ "${OPTARG}" = "tar" ]; then
-				cmprs='tar cf $outfile -v -T $packfiles'
+				cmprs='tar cf $outfile -v -T ${locPackFiles}'
 				cmprsext=.tar
 			fi
+		;;
+		f)
+			newerfile="${OPTARG}";
 		;;
 		m)
 			_mode="${OPTARG}";
@@ -62,8 +77,11 @@ while getopts ":c:m:n:x:X:D" opt; do
 			prjname="${OPTARG}";
 #			echo 'new project name is ['$prjname']'
 		;;
+		t)
+			newertime="${OPTARG}";
+		;;
 		x)
-			fileexcl=${fileexcl}" -o -name '"${OPTARG}"'";
+			fileexcl=${fileexcl}" -o -name ${OPTARG}";
 #			echo 'file exclusion is ['$fileexcl']'
 		;;
 		X)
@@ -72,7 +90,7 @@ while getopts ":c:m:n:x:X:D" opt; do
 		;;
 		D)
 			# propagating this option to config.sh
-			cfg_opt="-D";
+			cfg_dbgopt="-D";
 		;;
 		\?)
 			showhelp;
@@ -81,7 +99,7 @@ while getopts ":c:m:n:x:X:D" opt; do
 done
 shift $(($OPTIND - 1))
 
-dopath="$*"
+dopath="$@"
 # if no project name is given take the first argument as name
 if [ -z "$prjname" ]; then
 	prjname=$1
@@ -101,7 +119,7 @@ if [ -z "$_mode" ]; then
 	export _mode=2
 fi
 
-if [ "$cfg_opt" = "-D" ]; then
+if [ "$cfg_dbgopt" = "-D" ]; then
 	echo "directories:  ["$dopath"]"
 	echo "mode:         ["$_mode"]"
 	echo "prjname:      ["$prjname"]"
@@ -109,26 +127,72 @@ if [ "$cfg_opt" = "-D" ]; then
 	echo "path excludes:["$pathexcl"]"
 	echo "compressor    ["$cmprs"]"
 	echo "extension     ["$cmprsext"]"
+	echo "newerfile     ["$newerfile"]"
+	echo "newertime     ["$newertime"]"
 fi
 
+# load os-specific settings and functions
+. ${mypath}/sysfuncs.sh
+
+if [ $IS_GNUAWK -eq 0 -o $IS_GNUFIND -eq 0 ]; then
+	echo '';
+	echo 'ERROR:';
+	echo ' could not locate gawk and/or gfind executable!';
+	echo '';
+	exit 4;
+fi
+
+locInfoFileName=_inf_foo_.txt
+locInfoFile=${SYS_TMP}/${locInfoFileName}
+locTmpFile1=${SYS_TMP}/__.txt
+locTmpFile2=${SYS_TMP}/_.txt
+locPackFiles=${SYS_TMP}/_f_.txt
+locModusFile=${SYS_TMP}/awkmodus.foo
+locExtFile=${SYS_TMP}/awkextsort.foo
+locFilterFileName=awkfilterlibs.foo
+locFilterFile=${SYS_TMP}/${locFilterFileName}
+locNewerFile=${SYS_TMP}/_newerfile_
+
+cleanup()
+{
+	rm ${locInfoFile} ${locTmpFile2} ${locTmpFile1} ${locPackFiles} ${locModusFile} ${locExtFile} ${locFilterFile} ${locNewerFile} >/dev/null 2>&1
+}
+
+# install signal handlers
+. $mypath/trapsignalfuncs.sh
+
+exitproc()
+{
+	cleanup;
+	exit 4;
+}
+
 # lets start
+cleanup
 awkpar="-v mode=$_mode"
 outfile=${prjname}_`date +%Y%m%d%H%M`${cmprsext}
+
+if [ -n "${newertime}" ]; then
+	touch -t ${newertime} ${locNewerFile}
+	if [ -f ${locNewerFile} ]; then
+		newerparam="-newer ${locNewerFile} "
+	fi
+elif [ -n "${newerfile}" ]; then
+	if [ -f ${newerfile} ]; then
+		newerparam="-newer ${newerfile} "
+	fi
+fi
 
 echo ""
 echo "Using Mode ["$_mode"] to pack contents of ["$dopath"] into ["$outfile"]"
 echo ""
 
-if [ -f _inf_foo_.txt ]; then
-	rm -f _inf_foo_.txt >nul
-fi
-
-cat << EOF > awkfilterlibs.foo
+cat << EOF > ${locFilterFile}
 BEGIN{
   RS="\r?\n";
 }
 {
-	ns=split(\$0,SPATH,"[/\\]");
+	ns=split(\$0,SPATH,"[\\\/]");
 	if (ns > 1 && SPATH[ns-1] != ".")
 	{
 		fname=tolower(SPATH[ns]);
@@ -142,9 +206,9 @@ BEGIN{
 }
 EOF
 
-find $dopath "(" -path '*/i386_*' -o -path '*/.sniffdir' -o -path '*/.ProjectCache' -o -path '*/.RetrieverIndex' -o -path '*/.sniffdb' -o -path '*/sol_gcc_*' -o -path '*/CVS' $pathexcl ")" -prune -o ! "(" -name "*%" -o -name ".Sniff*" -o -name ".#*" -o -name "*.o"  -o -name "*.so" -o -name "*.pdb" -o -name "*.exp" -o -name "wdtest" -o -name "wdtest.exe" -o -name "*.opt" -o -name "*.plg" -o -name "*.ncb" -o -name "*.aps" -o -name "*.log.*" -o -name "*.bak*" -o -name "_inf_foo_.txt" -o -name "awkfilterlibs.foo" -o -name '_teststderr.tx_' -o -name '_teststdout.tx_' -o -name '*.org[0-9]*' -o -name '*.rpl[0-9]*' $fileexcl ")" -type f -print | awk -f awkfilterlibs.foo > _inf_foo_.txt
+${FINDEXE} $dopath "(" -path '*/i386_*' -o -path '*/.sniffdir' -o -path '*/.ProjectCache' -o -path '*/.RetrieverIndex' -o -path '*/.sniffdb' -o -path '*/sol_gcc_*' -o -path '*/CVS' $pathexcl ")" -prune -o ! "(" -name "*%" -o -name ".Sniff*" -o -name ".#*" -o -name "*.o"  -o -name "*.so" -o -name "*.pdb" -o -name "*.exp" -o -name "wdtest" -o -name "wdtest.exe" -o -name "*.opt" -o -name "*.plg" -o -name "*.ncb" -o -name "*.aps" -o -name "*.log.*" -o -name "*.bak*" -o -name "${locInfoFileName}" -o -name "${locFilterFileName}" -o -name '_teststderr.tx_' -o -name '_teststdout.tx_' -o -name '*.org[0-9]*' -o -name '*.rpl[0-9]*' ${fileexcl} ")" ${newerparam} -type f -print | ${AWKEXE} -f ${locFilterFile} > ${locInfoFile}
 
-cat << EOF > awkmodus.foo
+cat << EOF > ${locModusFile}
 BEGIN{
   RS="\r?\n";
   first = 1;
@@ -170,7 +234,7 @@ BEGIN{
     else
       oline = oline "\t";
 
-    print oline nline > "_.txt";
+    print oline nline > "${locTmpFile2}";
   }
   else if (mode == 2)
   { # files nach extension sortiert, wenn keine extension 'entspricht' der Name der extension
@@ -191,22 +255,28 @@ BEGIN{
     else
       oline = "\t" oline;
 
-    print nline oline > "_.txt";
+    print nline oline > "${locTmpFile2}";
   }
   else
   { # files nach extension sortiert aber in gleicher Verzeichnisreihenfolge
     if (match(nline,".*\\\\."))
-      print substr(nline,RLENGTH+1)"\t"substr(nline,RSTART,RLENGTH) > "_.txt";
+      print substr(nline,RLENGTH+1)"\t"substr(nline,RSTART,RLENGTH) > "${locTmpFile2}";
     else
-      print "\t"nline > "_.txt";
+      print "\t"nline > "${locTmpFile2}";
   }
 }
 EOF
 
-awk $awkpar -f awkmodus.foo _inf_foo_.txt
-sort -f _.txt -o __.txt
+${AWKEXE} $awkpar -f ${locModusFile} ${locInfoFile}
+if [ ! -s ${locTmpFile2} ]; then
+	cleanup;
+	echo 'No files found to compress, exiting...';
+	exit 1;
+fi
 
-cat << EOF > awkextsort.foo
+sort -f ${locTmpFile2} -o ${locTmpFile1} >/dev/null 2>&1
+
+cat << EOF > ${locExtFile}
 BEGIN { ORS="\n"; ntxt=0; nbin=0; }
 {
     split(\$0,ARR,"\t");
@@ -231,14 +301,7 @@ END {
 }
 EOF
 
-awk -v outname="$packfiles" -f awkextsort.foo __.txt
+${AWKEXE} -v outname="${locPackFiles}" -f ${locExtFile} ${locTmpFile1}
 
 eval $cmprs
-
-rm _inf_foo_.txt
-rm _.txt
-rm __.txt
-rm $packfiles
-rm awkmodus.foo
-rm awkextsort.foo
-rm awkfilterlibs.foo
+cleanup

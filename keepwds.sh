@@ -21,37 +21,44 @@ else
 	mypath=$DNAM
 fi
 
-function showhelp
+# source in config switching helper
+. $mypath/_cfgSwitch.sh
+
+showhelp()
 {
-	local locPrjDir=` . $mypath/config.sh ; echo $PROJECTDIR`;
+	locPrjDir=` . $mypath/config.sh >/dev/null 2>&1; echo $PROJECTDIR`;
 	echo ''
 	echo 'usage: '$MYNAME' [options] [server-params]...'
 	echo 'where options are:'
-	echo ' -a <config> : config which you want to switch to, multiple definitions allowed'
-	echo ' -e          : enable error-logging to '`( . $mypath/config.sh ; echo ${LOGDIR} )`'/server.err, default no logging'
-	echo ' -h <num>    : number of file handles to set for the process, default 1024'
-	echo ' -s          : enable error-logging into SysLog, eg. /var/[adm|log]/messages, default no logging into SysLog'
-	echo ' -C <cfgdir> : config directory to use within ['$locPrjDir'] directory'
-	echo ' -D          : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	PrintSwitchHelp
+	echo ' -c <coresize> : maximum size of core file to produce, in 512Byte blocks!'
+	echo ' -e            : enable error-logging to '`( . $mypath/config.sh >/dev/null 2>&1; echo ${LOGDIR} )`'/server.err, default no logging'
+	echo ' -h <num>      : number of file handles to set for the process, default 1024'
+	echo ' -s            : enable error-logging into SysLog, eg. /var/[adm|log]/messages, default no logging into SysLog'
+	echo ' -C <cfgdir>   : config directory to use within ['$locPrjDir'] directory'
+	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ''
 	exit 4;
 }
 
-cfg_and="";
-cfg_opt="";
+cfg_dbgopt="";
 cfg_cfgdir="";
 cfg_handles="-h 1024";
 cfg_dbg=0;
 cfg_errorlog="";
 cfg_syslog="";
-# process command line options
-while getopts ":a:eh:sC:D" opt; do
+cfg_coresize="-c 20000";	# default to 10MB
+
+# process config switching options first
+myPrgOptions=":c:eh:sC:D"
+ProcessSetConfigOptions "${myPrgOptions}" "$@"
+OPTIND=1;
+
+# process other command line options
+while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 	case $opt in
-		a)
-			if [ -n "$cfg_and" ]; then
-				cfg_and=${cfg_and}" ";
-			fi
-			cfg_and=${cfg_and}"-a "${OPTARG};
+		c)
+			cfg_coresize="-c "${OPTARG};
 		;;
 		e)
 			cfg_errorlog="-e";
@@ -67,7 +74,7 @@ while getopts ":a:eh:sC:D" opt; do
 		;;
 		D)
 			# propagating this option to config.sh
-			cfg_opt="-D";
+			cfg_dbgopt="-D";
 			cfg_dbg=1;
 		;;
 		\?)
@@ -77,49 +84,64 @@ while getopts ":a:eh:sC:D" opt; do
 done
 shift $(($OPTIND - 1))
 
-cfg_srvopts="$*";
+cfg_srvopts="$@";
 
 if [ -n "$cfg_cfgdir" ]; then
 	export WD_PATH=${cfg_cfgdir};
-	cfg_cfgdir="-c "${cfg_cfgdir};
+	cfg_cfgdir="-C "${cfg_cfgdir};
 fi
 
-if [ -n "$cfg_and" ]; then
-	echo ' ---- switching configurations to ['$cfg_and'] prior to starting'
-	echo ''
-	$mypath/setConfig.sh $cfg_and $cfg_opt
-fi
+# prepare config switching tokens
+PrepareTokensForCommandline
+
+# switch configuration now to ensure correct settings
+DoSetConfigWithToks
 
 if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
-. $mypath/config.sh $cfg_opt
+. $mypath/config.sh $cfg_dbgopt
 
-function startIt
+# install signal handlers
+. $mypath/trapsignalfuncs.sh
+
+# source server handling funcs
+. $mypath/serverfuncs.sh
+
+startIt()
 {
-	$mypath/startwds.sh $cfg_opt $cfg_and $cfg_cfgdir $cfg_errorlog $cfg_handles $cfg_syslog $cfg_srvopts
+	$mypath/startwds.sh $cfg_dbgopt $cfg_toks $cfg_cfgdir $cfg_errorlog $cfg_handles $cfg_syslog $cfg_coresize $cfg_srvopts
 	return $?;
 }
 
-function killIt
+killIt()
 {
-	$mypath/stopwds.sh $cfg_opt $cfg_and $cfg_cfgdir
+	locPIDs="${1}";
+	$mypath/stopwds.sh $cfg_dbgopt $cfg_toks $cfg_cfgdir
+}
+
+myExit()
+{
+	locRetCode=${1:-4};
+	LogLeaveScript ${locRetCode}
+	exit ${locRetCode};
+}
+
+# stops possible running processes
+exitproc()
+{
+	locSigName=${1:-4};
+	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog}
+	if [ $cfg_dbg -eq 1 ]; then echo "got SIG${locSigName}"; fi;
+	printf "got SIG%s\n" "${locSigName}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
+	doRun=0;
+	killIt ${PID};
+	myExit 0;
 }
 
 doRun=1;
+LogEnterScript
 
-# stops possible running processes
-function exitproc
-{
-	doRun=0;
-	killIt;
-	exit 0;
-}
-
-trap exitproc INT
-trap exitproc HUP
-trap exitproc TERM
-trap exitproc KILL
-
-echo 'PID-File is ['$PID_FILE']';
+printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
+printf "PID-Filename is [%s]\n" "$PID_FILE" | tee -a ${ServerMsgLog};
 # start server for the first ( and hopefully last time )
 startIt;
 if [ $? -eq 0 ]; then
@@ -128,26 +150,33 @@ if [ $? -eq 0 ]; then
 	while [ $doRun -eq 1 ]; do
 		# don't waste too many cycles
 		sleep 10;
-
 		# check if pid still exists
-		ps -p ${PID} > /dev/null
-		if [ $? -ne 0 ]; then
-			echo 'WARNING: process '${SERVERNAME}' (pid:'${PID}') has gone!'
-			killIt;
-			# restart it if it is gone
+		checkProcessId "${PID}"
+		if [ $? -eq 0 ]; then
+			printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
+			printf "WARNING: server %s [%s] (pid:%s) has gone!\n" "${SERVERNAME}" "$WDS_BIN" "${PID}" | tee -a ${ServerMsgLog}
+			printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
+			printf "stopping potentially running processes\n" | tee -a ${ServerMsgLog}
+			killIt "${killPids}";
+			# restart it if it has gone
+			printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
+			printf "re-starting server using startwds.sh\n" | tee -a ${ServerMsgLog}
 			startIt;
 			if [ $? -eq 0 ]; then
 				# if it is started again remember the new pid
 				PID=`cat $PID_FILE`;
-				echo 'INFO: getting new pid:'$PID;
 			else
-				exit 1;
+				printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
+				printf "ERROR: could not re-start server, exiting\n" | tee -a ${ServerMsgLog}
+				myExit 1;
 			fi
 		fi
 	done
 else
-	exit 1;
+	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
+	printf "ERROR: could not start server, exiting\n" | tee -a ${ServerMsgLog}
+	myExit 1;
 fi
 
 killIt;
-exit 0;
+myExit 0;

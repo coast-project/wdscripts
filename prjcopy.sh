@@ -52,6 +52,3 @@
 #copy doc
 #cp $PROJECTDIR/doc/*.txt $TMPDIR/doc
 #chmod 664 $TMPDIR/doc/*txt
-
-# cp lib entries
-#cp $LDAP_LIBDIR/*${DLLEXT} $TMPDIR/lib

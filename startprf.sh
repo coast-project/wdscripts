@@ -12,6 +12,7 @@
 #
 
 MYNAME=`basename $0`
+
 # check if the caller already used an absolute path to start this script
 DNAM=`dirname $0`
 if [ "$DNAM" = "${DNAM#/}" ]; then
@@ -21,13 +22,16 @@ else
 	mypath=$DNAM
 fi
 
-function showhelp
+# source in config switching helper
+. $mypath/_cfgSwitch.sh
+
+showhelp()
 {
-	local locPrjDir=` . $mypath/config.sh ; echo $PROJECTDIR`;
+	locPrjDir=` . $mypath/config.sh >/dev/null 2>&1; echo $PROJECTDIR`;
 	echo ''
 	echo 'usage: '$MYNAME' [options] [perftest-params]...'
 	echo 'where options are:'
-	echo ' -a <config> : config which you want to switch to, multiple definitions allowed'
+	PrintSwitchHelp
 	echo ' -e          : enable error-logging to console, default no logging'
 	echo ' -h <num>    : number of file handles to set for the process, default 1024'
 	echo ' -s          : enable error-logging into SysLog, eg. /var/[adm|log]/messages, default no logging into SysLog'
@@ -37,22 +41,21 @@ function showhelp
 	exit 4;
 }
 
-cfg_and="";
-cfg_opt="";
+cfg_dbgopt="";
 cfg_handles=1024;
 cfg_dbg=0;
 cfg_errorlog=0;
 cfg_syslog=0;
 cfg_cfgdir="";
-# process command line options
-while getopts ":a:C:eh:sD" opt; do
+
+# process config switching options first
+myPrgOptions=":C:eh:sD"
+ProcessSetConfigOptions "${myPrgOptions}" "$@"
+OPTIND=1;
+
+# process other command line options
+while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 	case $opt in
-		a)
-			if [ -n "$cfg_and" ]; then
-				cfg_and=${cfg_and}" ";
-			fi
-			cfg_and=${cfg_and}"-a "${OPTARG};
-		;;
 		C)
 			cfg_cfgdir=${OPTARG};
 		;;
@@ -67,7 +70,7 @@ while getopts ":a:C:eh:sD" opt; do
 		;;
 		D)
 			# propagating this option to config.sh
-			cfg_opt="-D";
+			cfg_dbgopt="-D";
 			cfg_dbg=1;
 		;;
 		\?)
@@ -77,16 +80,19 @@ while getopts ":a:C:eh:sD" opt; do
 done
 shift $(($OPTIND - 1))
 
-cfg_srvopts="$*";
+cfg_srvopts="$@";
 
-locPERFTESTDIR=`. $mypath/config.sh; echo \$PERFTESTDIR`;
-locPROJECTDIR=`. $mypath/config.sh; echo \$PROJECTDIR`;
+locPERFTESTDIR=`. $mypath/config.sh >/dev/null 2>&1; echo \$PERFTESTDIR`;
+locPROJECTDIR=`. $mypath/config.sh >/dev/null 2>&1; echo \$PROJECTDIR`;
 
 if [ -z "${locPERFTESTDIR}" ]; then
 	echo ''
 	echo 'ERROR: could not locate perftest directory, exiting !'
 	showhelp;
 fi
+
+# load os-specific settings and functions
+. ${mypath}/sysfuncs.sh
 
 if [ -z "$cfg_cfgdir" ]; then
 	# find all config directories and give a selection
@@ -100,19 +106,17 @@ if [ -z "$cfg_cfgdir" ]; then
 	done;
 fi
 
-export WD_PATH=${cfg_cfgdir};
+export WD_PATH=${locPERFTESTDIR}/${cfg_cfgdir};
+SERVERNAME=${locPERFTESTDIR}
 
-# change into perftest directory for correct settings of config directory
-cd ${locPERFTESTDIR}
+# prepare config switching tokens
+PrepareTokensForCommandline
 
-if [ -n "$cfg_and" ]; then
-	echo ' ---- switching configurations to ['$cfg_and'] prior to starting'
-	echo ''
-	$mypath/setConfig.sh $cfg_and $cfg_opt
-fi
+# switch configuration now to ensure correct settings
+DoSetConfigWithToks
 
 if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
-. $mypath/config.sh $cfg_opt
+. $mypath/config.sh $cfg_dbgopt
 
 # add SERVERNAME to application options as default
 if [ -n "$cfg_srvopts" ]; then
@@ -122,7 +126,7 @@ cfg_srvopts=${cfg_srvopts}${SERVERNAME};
 
 echo ''
 echo '------------------------------------------------------------------------'
-echo $MYNAME' - script to start perftest ['${SERVERNAME}'] with configdir ['$cfg_cfgdir']'
+echo $MYNAME' - script to start perftest ['${SERVERNAME}'] with configdir ['${WD_PATH}']'
 echo ''
 
 # set the file handle limit

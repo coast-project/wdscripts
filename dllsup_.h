@@ -11,6 +11,7 @@
 
 // WIN32 settings for Windows NT
 #if defined(WIN32)
+	#include <windows.h>
 	#ifdef _DLL
 		#ifdef TMPL_IMPL
 			#define EXPORTDECL_TMPL	__declspec(dllexport)

@@ -6,46 +6,413 @@
 # the license that is included with this library/application in the file license.txt.
 #-----------------------------------------------------------------------------------------------------
 #
-# specify SCRIPTDIR and copy this script to /sbin/init.d ( for System V )
+# init-usage:
+#  you *must* create a symbolic link from the installed packages bootScript.sh location into the
+#  the correct rc.x directory using appropriate start/kill script name
+#
+# example:
+# - package installed at /export/apps/helloworld
+#    the scripts for this app reside in /export/apps/helloworld/scripts
+# - we want to start the server from within runlevel 2
+#    $> cd /etc/rc2.d
+#    $> ln -s /export/apps/helloworld/scripts/bootScript.sh S20helloworld
+#    $> cd /etc/rc0.d
+#    $> ln -s /export/apps/helloworld/scripts/bootScript.sh K20helloworld
 #
 
-. /etc/rc.config
+if [ "$1" = "-D" ]; then
+	PRINT_DBG=1
+	cfg_dbgopt="-D";
+	shift
+else
+	PRINT_DBG=0
+	cfg_dbgopt="";
+fi
+export PRINT_DBG
 
-# The echo return value for success (defined in /etc/rc.config).
+# dereference a file/path - usually a link - and find its real origin
+#
+# param $1 is the file/path to dereference
+# param $2 the name of the variable to put the dereferenced file/path into
+#
+# output exporting dereferenced file/path into given name ($2)
+# returning 1 in case the given name was linked, 0 otherways
+deref_links()
+{
+	loc_name=${1};
+	ret_var=${2};
+	test ! -d $loc_name;
+	is_dir=$?
+	is_link=0;
+	cur_path=`dirname ${loc_name}`
+	while [ -h $loc_name -a `ls -l $loc_name 2>/dev/null | grep -c "^l" ` -eq 1 ]; do
+		if [ $PRINT_DBG -eq 1 ]; then printf $loc_name; fi
+		loc_name=`ls -l $loc_name | grep "^l" | cut -d'>' -f2 -s | sed 's/^ *//'`;
+		if [ $is_dir -eq 1 ]; then
+			loc_name=${cur_path}/${loc_name}
+		fi
+		if [ $PRINT_DBG -eq 1 ]; then echo ' ['${1}'] was linked to ['$loc_name']'; fi
+		cur_path=`dirname ${loc_name}`
+		is_link=1;
+	done
+	eval ${ret_var}="$loc_name";
+	return $is_link;
+}
+
+# retrieve value of variable usually set from config.sh
+#
+# param $1 project path to start from
+# param $2 script directory from where to execute config.sh
+# param $3 name of variable to get value from
+# param $4 name of output variable getting the retrieved value
+#
+# output exporting value into given variable name ($4)
+getconfigvar()
+{
+	loc_prjPath=${1};
+	loc_scDir=${2};
+	loc_name=${3};
+	ret_var=${4};
+	loc_name=`/bin/ksh -c "cd ${loc_prjPath}; mypath=${loc_scDir}; . ${loc_scDir}/config.sh >/dev/null 2>&1; eval \"echo $\"$loc_name"`
+	eval ${ret_var}="$loc_name";
+}
+
+# check if a given process id still appears in process list
+#
+# param $1 is the process id to check for
+#
+# returning 1 if process still exists, 0 if the process is not listed anymore
+checkProcessId()
+{
+	loc_pid=${1};
+	loc_ret=1;
+	if [ -n "$loc_pid" ]; then
+		# check if pid still exists
+		ps -p ${loc_pid} > /dev/null
+		if [ $? -ne 0 ]; then
+			echo 'process with pid:'${loc_pid}' has gone!';
+			loc_ret=0;
+		fi;
+	else
+		loc_ret=0;
+	fi
+	return $loc_ret;
+}
+
+# check if a process matching the WDS_BIN pattern and the given user is in the process list
+#
+# param $1 path/name of process to lookup in process list
+# param $2 name of user the process is running as
+# param $3 name of variable to put retrieved pids into, must be defined and initialized in outer scope
+#
+# return 1 in case such a process exists, 0 otherwise
+#
+checkProcessWithName()
+{
+	locBinName="${1}";
+	locRunUser="${2}";
+	locExpVar="${3}";
+	locRet=0;
+	locPids="";
+	locUser="";
+	if [ -n "${locRunUser}" ]; then
+		locUser="-u ${locRunUser}";
+	else
+		locUser="-e";
+	fi
+	for lPid in `ps ${locUser} -o pid,args | grep "${locBinName}" | grep -v grep | awk '{print $1}'`; do
+		if [ "$lPid" = "PID" ]; then
+			continue;
+		fi
+		if [ -n "${locPids}" ]; then 
+			locPids="${locPids} ";
+		fi
+		locPids="${locPids}${lPid}";
+		locRet=1;
+	done
+	eval ${locExpVar}='${locPids}';
+	return $locRet;
+}
+
+checkPidFilesAndServer()
+{
+	# check if the keepwds script is still running
+	_locExists=0;
+	if [ -n "$my_keeppid" ]; then
+		if [ $locKeepOk -eq 0 ]; then
+			outmsg="INFO: orphaned keepwds-pidfile found but keepwds.sh is not running anymore";
+			printf "%s\n" "${outmsg}";
+			printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
+			my_keeppid="";
+			rm -f ${my_keeppidfile};
+		fi;
+	fi
+	# double check to see if someone started the process using startwds.sh instead of using bootScript.sh
+	if [ -n "$wdpid" ]; then
+		if [ $locProcOk -eq 1 ]; then
+			_locExists=1;
+		else
+			outmsg="INFO: orphaned server-pidfile found but server: $SERVICENAME was not running anymore";
+			printf "%s\n" "${outmsg}"
+			printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
+			wdpid="";
+			rm -f ${wd_pidfile};
+		fi
+	fi
+	if [ -z "$my_keeppid" -a $_locExists -eq 1 ]; then
+		outmsg="WARNING: server is running but it seems that it was not started using ${MYNAME}";
+		printf "%s\n" "${outmsg}"
+		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
+		_locExists=4;
+	fi
+	return $_locExists;
+}
+
+startWithKeep()
+{
+	_locRetPid=0;
+	_amIroot=${1:-0};
+	_runUser=${2};
+	_runUserFile=${3};
+	_keepPidFile=${4};
+	_locExpVar="${5}";
+	if [ $_amIroot -eq 1 -a -n "${_runUser}" ]; then
+		# must adjust the owner of the probably newly created server-log-files
+		chown ${_runUser} ${ServerMsgLog} ${ServerErrLog}
+		# write run-user into special file for later server destruction
+		echo "${_runUser}" > "${_runUserFile}"
+		su ${_runUser} -c "${keep_script} ${cfg_dbgopt} >/dev/null 2>&1 & echo \$! > ${_keepPidFile}"
+	else
+		eval "${keep_script} ${cfg_dbgopt} >/dev/null 2>&1 &"
+		_locRetPid=$!;
+		echo $_locRetPid > ${_keepPidFile};
+	fi;
+	_locRetPid=`cat ${_keepPidFile} 2>/dev/null`;
+	eval ${_locExpVar}=${_locRetPid};
+}
+
+cleanfiles()
+{
+	rm -f ${my_keeppidfile} ${wd_pidfile} ${my_runuserfile};
+}
+
+deref_links "$0" "derefd_name"
+isLink=$?
+if [ $isLink -eq 1 ]; then
+	link_name=$0;
+fi
+scriptPath=`dirname $derefd_name`;
+derefd_name=`basename $derefd_name`;
+MYNAME=${derefd_name};
+SCRIPTDIR=`cd ${scriptPath}; pwd`;
+
+# getting the projectpath and -name is not simple because we have at least three ways
+#  to get executed:
+#  1. relative, path expanded from shell using PATH variable
+#  2. absolute
+#  3. through a link to the real script
+#
+# The third case currently works fine but implicitly assumes that a 'cd ..' is the correct project directory.
+# But this is not true for the first two cases where we actually reside in the project directory at call time.
+# Therefore I will do a check on an existing config* directory to see where we are.
+#
+prj_path=`dirname $scriptPath`
+prj_pathabs=`cd $prj_path; pwd`
+if [ "${prj_path}" = "." ]; then
+	# script was started with relative path
+	# -> must set prj_path again to ensure proper detection of SERVICENAME
+	# -> set scriptPath to SCRIPTDIR to ensure a script can unambigously identified in the process list
+	prj_path=${prj_pathabs};
+	scriptPath=${SCRIPTDIR};
+fi
+keep_script=${scriptPath}/keepwds.sh;
+stop_script=${scriptPath}/stopwds.sh;
+softstart_script=${scriptPath}/SoftRestart.sh;
+
+if [ -n "${prj_path}" ]; then
+	getconfigvar "${prj_path}" "${SCRIPTDIR}" CONFIGDIR tmp_CfgDir
+	if [ $PRINT_DBG -eq 1 ]; then echo "configdir(1) from ${prj_path} [${tmp_CfgDir}]"; fi;
+	if [ "${tmp_CfgDir}" = "." ]; then
+		prj_path=`pwd`;
+		getconfigvar "${prj_path}" "${SCRIPTDIR}" CONFIGDIR tmp_CfgDir
+		if [ $PRINT_DBG -eq 1 ]; then echo "configdir(2) from ${prj_path} [${tmp_CfgDir}]"; fi;
+	fi;
+else
+	outmsg="ERROR: project path could not be evaluated, exiting!";
+	printf "%s\n" "${outmsg}"
+	printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
+	exit 4;
+fi;
+
+deref_links "$prj_path" "prj_name"
+prj_name=`basename ${prj_name}`
+my_uid=`id | cut -d '(' -f1 | cut -d '=' -f2`
+test ! "$my_uid" -eq 0
+am_I_root=$?
+
+SERVICENAME=$prj_name
+getconfigvar "${prj_path}" "${SCRIPTDIR}" LOGDIR my_logdir
+my_logdir=${prj_path}/${my_logdir:=.}
+my_keeppidfile=${my_logdir}/.$SERVICENAME.keepwds.pid
+my_runuserfile=${my_logdir}/.RunUser
+getconfigvar "${prj_path}" "${SCRIPTDIR}" PID_FILE wd_pidfile
+getconfigvar "${prj_path}" "${SCRIPTDIR}" RUN_USER my_runuser
+my_unique_text="Coast server: $SERVICENAME"
+getconfigvar "${prj_path}" "${SCRIPTDIR}" ServerMsgLog ServerMsgLog
+getconfigvar "${prj_path}" "${SCRIPTDIR}" ServerErrLog ServerErrLog
+getconfigvar "${prj_path}" "${SCRIPTDIR}" WDS_BIN wds_bin
+getconfigvar "${prj_path}" "${SCRIPTDIR}" WDS_BINABS wds_binabs
+
+if [ $PRINT_DBG -eq 1 ]; then
+	echo "I am executing in ["${PWD}"]";
+	for varname in prj_name prj_path prj_pathabs scriptPath keep_script stop_script softstart_script my_logdir link_name MYNAME my_keeppidfile wd_pidfile my_runuserfile my_runuser my_uid ServerMsgLog ServerErrLog SERVICENAME; do
+		locVar="echo $"$varname;
+		locVarVal=`eval $locVar`;
+		if [ -n "${locVarVal}" ]; then
+			printf "%-16s: [%s]\n" $varname "$locVarVal"
+		fi
+	done
+fi
+
+rc_done="..done"
+rc_running="..running"
+rc_failed="..failed"
+rc_dead="..dead"
+rc_notExist="...not running"
+rc_notPossible="...not possible, server not running"
+
 return=$rc_done
 
-export SERVICENAME=$PROJECTNAME
-export SCRIPTDIR=/home/scripts
+if [ -f "$my_keeppidfile" ]; then my_keeppid=`cat ${my_keeppidfile} 2>/dev/null`; fi
+if [ -f "$wd_pidfile" ]; then wdpid=`cat ${wd_pidfile} 2>/dev/null`; fi
 
-case "$1" in
-    start)
-	echo -n "Starting service $SERVICENAME"
-	$SCRIPTDIR/startwds.sh > /dev/null 2>&1 || return=$rc_failed
+checkProcessId ${my_keeppid};
+locKeepOk=$?;
+if [ $locKeepOk -eq 0 -n "${keep_script}" ]; then
+	checkProcessWithName "${keep_script}" "${my_runuser}" my_keeppid
+	locKeepOk=$?;
+fi
+checkProcessId ${wdpid};
+locProcOk=$?;
+if [ $locProcOk -eq 0 -n "${wds_bin}" ]; then
+	checkProcessWithName "${wds_bin}" "${my_runuser}" wdpid
+	locProcOk=$?;
+	if [ $locProcOk -eq 0 -a "${wds_bin}" != "${wds_binabs}" ]; then
+		checkProcessWithName "${wds_binabs}" "${my_runuser}" wdpid
+		locProcOk=$?;
+	fi
+fi
+locCommand="$1";
 
-	echo -e "$return"
+# do a change dir into the project directory, not to start any script from the wrong location!
+cd $prj_path 2>/dev/null
+if [ "`pwd`" != "$prj_path" -a "`pwd`" != "$prj_pathabs" ]; then
+	echo "ERROR: could not change into project directory [$prj_path], current directory [`pwd`]";
+	exit 4;
+fi
 
-    ;;
-    stop)
-	echo -n "Shutting down service $SERVICENAME"
-	$SCRIPTDIR/stopwds.sh  > /dev/null 2>&1 || return=$rc_failed
-	echo -e "$return"
-    ;;
-    restart)
-	echo -n "Restart service $SERVICENAME"
-	$SCRIPTDIR/restartwds.sh  > /dev/null 2>&1 ||  return=$rc_failed
-	echo -e "$return"
-    ;;
-    reload)
-	echo -n "Reload service $SERVICENAME"
-	$SCRIPTDIR/SoftRestart.sh  > /dev/null 2>&1 || return=$rc_failed
-	echo -e "$return"
-    ;;
-   *)
-    echo "Usage: $0 {start|stop|restart|reload}"
-    exit 1
+checkPidFilesAndServer
+loc_Exists=$?;
+ret_pid=0;
+
+case "$locCommand" in
+	start)
+		if [ $loc_Exists -eq 4 ]; then
+			exit $loc_Exists;
+		fi;
+		cleanfiles;
+		outmsg="Starting ${my_unique_text}";
+		if [ $am_I_root -eq 1 -a -n "${my_runuser}" ]; then
+			outmsg="${outmsg} as ${my_runuser}";
+		fi
+		printf "%s" "${outmsg}"
+		printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
+		if [ -n "$my_keeppid" -o $loc_Exists -eq 1 ]; then
+			printf " (keep-pid:%s)" "$my_keeppid" | tee -a ${ServerMsgLog};
+			return=$rc_failed", already running, try stop first!";
+			printf "%s\n" "${return}" >> ${ServerMsgLog};
+		else
+			printf "\n" >> ${ServerMsgLog};
+			startWithKeep $am_I_root "${my_runuser}" "${my_runuserfile}" "${my_keeppidfile}" "ret_pid";
+			if [ $ret_pid -eq 0 ]; then return=$rc_failed; fi
+			printf " (keep-pid:%d)" "$ret_pid"
+		fi
+	;;
+	stop)
+		outmsg="Stopping ${my_unique_text} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
+		printf "%s" "${outmsg}"
+		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog}
+		if [ $locKeepOk -eq 1 ]; then
+			# we need to kill the keepwds.sh script to terminate the server and not restart it again
+			# it can take up to ten seconds until the script checks the signal and terminates the server
+			kill -15 $my_keeppid;
+			wait $my_keeppid;
+		else
+			if [ $locProcOk -eq 1 ]; then
+				eval "${stop_script} ${cfg_dbgopt} >/dev/null 2>&1";
+				if [ $? -ne 0 ]; then
+					# try hardkill to ensure it died
+					eval "${stop_script} ${cfg_dbgopt} -K >/dev/null 2>&1 || return=$rc_failed";
+				fi;
+			else
+				# no server and no keepwds
+				return=$rc_notExist;
+			fi;
+		fi;
+		cleanfiles
+	;;
+	status)
+		# check if keepwds.sh script is still in process list and
+		#  the main pid of the wdserver is still present too
+		outmsg="Status of ${my_unique_text} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
+		printf "%s" "${outmsg}"
+		if [ $loc_Exists -eq 0 ]; then
+			# no server and no keepwds
+			return=$rc_notExist;
+		else
+			return=$rc_running;
+		fi;
+		if [ $locProcOk -eq 0 -a $locKeepOk -eq 1 ]; then
+			return=$rc_dead
+		fi
+		printf "%s %s: %s%s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" "${return}" >> ${ServerMsgLog}
+	;;
+	restart)
+		outmsg="Restarting ${my_unique_text} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
+		printf "%s" "${outmsg}"
+		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog}
+		# the keepwds.sh script will automatically restart the server when it was down
+		if [ $locProcOk -eq 1 ]; then
+			eval "${stop_script} ${cfg_dbgopt} >/dev/null 2>&1";
+			if [ $? -ne 0 ]; then
+				# try hardkill to ensure it died
+				eval "${stop_script} ${cfg_dbgopt} -K >/dev/null 2>&1 || return=$rc_failed";
+			fi;
+		fi;
+		if [ $loc_Exists -eq 4 -o $locKeepOk -eq 0 ]; then
+			# keepwds.sh was not present, start server again using keepwds.sh
+			startWithKeep $am_I_root "${my_runuser}" "${my_runuserfile}" "${my_keeppidfile}" "ret_pid";
+			if [ $ret_pid -eq 0 ]; then return=$rc_failed; fi
+		fi;
+	;;
+	reload)
+		outmsg="Reloading ${my_unique_text} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
+		printf "%s" "${outmsg}"
+		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog}
+		if [ $loc_Exists -eq 0 ]; then
+			# no server and no keepwds
+			return=$rc_notPossible;
+		else
+			eval "${softstart_script} ${cfg_dbgopt} >/dev/null 2>&1 || return=$rc_failed";
+		fi;
+	;;
+	*)
+		outmsg="Usage: ${MYNAME} {start|stop|status|restart|reload}, given [$@]";
+		echo $outmsg;
+		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog}
+		exit 1
+	;;
 esac
 
-# Inform the caller not only verbosely and set an exit status.
-test "$return" = "$rc_done" || exit 1
+echo "$return"
 exit 0
-

@@ -9,37 +9,60 @@
 
 MYNAME=`basename $0`
 
-function showhelp
+# check if the caller already used an absolute path to start this script
+DNAM=`dirname $0`
+if [ "$DNAM" = "${DNAM#/}" ]; then
+	# non absolute path
+	mypath=`pwd`/$DNAM
+else
+	mypath=$DNAM
+fi
+
+# source in config switching helper
+. $mypath/_cfgSwitch.sh
+
+showhelp()
 {
 	echo ''
 	echo 'usage: '$MYNAME' [options]'
 	echo 'where options are:'
-	echo ' -a <config>   : config which you want to switch to, multiple definitions allowed'
-	echo ' -m <mailaddr> : mail address of test output receiver'
-	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	PrintSwitchHelp
+	PrintSubSwitchHelp
+	echo ' -m <mailaddr>      : mail address of test output receiver, multiple definitions allowed'
+	echo ' -p <prjpath>       : path (rel or abs) in which to recursively look for test scripts, multiple definitions allowed'
+	echo ' -D                 : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ''
 	exit 4;
 }
 
-cfg_and="";
-cfg_opt="";
+cfg_dbgopt="";
+cfg_prjs="";
 cfg_dbg=0;
 cfg_mailaddr="";
-# process command line options
-while getopts ":a:m:D" opt; do
+
+# process config switching options first
+myPrgOptions=":m:p:D"
+ProcessSetConfigOptions "${myPrgOptions}" "$@"
+OPTIND=1;
+
+# process other command line options
+while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 	case $opt in
-		a)
-			if [ -n "$cfg_and" ]; then
-				cfg_and=${cfg_and}" ";
-			fi
-			cfg_and=${cfg_and}${OPTARG};
-		;;
 		m)
-			cfg_mailaddr="${OPTARG}";
+			if [ -n "$cfg_mailaddr" ]; then
+				cfg_mailaddr=${cfg_mailaddr}" ";
+			fi
+			cfg_mailaddr=${cfg_mailaddr}${OPTARG};
+		;;
+		p)
+			if [ -n "$cfg_prjs" ]; then
+				cfg_prjs=${cfg_prjs}" ";
+			fi
+			cfg_prjs=${cfg_prjs}${OPTARG};
 		;;
 		D)
 			# propagating this option to config.sh
-			cfg_opt="-D";
+			cfg_dbgopt="-D";
 			cfg_dbg=1;
 		;;
 		\?)
@@ -56,108 +79,129 @@ fi
 
 cfg_testparams="$@";
 
-# prepare configuration param, need to add -a before each token
-cfg_toks="";
-for cfgtok in $cfg_and; do
-	if [ $cfg_dbg -eq 1 ]; then echo 'curseg is ['$cfgtok']'; fi
-	cfg_toks=$cfg_toks" -a "$cfgtok;
-done
-cfg_and="$cfg_toks";
+# prepare config switching tokens
+PrepareTokensForCommandline
 
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-	# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
+# prepare mail adresses, need to add -m before each addr
+cfg_mailaddrs="";
+for cfgtok in $cfg_mailaddr; do
+	if [ $cfg_dbg -eq 1 ]; then echo 'addr is ['$cfgtok']'; fi
+	cfg_mailaddrs=$cfg_mailaddrs" -m "$cfgtok;
+done
 
 prjTestScript=prjRunTest.sh
 globalTestScript="${mypath}/RunTests.sh"
-globalTestScriptOpts="-m "$cfg_mailaddr" $cfg_and $cfg_opt -- -all"
-testExecutable=./wdtest${EXEEXT}
-testExecutableOpts="-all"
+globalTestScriptOpts=" "$cfg_mailaddrs" $cfg_toks $cfg_dbgopt -- -all"
+RunTestCmd=${globalTestScript}" "${globalTestScriptOpts}' 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE}';
+firstErrorEntry=1;
 
-. ${mypath}/envForTests.sh $cfg_opt
+. ${mypath}/envForTests.sh $cfg_dbgopt
 
 mailHostPattern=${mailHostPattern:-"DailyBuild on ["${HOSTNAME}"]"};
+ErrorEntryHeader="<html><title>${mailHostPattern}</title><body><h1>${TIME_STAMP}</h1>";
+ErrorEntryFooter="</body></html>";
 
-function runTests
+runTests()
 {
-	local l_prjUnderTest=$1;
+	_prjUnderTest=$1;
 	MAILMSG=
-	RetCode=0
-	LIBNAME=`ls lib*${DLLEXT} 2>/dev/null`
-	if [ -x ${testExecutable} -o -x ./$LIBNAME ]; then
-		echo ${l_prjUnderTest}' test executable found in '`pwd` | tee -a ${RESULTFILE};
-		if [ -f "${prjTestScript}" -a -x "${globalTestScript}" ]; then
-			echo ' doing tests with ['${globalTestScript}']' | tee -a ${RESULTFILE};
-			${globalTestScript} ${globalTestScriptOpts} 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE}
-		else
-			echo ' doing tests with ['${testExecutable}']' | tee -a ${RESULTFILE};
-			${testExecutable} ${testExecutableOpts} 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE}
-		fi
-		RetCode=$?;
-		fname=`date "+${l_prjUnderTest}%y%j"`
-		if [ $RetCode -eq 0 ]; then
+	RetCode=0;
+	echo `${DATE_EXEC} "+%Y%m%d%H%M%S"`': '${_prjUnderTest}' Test starting' | tee -a ${RESULTFILE};
+	if [ -f "${prjTestScript}" -a -x "${globalTestScript}" ]; then
+		${globalTestScript} -c;
+		if [ $? -eq 1 ]; then
+			echo ${_prjUnderTest}' test executable found in '`pwd` | tee -a ${RESULTFILE};
+			echo ' doing tests using ['${globalTestScript}']' | tee -a ${RESULTFILE};
+			eval $RunTestCmd;
+			RetCode=$?;
+			fname=`${DATE_EXEC} "+${_prjUnderTest}%y%j"`
+			_teststats="";
 			if [ -n "`cat ${WDTEST_OUTFILE}`" ]; then
-				local teststats=`cat ${WDTEST_OUTFILE} | grep "assertions run.*failures.*complete"`;
-				if [ -n "$teststats" ]; then
-					echo '  '$teststats | tee -a ${RESULTFILE};
-				else
-					echo '  '${l_prjUnderTest}' output file generated' | tee -a ${RESULTFILE};
+				_teststats=`cat ${WDTEST_OUTFILE} | grep "assertions run.*failures.*complete"`;
+				if [ ! -n "$_teststats" ]; then
+					_teststats=${_prjUnderTest}' output file generated';
 				fi;
-				mv ${WDTEST_OUTFILE} ${DEV_HOME}/archive/$fname
-				rm ${WDTEST_ERRFILE}	# clean up your mess
 			else
-				MAILMSG="No output from [${l_prjUnderTest}] tests"
-				echo '  '${MAILMSG} | tee -a ${RESULTFILE};
+				_teststats='No output from '${_prjUnderTest}' tests';
+			fi;
+			echo '  '$_teststats | tee -a ${RESULTFILE};
+			if [ $RetCode -eq 0 ]; then
+				if [ -n "`cat ${WDTEST_OUTFILE}`" ]; then
+					mv ${WDTEST_OUTFILE} ${DEV_HOME}/archive/$fname
+					rm ${WDTEST_ERRFILE}	# clean up your mess
+				else
+					MAILMSG="No output from [${_prjUnderTest}] tests"
+				fi
+				if [ -n "$SUCCESSFUL_DIRS" ]; then
+					SUCCESSFUL_DIRS=$SUCCESSFUL_DIRS",";
+				fi
+				SUCCESSFUL_DIRS=$SUCCESSFUL_DIRS${_prjUnderTest}
+			else
+				MAILMSG="${_prjUnderTest} tests exited with error code $RetCode check $HTTP_FAILUREFILE#${_prjUnderTest}"
+				if [ ${firstErrorEntry} -eq 1 ]; then
+					firstErrorEntry=0;
+					echo $ErrorEntryHeader >> $FAILURE_FILE;
+				fi;
+				echo "<a name=\"${_prjUnderTest}\"><h2>${_prjUnderTest} Tests</h2></a>" >> $FAILURE_FILE
+				echo "<a href=\"#${_prjUnderTest}errors\">content of errorfile</a>" >> $FAILURE_FILE
+				echo "<a href=\"#${_prjUnderTest}output\">content of outputfile</a>" >> $FAILURE_FILE
+				echo "<pre>" >> $FAILURE_FILE
+				echo $MAILMSG >> $FAILURE_FILE
+				echo "<a name=\"${_prjUnderTest}errors\"><h3>--- content of errorfile ---</h3></a>" >> $FAILURE_FILE
+				cat ${WDTEST_ERRFILE} >> $FAILURE_FILE
+				echo "<a name=\"${_prjUnderTest}output\"><h3>--- content of outputfile ---</h3></a>" >> $FAILURE_FILE
+				cat ${WDTEST_OUTFILE} >> $FAILURE_FILE
+				echo "</pre>" >> $FAILURE_FILE
+				if [ -n "$FAILED_DIRS" ]; then
+					FAILED_DIRS=$FAILED_DIRS",";
+				fi
+				FAILED_DIRS=$FAILED_DIRS${_prjUnderTest};
+
+				if [ -n "`cat ${WDTEST_OUTFILE}`" ]; then
+					echo '  '${_prjUnderTest}' output file generated'
+					res=`${GREP_PRG} FAILURES ${WDTEST_OUTFILE}`
+					if [ -n "$res" ]; then
+						( echo $MAILMSG ; echo; echo "==== environment ===="; echo; env; echo; echo "==== test output ===="; echo; cat ${WDTEST_OUTFILE} ) | $MAIL_PRG ${SENDER_EMAIL} -s "${mailHostPattern}: Result of [${_prjUnderTest}] tests" ${cfg_mailaddr}
+						# do not send another message, eg reset MAILMSG
+						MAILMSG="";
+					fi
+					mv ${WDTEST_OUTFILE} ${DEV_HOME}/archive/$fname
+					rm ${WDTEST_ERRFILE}	# clean up your mess
+				else
+					MAILMSG="No output from [${_prjUnderTest}] tests"
+				fi
 			fi
-			if [ -n "$SUCCESSFUL_DIRS" ]; then
-				SUCCESSFUL_DIRS=$SUCCESSFUL_DIRS",";
-			fi
-			SUCCESSFUL_DIRS=$SUCCESSFUL_DIRS${l_prjUnderTest}
 		else
-			MAILMSG="${l_prjUnderTest} tests exited with error code $RetCode check $FAILURE_FILE"
-			echo $MAILMSG >> $FAILURE_FILE
-			echo '--- content of errorfile ---' >> $FAILURE_FILE
-			cat ${WDTEST_ERRFILE} >> $FAILURE_FILE
-			echo '--- content of outputfile ---' >> $FAILURE_FILE
-			cat ${WDTEST_OUTFILE} >> $FAILURE_FILE
+			MAILMSG="Build of [${_prjUnderTest}] failed"
+			RetCode=1;
 			if [ -n "$FAILED_DIRS" ]; then
 				FAILED_DIRS=$FAILED_DIRS",";
 			fi
-			FAILED_DIRS=$FAILED_DIRS${l_prjUnderTest};
-
-			if [ -n "`cat ${WDTEST_OUTFILE}`" ]; then
-				echo '  '${l_prjUnderTest}' output file generated'
-				res=`${GREP_PRG} FAILURES ${WDTEST_OUTFILE}`
-				if [ -n "$res" ]; then
-					( echo $MAILMSG ; echo; echo "==== environment ===="; echo; env | sort; echo; echo "==== test output ===="; echo; cat ${WDTEST_OUTFILE} ) | $MAIL_PRG ${SENDER_EMAIL} -s "${mailHostPattern}: Result of [${l_prjUnderTest}] tests" ${cfg_mailaddr}
-					# do not send another message, eg reset MAILMSG
-					MAILMSG="";
-					echo ${l_prjUnderTest} ": " Failures >> $FAILURE_FILE
-				fi
-				mv ${WDTEST_OUTFILE} ${DEV_HOME}/archive/$fname
-				rm ${WDTEST_ERRFILE}	# clean up your mess
-			else
-				MAILMSG="No output from [${l_prjUnderTest}] tests"
-			fi
+			FAILED_DIRS=${FAILED_DIRS}${_prjUnderTest};
 		fi
 	else
-		MAILMSG="Build of [${l_prjUnderTest}] failed"
+		# check which needed file was not present
+		if [ -f "${prjTestScript}" ]; then
+			MAILMSG="Project specific [${prjTestScript}] of [${_prjUnderTest}] not present, aborting!";
+		elif [ -x "${globalTestScript}" ]; then
+			MAILMSG="Global [${globalTestScript}] not present or not executable, aborting!";
+		fi;
 		RetCode=1;
 		if [ -n "$FAILED_DIRS" ]; then
 			FAILED_DIRS=$FAILED_DIRS",";
 		fi
-		FAILED_DIRS=${FAILED_DIRS}${l_prjUnderTest};
+		FAILED_DIRS=${FAILED_DIRS}${_prjUnderTest};
 	fi
 	if [ -n "$MAILMSG" ]; then
 		echo ' '$MAILMSG
-		( echo $MAILMSG ; echo; echo "==== environment ===="; echo; env | sort ) | $MAIL_PRG ${SENDER_EMAIL} -s "${mailHostPattern}: Result of [${l_prjUnderTest}] tests" ${cfg_mailaddr}
-		echo ${l_prjUnderTest} ": " $MAILMSG >> $FAILURE_FILE
-		env >> $FAILURE_FILE
+		( echo $MAILMSG ; echo; echo "==== environment ===="; echo; env ) | $MAIL_PRG ${SENDER_EMAIL} -s "${mailHostPattern}: Result of [${_prjUnderTest}] tests" ${cfg_mailaddr}
+		if [ ${firstErrorEntry} -eq 1 ]; then
+			firstErrorEntry=0;
+			echo $ErrorEntryHeader >> $FAILURE_FILE;
+		fi;
+		echo "<a name=\"${_prjUnderTest}\"><h2>${_prjUnderTest} Tests</h2></a><pre>" >> $FAILURE_FILE
+		( echo ${_prjUnderTest} ": " $MAILMSG ; echo; echo "==== environment ===="; echo; env ) >> $FAILURE_FILE
+		echo "</pre>" >> $FAILURE_FILE
 	fi
 	return $RetCode
 }
@@ -169,22 +213,27 @@ if [ ! -d "${DEV_HOME}/archive" ]; then
 fi
 
 echo >${RESULTFILE}
-echo 'Summary of Tests:' | tee -a ${RESULTFILE}
+echo 'Summary of '${mailHostPattern}':' | tee -a ${RESULTFILE}
 
-for d in `find ${DEV_HOME}/WWW ${DEV_HOME}/testfw -name ${prjTestScript} -type f -print`; do
+for d in `${FINDEXE} ${cfg_prjs} -name ${prjTestScript} -type f -print | sort | uniq`; do
 	echo | tee -a ${RESULTFILE};
-    prjUnderTest=`echo $d | awk -F/ '{ field = NF-1; print $field }'`
+    prjUnderTest=`echo $d | ${AWKEXE} -F/ '{ field = NF-1; print $field }'`
 	if [ "$prjUnderTest" = "Test" ]; then
-		prjUnderTest=`echo $d | awk -F/ '{ field = NF-2; print $field }'`
+		prjUnderTest=`echo $d | ${AWKEXE} -F/ '{ field = NF-2; print $field }'`
 		if [ "$prjUnderTest" = "src" ]; then
-	    	prjUnderTest=`echo $d | awk -F/ '{ field = NF-3; print $field }'`
+	    	prjUnderTest=`echo $d | ${AWKEXE} -F/ '{ field = NF-3; print $field }'`
 		fi;
     fi;
     # delete files older than 7 days in archive directory
-    find ${DEV_HOME}/archive -name "${prjUnderTest}*" -ctime +7 -exec rm -f {} \;
+    ${FINDEXE} ${DEV_HOME}/archive -name "${prjUnderTest}*" -ctime +7 -exec rm -f {} \;
     unset WD_ROOT; unset WD_PATH;
-    cd `dirname $d` && runTests $prjUnderTest
-    buildFailed=`expr  "$buildFailed" + "$?" `
+    curpath=$PWD;
+	if [ $cfg_dbg -eq 1 ]; then
+		echo 'I am in ['`dirname $d`'] and execute tests of ['$prjUnderTest']';
+	fi;
+    cd `dirname $d` && runTests $prjUnderTest;
+    buildFailed=`expr  "$buildFailed" + "$?" `;
+    cd $curpath;
 done
 
 echo | tee -a ${RESULTFILE};
@@ -195,5 +244,8 @@ if [ -z "${FAILED_DIRS}" ]; then
 else
 	echo 'failed tests:     '$FAILED_DIRS | tee -a ${RESULTFILE};
 fi
+if [ ${firstErrorEntry} -eq 0 ]; then
+	echo $ErrorEntryFooter >> $FAILURE_FILE;
+fi;
 
 exit $buildFailed

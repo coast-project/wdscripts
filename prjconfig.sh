@@ -30,7 +30,7 @@
 #WD_PATH=config
 
 # use this function to do preparations prior to creating the distribution package
-# e.g. increment a build number 
+# e.g. increment a build number
 #function preDoallFunc {}
 
 ############################################################################
