@@ -351,7 +351,7 @@ cleanPath()
 # output setting variable $2 to value of last path-segment
 selectDevelopDir()
 {
-	local myDirs="`cd ${HOME} && $FINDEXE . \"(\" -type l -o -type d \")\" -name 'DEV*' ${FINDOPT1} 2>/dev/null`";
+	local myDirs="`cd ${HOME} && for name in DEV*; do if [ -d $name -o -h $name ]; then echo $name; fi; done`";
 	if [ -n "$3" ]; then
 		for myenv in $myDirs; do
 			local relSeg=${myenv##*/};
