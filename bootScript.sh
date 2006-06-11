@@ -191,6 +191,58 @@ startWithKeep()
 	eval ${_locExpVar}=${_locRetPid};
 }
 
+# wait on termination of given process ids
+#
+# param $1 list of process ids, whitespace separated
+# param $2 max time to wait on termination in seconds
+#
+# return:
+#  0 in case the process stopped within the time given
+#  1 if the process was still alive after the time given
+#
+WaitOnTermination()
+{
+	_locPids="${1}";
+	_locOrgPids="${1}";
+	_locWaitCount=${2};
+	_locHasStopped=0;
+	_locRet=1;
+	_newPids="";
+	if [ $PRINT_DBG -eq 1 ]; then echo "_locPids [${_locPids}]"; fi;
+	_locWaitCount=$(( $_locWaitCount / 2 ));
+	while [ $_locWaitCount -ge 0 ]; do
+		_locWaitCount=$(( $_locWaitCount - 1 ));
+		_newPids="";
+		for curPid in $_locPids; do
+			if [ $PRINT_DBG -eq 1 ]; then echo "curPid [${curPid}]"; fi;
+			checkProcessId "${curPid}"
+			if [ $? -eq 0 ]; then
+				_locHasStopped=$(( $_locHasStopped + 1 ));
+			else
+				if [ -n "${_newPids}" ]; then _newPids="${_newPids} ";fi;
+				_newPids="${_newPids}${curPid}";
+			fi
+		done;
+		if [ -n "${_newPids}" ]; then
+			_locPids="${_newPids}";
+			if [ $PRINT_DBG -eq 1 ]; then echo "new _locPids [${_locPids}]"; fi;
+		else
+			break;
+		fi
+		printf "."
+		sleep 2
+	done
+	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog};
+	printf "%s with pid(s) %s..." "${my_unique_text}" "${_locOrgPids}" >> ${ServerMsgLog};
+	if [ ${_locHasStopped} -ge 1 ]; then
+		printf "stopped\n" >> ${ServerMsgLog};
+		_locRet=0;
+	else
+		printf "still running!\n" >> ${ServerMsgLog};
+	fi
+	return $_locRet;
+}
+
 cleanfiles()
 {
 	rm -f ${my_keeppidfile} ${wd_pidfile} ${my_runuserfile};
@@ -205,6 +257,8 @@ scriptPath=`dirname $derefd_name`;
 derefd_name=`basename $derefd_name`;
 MYNAME=${derefd_name};
 SCRIPTDIR=`cd ${scriptPath}; pwd`;
+HOSTNAME=`(uname -n) 2>/dev/null` || HOSTNAME="unkown"
+cfg_waitcount=30;
 
 # getting the projectpath and -name is not simple because we have at least three ways
 #  to get executed:
@@ -288,13 +342,13 @@ if [ -f "$wd_pidfile" ]; then wdpid=`cat ${wd_pidfile} 2>/dev/null`; fi
 
 checkProcessId ${my_keeppid};
 locKeepOk=$?;
-if [ $locKeepOk -eq 0 -n "${keep_script}" ]; then
+if [ $locKeepOk -eq 0 -a -n "${keep_script}" ]; then
 	checkProcessWithName "${keep_script}" "${my_runuser}" my_keeppid
 	locKeepOk=$?;
 fi
 checkProcessId ${wdpid};
 locProcOk=$?;
-if [ $locProcOk -eq 0 -n "${wds_bin}" ]; then
+if [ $locProcOk -eq 0 -a -n "${wds_bin}" ]; then
 	checkProcessWithName "${wds_bin}" "${my_runuser}" wdpid
 	locProcOk=$?;
 	if [ $locProcOk -eq 0 -a "${wds_bin}" != "${wds_binabs}" ]; then
@@ -346,7 +400,7 @@ case "$locCommand" in
 			# we need to kill the keepwds.sh script to terminate the server and not restart it again
 			# it can take up to ten seconds until the script checks the signal and terminates the server
 			kill -15 $my_keeppid;
-			wait $my_keeppid;
+			WaitOnTermination "${my_keeppid} ${wdpid}" ${cfg_waitcount}
 		else
 			if [ $locProcOk -eq 1 ]; then
 				eval "${stop_script} ${cfg_dbgopt} >/dev/null 2>&1";
