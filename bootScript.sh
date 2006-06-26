@@ -209,15 +209,15 @@ WaitOnTermination()
 	_locRet=1;
 	_newPids="";
 	if [ $PRINT_DBG -eq 1 ]; then echo "_locPids [${_locPids}]"; fi;
-	_locWaitCount=$(( $_locWaitCount / 2 ));
+	_locWaitCount=`expr $_locWaitCount / 2`;
 	while [ $_locWaitCount -ge 0 ]; do
-		_locWaitCount=$(( $_locWaitCount - 1 ));
+		_locWaitCount=`expr $_locWaitCount - 1`;
 		_newPids="";
 		for curPid in $_locPids; do
 			if [ $PRINT_DBG -eq 1 ]; then echo "curPid [${curPid}]"; fi;
 			checkProcessId "${curPid}"
 			if [ $? -eq 0 ]; then
-				_locHasStopped=$(( $_locHasStopped + 1 ));
+				_locHasStopped=`expr $_locHasStopped + 1`;
 			else
 				if [ -n "${_newPids}" ]; then _newPids="${_newPids} ";fi;
 				_newPids="${_newPids}${curPid}";
