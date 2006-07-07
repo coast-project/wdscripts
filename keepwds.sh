@@ -32,9 +32,11 @@ showhelp()
 	echo 'where options are:'
 	PrintSwitchHelp
 	echo ' -c <coresize> : maximum size of core file to produce, in 512Byte blocks!'
-	echo ' -e            : enable error-logging to '`( . $mypath/config.sh >/dev/null 2>&1; echo ${LOGDIR} )`'/server.err, default no logging'
+	echo ' -e <level>    : specify level of error-logging to console, default:4, see below for possible values'
+	echo ' -s <level>    : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
+	echo '                  possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5'
+	echo '                  the logger will log all levels above or equal the specified value'
 	echo ' -h <num>      : number of file handles to set for the process, default 1024'
-	echo ' -s            : enable error-logging into SysLog, eg. /var/[adm|log]/messages, default no logging into SysLog'
 	echo ' -C <cfgdir>   : config directory to use within ['$locPrjDir'] directory'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ''
@@ -50,7 +52,7 @@ cfg_syslog="";
 cfg_coresize="-c 20000";	# default to 10MB
 
 # process config switching options first
-myPrgOptions=":c:eh:sC:D"
+myPrgOptions=":c:e:s:h:C:D"
 ProcessSetConfigOptions "${myPrgOptions}" "$@"
 OPTIND=1;
 
@@ -60,14 +62,28 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 		c)
 			cfg_coresize="-c "${OPTARG};
 		;;
+		:)
+			echo "ERROR: -$OPTARG parameter missing, exiting!";
+			showhelp;
+		;;
 		e)
-			cfg_errorlog="-e";
+			if [ ${OPTARG} -ge 0 2>/dev/null -a ${OPTARG} -le 5 ]; then
+				cfg_errorlog="-e ${OPTARG}";
+			else
+				echo "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
+				showhelp;
+			fi
+		;;
+		s)
+			if [ ${OPTARG} -ge 0 -a ${OPTARG} -le 5 ]; then
+				cfg_syslog="-s ${OPTARG}";
+			else
+				echo "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
+				showhelp;
+			fi
 		;;
 		h)
 			cfg_handles="-h "${OPTARG};
-		;;
-		s)
-			cfg_syslog="-s";
 		;;
 		C)
 			cfg_cfgdir=${OPTARG};

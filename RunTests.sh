@@ -29,9 +29,11 @@ showhelp()
 	PrintSwitchHelp
 	PrintSubSwitchHelp
 	echo ' -c                 : check if test-executable was built, returns 1 on success'
-	echo ' -e                 : enable error-logging to console, default no logging'
+	echo ' -e <level>         : specify level of error-logging to console, default:4, see below for possible values'
+	echo ' -s <level>         : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
+	echo '                       possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5'
+	echo '                       the logger will log all levels above or equal the specified value'
 	echo ' -r                 : enable logging of static allocs (object registry), default no logging'
-	echo ' -s                 : enable error-logging into SysLog, eg. /var/[adm|log]/messages, default no logging into SysLog'
 	echo ' -m <mailaddr>      : mail address of test output receiver, multiple definitions allowed'
 	echo ' -D                 : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo 'where TestOptions is:'
@@ -50,18 +52,35 @@ cfg_staticalloc=0;
 cfg_docheckforexe=0;
 
 # process config switching options first
-myPrgOptions=":ercm:s-D"
+myPrgOptions=":e:s:rcm:-D"
 ProcessSetConfigOptions "${myPrgOptions}" "$@"
 OPTIND=1;
 
 # process other command line options
 while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 	case $opt in
+		:)
+			echo "ERROR: -$OPTARG parameter missing, exiting!";
+			showhelp;
+		;;
 		c)
 			cfg_docheckforexe=1;
 		;;
 		e)
-			cfg_errorlog=1;
+			if [ ${OPTARG} -ge 0 2>/dev/null -a ${OPTARG} -le 5 ]; then
+				cfg_errorlog=${OPTARG};
+			else
+				echo "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
+				showhelp;
+			fi
+		;;
+		s)
+			if [ ${OPTARG} -ge 0 -a ${OPTARG} -le 5 ]; then
+				cfg_syslog=${OPTARG};
+			else
+				echo "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
+				showhelp;
+			fi
 		;;
 		m)
 			if [ -n "$cfg_mailaddr" ]; then
@@ -71,9 +90,6 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 		;;
 		r)
 			cfg_staticalloc=1;
-		;;
-		s)
-			cfg_syslog=1;
 		;;
 		D)
 			# propagating this option to config.sh
@@ -132,11 +148,11 @@ if [ $cfg_docheckforexe -eq 1 ]; then
 fi;
 
 # enable logging if wanted
-if [ $cfg_errorlog -eq 1 ]; then
-	export WD_LOGONCERR=1;
+if [ $cfg_errorlog -gt 0 ]; then
+	export WD_LOGONCERR=$cfg_errorlog;
 fi
-if [ $cfg_syslog -eq 1 ]; then
-	export WD_DOLOG=1;
+if [ $cfg_syslog -gt 0 ]; then
+	export WD_DOLOG=$cfg_syslog;
 fi
 if [ $cfg_staticalloc -eq 1 ]; then
 	export TRACE_STATICALLOC=1;
