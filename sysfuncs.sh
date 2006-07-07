@@ -514,7 +514,6 @@ generateGdbCommandFile()
 	set environment LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
 	set environment WD_LIBDIR=${WD_LIBDIR}
 	set environment LOGDIR=${LOGDIR}
-	set environment WD_LOGONCERR=${WD_LOGONCERR:-1}
 	set environment PID_FILE=${PID_FILE}
 	set auto-solib-add 1
 	file ${WDS_BIN}
