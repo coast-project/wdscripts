@@ -160,18 +160,24 @@ fi
 
 # do the tests now
 if [ -f "${cfg_subscript}" ]; then
-	echo '  --- calling prepareTest'
-	# this function MUST be defined in prjRunTest.sh
-	prepareTest;
+	if [ $TestExeOK -eq 1 ]; then
+		echo '  --- calling prepareTest'
+		# this function MUST be defined in prjRunTest.sh
+		prepareTest;
 
-	echo '  --- calling callTest'
-	# this function MUST be defined in prjRunTest.sh
-	callTest;
-	ret_code=$?;
+		echo '  --- calling callTest'
+		# this function MUST be defined in prjRunTest.sh
+		callTest;
+		ret_code=$?;
 
-	echo '  --- calling cleanupTest'
-	# this function MUST be defined in prjRunTest.sh
-	cleanupTest;
+		echo '  --- calling cleanupTest'
+		# this function MUST be defined in prjRunTest.sh
+		cleanupTest;
+	else
+		echo '  --- NOT running tests because checkTestExe returned 0!'
+		echo ''
+		ret_code=33;
+	fi
 else
 	echo ' ERROR: project specific RunTest script ['${cfg_subscript}'] not found, aborting!';
 	ret_code=222;
