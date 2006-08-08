@@ -272,7 +272,7 @@ cfg_waitcount=30;
 #
 prj_path=`dirname $scriptPath`
 prj_pathabs=`cd $prj_path; pwd`
-if [ "${prj_path}" = "." ]; then
+if [ "${prj_path%%/*}" = "." ]; then
 	# script was started with relative path
 	# -> must set prj_path again to ensure proper detection of SERVICENAME
 	# -> set scriptPath to SCRIPTDIR to ensure a script can unambigously identified in the process list
