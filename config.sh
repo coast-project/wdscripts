@@ -165,7 +165,7 @@ SetWD_PATH()
 			CONFIGDIR=${IntWD_PATH};
 		fi
 	fi
-	CONFIGDIRABS=${PROJECTDIR}/${CONFIGDIR};
+	CONFIGDIRABS=`cd ${PROJECTDIR}/${CONFIGDIR} 2>/dev/null && pwd -P`;
 }
 
 # set the WD_PATH

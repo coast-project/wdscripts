@@ -18,8 +18,8 @@
 # overwrite this one ONLY if the LOGDIR variable points to the wrong place
 #LOGDIR=log
 
-#SERVERNAME="myApp"
-#PRJ_DESCRIPTION="SomeCompany myApp"
+SERVERNAME="wdscripts"
+PRJ_DESCRIPTION="Coast scripts"
 #PID_FILE=$PROJECTDIR/$LOGDIR/$SERVERNAME.PID
 
 # name of the tared and gzipped distribution file, caution: try to use short names
@@ -32,6 +32,21 @@
 # use this function to do preparations prior to creating the distribution package
 # e.g. increment a build number
 #function preDoallFunc {}
+
+# The following variables are used during package generation using MkPckg.sh or the old doall.sh
+# Its values are needed within cpall.sh and control if project-directories and its contents get copied.
+# do we have to copy WDA_BIN/WDS_BIN binary, default 1, otherwise set to 0
+cfg_doBin=0;
+# do we have to copy libraries from WD_LIBDIR, default 1, otherwise set to 0
+cfg_doLib=0;
+# do we have to copy CONFIGDIR contents, default 1, otherwise set to 0
+cfg_doCfg=0;
+# do we have to create a log directory, default 1, otherwise set to 0
+cfg_doLog=0;
+# do we have to copy Coast scripts into package, default 1, otherwise set to 0
+#cfg_doScr=0;
+# define relative destination directory for Coast scripts
+cfg_destScriptDir="";
 
 ############################################################################
 #
