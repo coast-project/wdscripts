@@ -365,7 +365,7 @@ selectDevelopDir()
 				fi
 				export ${1}="$devpath";
 				# trim path until last segment
-				export ${2}="${myenv##*/}";
+				export ${2}="$relSeg";
 				break
 			fi;
 		done
