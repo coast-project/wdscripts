@@ -20,6 +20,8 @@
 #    $> ln -s /export/apps/helloworld/scripts/bootScript.sh K20helloworld
 #
 
+org_name=$0;
+
 if [ "$1" = "-D" ]; then
 	PRINT_DBG=1
 	cfg_dbgopt="-D";
@@ -272,7 +274,7 @@ cfg_waitcount=30;
 #
 prj_path=`dirname $scriptPath`
 prj_pathabs=`cd $prj_path; pwd`
-if [ "${prj_path%%/*}" = "." ]; then
+if [ "`echo $org_name|cut -c1`" != "/" ]; then
 	# script was started with relative path
 	# -> must set prj_path again to ensure proper detection of SERVICENAME
 	# -> set scriptPath to SCRIPTDIR to ensure a script can unambigously identified in the process list
@@ -319,7 +321,7 @@ getconfigvar "${prj_path}" "${SCRIPTDIR}" WDS_BINABS wds_binabs
 
 if [ $PRINT_DBG -eq 1 ]; then
 	echo "I am executing in ["${PWD}"]";
-	for varname in prj_name prj_path prj_pathabs scriptPath keep_script stop_script softstart_script my_logdir link_name MYNAME my_keeppidfile wd_pidfile my_runuserfile my_runuser my_uid ServerMsgLog ServerErrLog SERVICENAME; do
+	for varname in prj_name prj_path prj_pathabs scriptPath keep_script stop_script softstart_script my_logdir link_name MYNAME my_keeppidfile wd_pidfile my_runuserfile my_runuser my_uid ServerMsgLog ServerErrLog SERVICENAME wds_bin wds_binabs; do
 		locVar="echo $"$varname;
 		locVarVal=`eval $locVar`;
 		if [ -n "${locVarVal}" ]; then
