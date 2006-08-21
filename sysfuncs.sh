@@ -445,7 +445,7 @@ setDevelopmentEnv()
 		echo "LD_LIBRARY_PATH   : ["${LD_LIBRARY_PATH}"]"
 	fi
 	if [ $isWindows -eq 0 ]; then
-		echo "LD_RUN_PATH   : ["${LD_RUN_PATH}"]"
+		echo "LD_RUN_PATH       : ["${LD_RUN_PATH}"]"
 	fi
 	echo ""
 	return 1;
