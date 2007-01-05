@@ -600,8 +600,6 @@ if [ ${SYSFUNCSLOADED} -eq 0 ]; then
 		if [ "${CURSYSTEM}" == "Linux" ]; then
 			getGLIBCVersion "GLIBCVER" ".";
 			OSREL=${CURSYSTEM}_glibc_${GLIBCVER};
-			# make sniff binary start on Suse 9.1
-			export LD_ASSUME_KERNEL=2.4.1
 		else
 			OSREL=${CURSYSTEM}_`uname -r`;
 		fi;
