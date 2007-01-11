@@ -425,8 +425,6 @@ setDevelopmentEnv()
 	else
 		cleanPath "LD_LIBRARY_PATH" ":"
 		prependPath "LD_LIBRARY_PATH" ":" "${WD_LIBDIR}"
-		cleanPath "LD_RUN_PATH" ":"
-		prependPath "LD_RUN_PATH" ":" "${WD_LIBDIR}"
 	fi
 	echo ""
 	echo "following variables were set:"
@@ -444,7 +442,7 @@ setDevelopmentEnv()
 	if [ $isWindows -eq 0 ]; then
 		echo "LD_LIBRARY_PATH   : ["${LD_LIBRARY_PATH}"]"
 	fi
-	if [ $isWindows -eq 0 ]; then
+	if [ $isWindows -eq 0 -a -n "${LD_RUN_PATH}" ]; then
 		echo "LD_RUN_PATH       : ["${LD_RUN_PATH}"]"
 	fi
 	echo ""

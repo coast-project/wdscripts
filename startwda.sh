@@ -39,6 +39,7 @@ showhelp()
 	echo ' -h <num>      : number of file handles to set for the process, default 1024'
 	echo ' -C <cfgdir>   : config directory to use within ['$locPrjDir'] directory'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	echo ' -p            : name of application PID file (only needed if PID_FILE does not point to the right place)'
 	echo ''
 	exit 4;
 }
@@ -52,9 +53,10 @@ cfg_errorlog=0;
 cfg_syslog=0;
 cfg_hassrvopts=0;
 cfg_coresize="-c 20000";	# default to 10MB
+cfg_pidfile="";
 
 # process config switching options first
-myPrgOptions=":c:C:e:s:h:-D"
+myPrgOptions=":c:C:e:s:h:p:-D"
 ProcessSetConfigOptions "${myPrgOptions}" "$@"
 OPTIND=1;
 
@@ -95,6 +97,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			cfg_dbgopt="-D";
 			cfg_dbg=1;
 		;;
+		p)
+			cfg_pidfile=${OPTARG};
+		;;
 		-)
 			cfg_hassrvopts=1;
 			break;
@@ -125,6 +130,15 @@ if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 # add SERVERNAME to application options as default
 if [ -z "$cfg_srvopts" ]; then
 	cfg_srvopts=${SERVERNAME};
+fi
+
+# Override LOGDIR default when requested to do so
+if [ -z "${cfg_pidfile}" ]
+then
+	cfg_pidfile=${PID_FILE}
+else
+	tmp=${cfg_pidfile}
+	cfg_pidfile=${PROJECTDIR}/${LOGDIR}/${tmp}
 fi
 
 echo ''
@@ -192,6 +206,18 @@ locProcPid=$!
 printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
 printf "started process with pid %s\n" "$locProcPid" | tee -a ${ServerMsgLog};
 wait
+# Server has not been stopped by SIGTERM/HUP
+# Thus if we end up here, the server runs in batch mode to completion.
+# If it terminated successfully, the PID file has been removed by the server.
 printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-printf "WARNING: server %s [%s] (pid:%s) terminated unexpectedly!\n" "${SERVERNAME}" "$WDS_BIN" "$locProcPid" | tee -a ${ServerMsgLog} ${ServerErrLog};
-myExit 1
+printf "Checking for application PID file %s \n" "${cfg_pidfile}" | tee -a ${ServerMsgLog} ${ServerErrLog};
+if [ -f "${cfg_pidfile}" ]
+then
+	printf "WARNING: server %s [%s] (pid:%s) terminated unexpectedly!\n" "${SERVERNAME}" "$WDS_BIN" "$locProcPid" | tee -a ${ServerMsgLog} ${ServerErrLog};
+	myExit 1
+else
+	printf "server %s on %s with pid(s) %s...done\n" "${SERVERNAME}" "${HOSTNAME}" "${locProcPid}" | tee -a ${ServerMsgLog} ${ServerErrLog};
+	printf "stopped\n" | tee -a ${ServerMsgLog} ${ServerErrLog};
+	myExit 0;
+fi
+myExit 1;
