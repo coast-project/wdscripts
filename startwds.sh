@@ -141,12 +141,13 @@ fi;
 
 # check if we have to execute anything depending on RUN_SERVICE setting
 # -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
-rc_ServiceDisabled="Not starting service because it was disabled (RUN_SERVICE=0)!"
+outmsg="Starting WebDisplay2 server: ${SERVERNAME}";
+rc_ServiceDisabled=" => will not execute, because it was disabled (RUN_SERVICE=0)!"
 if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStart} -eq 0 ]; then
 	return=$rc_ServiceDisabled;
 	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
 	printf "%s\n" "${return}" >> ${ServerMsgLog};
-	echo "$return"
+	echo "${outmsg}${return}"
 	echo " -> use -F to override if you are sure what you are doing..."
 	exit 7;
 fi

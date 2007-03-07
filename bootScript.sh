@@ -368,20 +368,47 @@ if [ "`pwd`" != "$prj_path" -a "`pwd`" != "$prj_pathabs" ]; then
 	exit 4;
 fi
 
-# check if we have to execute anything depending on RUN_SERVICE setting
-# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
-rc_ServiceDisabled="Not executing [${locCommand}], service disabled (RUN_SERVICE=0)!"
-if [ -n "${run_service}" -a ${run_service:-1} -eq 0 ]; then
-	return=$rc_ServiceDisabled;
-	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
-	printf "%s\n" "${return}" >> ${ServerMsgLog};
-	echo "$return"
-	exit 7;
-fi
-
 checkPidFilesAndServer
 loc_Exists=$?;
 ret_pid=0;
+loc_CommandText="";
+
+case "$locCommand" in
+	start)
+		loc_CommandText="Starting";
+	;;
+	stop)
+		loc_CommandText="Stopping";
+	;;
+	status)
+		loc_CommandText="Status of";
+	;;
+	status)
+		loc_CommandText="Status of";
+	;;
+	restart)
+		loc_CommandText="Restarting";
+	;;
+	reload)
+		loc_CommandText="Reloading";
+	;;
+	*)
+		loc_CommandText="";
+	;;
+esac
+
+outmsg="${loc_CommandText} ${my_unique_text}";
+
+# check if we have to execute anything depending on RUN_SERVICE setting
+# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
+rc_ServiceDisabled=" => will not execute, because it was disabled (RUN_SERVICE=0)!"
+if [ -n "${run_service}" -a ${run_service:-1} -eq 0 -a -n "${loc_CommandText}" ]; then
+	return=$rc_ServiceDisabled;
+	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
+	printf "%s\n" "${return}" >> ${ServerMsgLog};
+	echo "${outmsg}${return}"
+	exit 7;
+fi
 
 case "$locCommand" in
 	start)
@@ -389,7 +416,6 @@ case "$locCommand" in
 			exit $loc_Exists;
 		fi;
 		cleanfiles;
-		outmsg="Starting ${my_unique_text}";
 		if [ $am_I_root -eq 1 -a -n "${my_runuser}" ]; then
 			outmsg="${outmsg} as ${my_runuser}";
 		fi
@@ -407,7 +433,7 @@ case "$locCommand" in
 		fi
 	;;
 	stop)
-		outmsg="Stopping ${my_unique_text} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
+		outmsg="${outmsg} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
 		printf "%s" "${outmsg}"
 		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog}
 		if [ $locKeepOk -eq 1 ]; then
@@ -432,7 +458,7 @@ case "$locCommand" in
 	status)
 		# check if keepwds.sh script is still in process list and
 		#  the main pid of the wdserver is still present too
-		outmsg="Status of ${my_unique_text} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
+		outmsg="${outmsg} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
 		printf "%s" "${outmsg}"
 		if [ $loc_Exists -eq 0 ]; then
 			# no server and no keepwds
@@ -446,7 +472,7 @@ case "$locCommand" in
 		printf "%s %s: %s%s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" "${return}" >> ${ServerMsgLog}
 	;;
 	restart)
-		outmsg="Restarting ${my_unique_text} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
+		outmsg="${outmsg} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
 		printf "%s" "${outmsg}"
 		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog}
 		# the keepwds.sh script will automatically restart the server when it was down
@@ -464,7 +490,7 @@ case "$locCommand" in
 		fi;
 	;;
 	reload)
-		outmsg="Reloading ${my_unique_text} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
+		outmsg="${outmsg} (keep-pid:${my_keeppid:-?}) (server-pid:${wdpid:-?})";
 		printf "%s" "${outmsg}"
 		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog}
 		if [ $loc_Exists -eq 0 ]; then
@@ -475,7 +501,7 @@ case "$locCommand" in
 		fi;
 	;;
 	*)
-		outmsg="Usage: ${MYNAME} {start|stop|status|restart|reload}, given [$@]";
+		outmsg="${loc_CommandText}: ${MYNAME} {start|stop|status|restart|reload}, given [$@]";
 		echo $outmsg;
 		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog}
 		exit 1
