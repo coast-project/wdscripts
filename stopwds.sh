@@ -34,6 +34,7 @@ showhelp()
 	echo ' -C <cfgdir> : config directory to use within ['$locPrjDir'] directory'
 	echo ' -N <process>: name of process to stop/kill, default is (WDS_BIN)'
 	echo ' -U <user>   : name of user the process runs as, default RUN_USER with fallback of USER'
+	echo ' -F          : force stopping service even it was disabled by setting RUN_SERVICE=0'
 	echo ' -D          : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ' -w <count>  : seconds to wait on server termination, default count=60'
 	echo ' -K          : force kill server, ignoring server instance token'
@@ -48,9 +49,10 @@ cfg_hardkill=0;
 cfg_waitcount=60;
 cfg_procname="";
 locRunUser="";
+cfg_forceStop=0;
 
 # process config switching options first
-myPrgOptions=":C:N:U:w:DK"
+myPrgOptions=":C:N:U:w:FDK"
 ProcessSetConfigOptions "${myPrgOptions}" "$@"
 OPTIND=1;
 
@@ -65,6 +67,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 		;;
 		U)
 			locRunUser="${OPTARG}";
+		;;
+		F)
+			cfg_forceStop=1;
 		;;
 		D)
 			# propagating this option to config.sh
@@ -113,6 +118,18 @@ myExit()
 	LogLeaveScript ${locRetCode}
 	exit ${locRetCode};
 }
+
+# check if we have to execute anything depending on RUN_SERVICE setting
+# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
+rc_ServiceDisabled="Not stopping service because it was disabled (RUN_SERVICE=0)!"
+if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStop} -eq 0 ]; then
+	return=$rc_ServiceDisabled;
+	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
+	printf "%s\n" "${return}" >> ${ServerMsgLog};
+	echo "$return"
+	echo " -> use -F to override if you are sure what you are doing..."
+	exit 7;
+fi
 
 LogEnterScript
 

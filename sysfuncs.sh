@@ -9,6 +9,26 @@
 # functions and preparations to encapsulate os specific items
 #
 
+# retrieve value of variable by sourcing a file and checking for its value
+#
+# param $1 path to start from
+# param $2 directory from where to source the file containing variables, either relative to $1 or absolute
+# param $3 name of the file containing variables
+# param $4 name of variable to get value from
+# param $5 name of output variable getting the retrieved value
+#
+# output exporting value into given variable name ($5)
+getConfigVar()
+{
+	loc_prjPath=${1};
+	loc_scDir=${2:-.}; # set appropriate default
+	loc_scName=${3:-scriptNameNotGiven};
+	loc_name=${4};
+	ret_var=${5};
+	loc_name=`/bin/ksh -c "cd ${loc_prjPath}; mypath=${loc_scDir}; . ${loc_scDir}/${loc_scName} >/dev/null 2>&1; eval \"echo $\"$loc_name"`
+	eval ${ret_var}="$loc_name";
+}
+
 # retrieve the glibc version number from /lib/libc.so.6 or /lib/ld-linux.so.2
 #
 # param $1 is the name of the 'version'-variable

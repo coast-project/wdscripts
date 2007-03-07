@@ -313,6 +313,7 @@ my_keeppidfile=${my_logdir}/.$SERVICENAME.keepwds.pid
 my_runuserfile=${my_logdir}/.RunUser
 getconfigvar "${prj_path}" "${SCRIPTDIR}" PID_FILE wd_pidfile
 getconfigvar "${prj_path}" "${SCRIPTDIR}" RUN_USER my_runuser
+getconfigvar "${prj_path}" "${SCRIPTDIR}" RUN_SERVICE run_service
 my_unique_text="Coast server: $SERVICENAME"
 getconfigvar "${prj_path}" "${SCRIPTDIR}" ServerMsgLog ServerMsgLog
 getconfigvar "${prj_path}" "${SCRIPTDIR}" ServerErrLog ServerErrLog
@@ -321,7 +322,7 @@ getconfigvar "${prj_path}" "${SCRIPTDIR}" WDS_BINABS wds_binabs
 
 if [ $PRINT_DBG -eq 1 ]; then
 	echo "I am executing in ["${PWD}"]";
-	for varname in prj_name prj_path prj_pathabs scriptPath keep_script stop_script softstart_script my_logdir link_name MYNAME my_keeppidfile wd_pidfile my_runuserfile my_runuser my_uid ServerMsgLog ServerErrLog SERVICENAME wds_bin wds_binabs; do
+	for varname in prj_name prj_path prj_pathabs scriptPath keep_script stop_script softstart_script my_logdir link_name MYNAME my_keeppidfile wd_pidfile my_runuserfile my_runuser my_uid ServerMsgLog ServerErrLog SERVICENAME run_service wds_bin wds_binabs; do
 		locVar="echo $"$varname;
 		locVarVal=`eval $locVar`;
 		if [ -n "${locVarVal}" ]; then
@@ -334,8 +335,8 @@ rc_done="..done"
 rc_running="..running"
 rc_failed="..failed"
 rc_dead="..dead"
-rc_notExist="...not running"
-rc_notPossible="...not possible, server not running"
+rc_notExist="..not running"
+rc_notPossible="..not possible, server not running"
 
 return=$rc_done
 
@@ -365,6 +366,17 @@ cd $prj_path 2>/dev/null
 if [ "`pwd`" != "$prj_path" -a "`pwd`" != "$prj_pathabs" ]; then
 	echo "ERROR: could not change into project directory [$prj_path], current directory [`pwd`]";
 	exit 4;
+fi
+
+# check if we have to execute anything depending on RUN_SERVICE setting
+# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
+rc_ServiceDisabled="Not executing [${locCommand}], service disabled (RUN_SERVICE=0)!"
+if [ -n "${run_service}" -a ${run_service:-1} -eq 0 ]; then
+	return=$rc_ServiceDisabled;
+	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
+	printf "%s\n" "${return}" >> ${ServerMsgLog};
+	echo "$return"
+	exit 7;
 fi
 
 checkPidFilesAndServer

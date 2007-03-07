@@ -38,6 +38,7 @@ showhelp()
 	echo '                  the logger will log all levels above or equal the specified value'
 	echo ' -h <num>      : number of file handles to set for the process, default 1024'
 	echo ' -C <cfgdir>   : config directory to use within ['$locPrjDir'] directory'
+	echo ' -F            : force starting service even it was disabled by setting RUN_SERVICE=0'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ' -p            : name of application PID file (only needed if PID_FILE does not point to the right place)'
 	echo ''
@@ -54,9 +55,10 @@ cfg_syslog=0;
 cfg_hassrvopts=0;
 cfg_coresize="-c 20000";	# default to 10MB
 cfg_pidfile="";
+cfg_forceStart=0;
 
 # process config switching options first
-myPrgOptions=":c:C:e:s:h:p:-D"
+myPrgOptions=":c:C:e:s:h:p:F-D"
 ProcessSetConfigOptions "${myPrgOptions}" "$@"
 OPTIND=1;
 
@@ -91,6 +93,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 		;;
 		h)
 			cfg_handles="-n "${OPTARG};
+		;;
+		F)
+			cfg_forceStart=1;
 		;;
 		D)
 			# propagating this option to config.sh
@@ -139,6 +144,18 @@ then
 else
 	tmp=${cfg_pidfile}
 	cfg_pidfile=${PROJECTDIR}/${LOGDIR}/${tmp}
+fi
+
+# check if we have to execute anything depending on RUN_SERVICE setting
+# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
+rc_ServiceDisabled="Not starting service because it was disabled (RUN_SERVICE=0)!"
+if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStart} -eq 0 ]; then
+	return=$rc_ServiceDisabled;
+	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
+	printf "%s\n" "${return}" >> ${ServerMsgLog};
+	echo "$return"
+	echo " -> use -F to override if you are sure what you are doing..."
+	exit 7;
 fi
 
 echo ''

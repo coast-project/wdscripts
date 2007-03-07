@@ -22,6 +22,16 @@ SERVERNAME="wdscripts"
 PRJ_DESCRIPTION="Coast scripts"
 #PID_FILE=$PROJECTDIR/$LOGDIR/$SERVERNAME.PID
 
+# RUN_USER variable will be used by bootScript.sh to start the server as a different user at boot time or later
+# -> this setting is needed to control the server (start|stop|restart...) by a user different than root
+#RUN_USER=notRootUser
+
+# the following section can be used to control server start/stop behavior using s special file which contains these flags
+# if the RUN_SERVICE flag is left off or set to 1, the server will always be controllable using any of the bootScript.sh, startwd[as].sh, startprf.sh or stopwds.sh scripts
+# if RUN_SERVICE is set to 0, the server will not be started/stopped except the -F option is given to override the variable
+#RUN_SERVICE_CFGFILE=${DEV_HOME}/my_services.sh
+#RUN_SERVICE=`/bin/ksh -c ". ${RUN_SERVICE_CFGFILE} >/dev/null 2>&1; eval \"echo $\"RUN_SERVICE_${SERVERNAME}"`
+
 # name of the tared and gzipped distribution file, caution: try to use short names
 # because some CD burning software do only store 8.3 names
 #TARGZNAME=$SERVERNAME.tgz
