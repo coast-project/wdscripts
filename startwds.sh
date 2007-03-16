@@ -104,7 +104,6 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 		;;
 		d)
 			cfg_dbgctl=1;
-			cfg_gdbcommands="/tmp/$(basename $0)_$$";
 		;;
 		-)
 			break;
@@ -139,6 +138,12 @@ else
 	cfg_srvopts=${SERVERNAME};
 fi;
 
+# check if we want to run under control of gdb
+# if you want to use either keepwds.sh or bootScript.sh to start the server, this flag can be set in prjconfig.sh
+if [ ${RUN_ATTACHED_TO_GDB:-0} -eq 1 ]; then
+	cfg_dbgctl=1;
+fi
+
 # check if we have to execute anything depending on RUN_SERVICE setting
 # -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
 outmsg="Starting WebDisplay2 server: ${SERVERNAME}";
@@ -152,8 +157,8 @@ if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStart} -eq 0 ]
 	exit 7;
 fi
 
-if [ $cfg_dbgctl -eq 1 ]
-then
+if [ $cfg_dbgctl -eq 1 ]; then
+	cfg_gdbcommands="/tmp/$(basename $0)_$$";
 	generateGdbCommandFile ${cfg_gdbcommands} ${cfg_srvopts}
 	echo "Generated gdb command file:"
 	cat ${cfg_gdbcommands}
