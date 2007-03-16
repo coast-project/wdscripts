@@ -199,7 +199,7 @@ if [ $cfg_dbgctl -eq 0 ]; then
 else
 	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
 	printf "starting %s [%s] using GDB in batch mode with options [%s] on [%s]\n" "${SERVERNAME}" "$WDS_BIN" "$cfg_srvopts" "${HOSTNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	gdb -batch -command ${cfg_gdbcommands} 2>> ${ServerErrLog} >> ${ServerMsgLog} &
+	gdb --batch --command ${cfg_gdbcommands} 2>> ${ServerErrLog} >> ${ServerMsgLog} &
 fi
 # this on seems to be simpler to grasp the PID than using ps
 locProcPid=$!

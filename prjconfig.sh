@@ -65,17 +65,17 @@ PRJ_DESCRIPTION="Coast scripts"
 # The following variables are used during package generation using MkPckg.sh or the old doall.sh
 # Its values are needed within cpall.sh and control if project-directories and its contents get copied.
 # do we have to copy WDA_BIN/WDS_BIN binary, default 1, otherwise set to 0
-cfg_doBin=0;
+cfg_doBin=1;
 # do we have to copy libraries from WD_LIBDIR, default 1, otherwise set to 0
-cfg_doLib=0;
+cfg_doLib=1;
 # do we have to copy CONFIGDIR contents, default 1, otherwise set to 0
-cfg_doCfg=0;
+cfg_doCfg=1;
 # do we have to create a log directory, default 1, otherwise set to 0
-cfg_doLog=0;
+cfg_doLog=1;
 # do we have to copy Coast scripts into package, default 1, otherwise set to 0
-#cfg_doScr=0;
+cfg_doScr=0;
 # define relative destination directory for Coast scripts
-cfg_destScriptDir="";
+#cfg_destScriptDir="";
 
 ############################################################################
 #
