@@ -26,6 +26,11 @@ PRJ_DESCRIPTION="Coast scripts"
 # -> this setting is needed to control the server (start|stop|restart...) by a user different than root
 #RUN_USER=notRootUser
 
+# RUN_ATTACHED_TO_GDB variable will be used by startwds.sh to start the server under gdb control
+# if you want to use either keepwds.sh or bootScript.sh to start the server, this flag should be set here
+# -> this is useful to get out more information in case the server terminates unexpectedly
+#RUN_ATTACHED_TO_GDB=1
+
 # the following section can be used to control server start/stop behavior using s special file which contains these flags
 # if the RUN_SERVICE flag is left off or set to 1, the server will always be controllable using any of the bootScript.sh, startwd[as].sh, startprf.sh or stopwds.sh scripts
 # if RUN_SERVICE is set to 0, the server will not be started/stopped except the -F option is given to override the variable
