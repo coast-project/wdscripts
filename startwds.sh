@@ -159,7 +159,7 @@ fi
 
 if [ $cfg_dbgctl -eq 1 ]; then
 	cfg_gdbcommands="/tmp/$(basename $0)_$$";
-	generateGdbCommandFile ${cfg_gdbcommands} ${cfg_srvopts}
+	generateGdbCommandFile ${cfg_gdbcommands} "${cfg_srvopts}"
 	echo "Generated gdb command file:"
 	cat ${cfg_gdbcommands}
 fi
