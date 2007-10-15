@@ -56,6 +56,7 @@ PRJ_DESCRIPTION="Coast scripts"
 #  0: No pool statistic tracing, except when excess memory was used
 #  1: Trace overall statistics
 #  2: Trace detailed statistics
+#  3: Trace unfreed blocks
 #export TRACE_STORAGE=0
 
 # use this function to do preparations prior to creating the distribution package
