@@ -421,9 +421,10 @@ setDevelopmentEnv()
 	selectDevelopDir "DEV_HOME" "DEVNAME" $1
 	if [ -n "${DEV_HOME}" -a -n "${DEVNAME}" ]; then
 		if [ -z "${WD_OUTDIR}" ]; then
-			WD_OUTDIR=${SYS_TMP}/objectfiles;
+			WD_OUTDIR=${SYS_TMP}/objectfiles_${USER}/${DEVNAME};
+		else
+			WD_OUTDIR=${WD_OUTDIR}/${USER}/${DEVNAME};
 		fi
-		WD_OUTDIR=${WD_OUTDIR}/${USER}/${DEVNAME};
 		if [ "$USER" = "whoever" -o "$USER" = "whoeverToo" ]; then
 			WD_LIBDIR=${DEV_HOME}/lib
 		else
