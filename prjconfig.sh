@@ -76,7 +76,9 @@ cfg_doLog=1;
 # do we have to copy Coast scripts into package, default 1, otherwise set to 0
 cfg_doScr=0;
 # define relative destination directory for Coast scripts
-#cfg_destScriptDir="";
+cfg_destScriptDir="";
+# define relative or absolute source directory for Coast scripts
+#cfg_sourceScriptDir=${PROJECTDIR};
 
 ############################################################################
 #

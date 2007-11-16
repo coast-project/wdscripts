@@ -33,6 +33,7 @@ showhelp()
 }
 
 cfg_test=0;
+rstr="";
 # process command line options
 while getopts ":r:s:T" opt; do
 	case $opt in
