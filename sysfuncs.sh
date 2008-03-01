@@ -520,14 +520,16 @@ appendTokens()
 # invocations of the debugger.
 #
 # param $1 is the name of the generated file 
-# param $2 arguments passed to the debugged progam
+# param $2 arguments passed to the debugged progam, do not forget to quote them!
+# param $3 run executable within script or not, default 1, set to 0 to execute it manually
 #
 generateGdbCommandFile()
 {
 	local outputfile=${1};
 	local locsrvopts=${2};
+	local locRunAsServer=${3:-1};
 	# <<-EOF ignore tabs, nice for formatting heredocs
-        cat > ${outputfile} <<-EOF
+cat > ${outputfile} <<-EOF
 	handle SIGSTOP nostop nopass
 	handle SIGLWP  nostop pass
 	handle SIGTERM nostop pass
@@ -541,12 +543,17 @@ generateGdbCommandFile()
 	set environment PID_FILE=${PID_FILE}
 	set auto-solib-add 1
 	file ${WDS_BIN}
-	run ${WDS_BIN} ${locsrvopts}
+	set args ${locsrvopts}
+EOF
+	if [ $locRunAsServer -eq 1 ]; then
+cat >> ${outputfile} <<-EOF
+	run
 	where
 	continue
 	shell rm ${outputfile}
 	quit
 EOF
+	fi;
 }
 
 # dereference a file/path - usually a link - and find its real origin
