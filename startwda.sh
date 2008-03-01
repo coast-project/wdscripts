@@ -40,6 +40,7 @@ showhelp()
 	echo ' -C <cfgdir>   : config directory to use within ['$locPrjDir'] directory'
 	echo ' -F            : force starting service even it was disabled by setting RUN_SERVICE=0'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	echo ' -d            : run under debugger control'
 	echo ' -p            : name of application PID file (only needed if PID_FILE does not point to the right place)'
 	echo ''
 	exit 4;
@@ -53,12 +54,14 @@ cfg_dbg=0;
 cfg_errorlog=0;
 cfg_syslog=0;
 cfg_hassrvopts=0;
+cfg_gdbcommands="";
+cfg_dbgctl=0;
 cfg_coresize="-c 20000";	# default to 10MB
 cfg_pidfile="";
 cfg_forceStart=0;
 
 # process config switching options first
-myPrgOptions=":c:C:e:s:h:p:F-D"
+myPrgOptions=":c:C:de:s:h:p:F-D"
 ProcessSetConfigOptions "${myPrgOptions}" "$@"
 OPTIND=1;
 
@@ -102,6 +105,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			cfg_dbgopt="-D";
 			cfg_dbg=1;
 		;;
+		d)
+			cfg_dbgctl=1;
+		;;
 		p)
 			cfg_pidfile=${OPTARG};
 		;;
@@ -136,7 +142,6 @@ if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 if [ -z "$cfg_srvopts" ]; then
 	cfg_srvopts=${SERVERNAME};
 fi
-
 # Override LOGDIR default when requested to do so
 if [ -z "${cfg_pidfile}" ]
 then
@@ -157,6 +162,13 @@ if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStart} -eq 0 ]
 	echo "${outmsg}${return}"
 	echo " -> use -F to override if you are sure what you are doing..."
 	exit 7;
+fi
+
+if [ $cfg_dbgctl -eq 1 ]; then
+	cfg_gdbcommands="/tmp/$(basename $0)_$$";
+	generateGdbCommandFile ${cfg_gdbcommands} "${cfg_srvopts}" 0
+	echo "Generated gdb command file:"
+	cat ${cfg_gdbcommands}
 fi
 
 echo ''
@@ -219,23 +231,27 @@ if [ -x "$prerunscript" ]; then
 	echo " ---- running (sourcing) local $prerunscript script"
 	. $prerunscript
 fi
-$WDA_BIN $cfg_srvopts &
-locProcPid=$!
-printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-printf "started process with pid %s\n" "$locProcPid" | tee -a ${ServerMsgLog};
-wait
-# Server has not been stopped by SIGTERM/HUP
-# Thus if we end up here, the server runs in batch mode to completion.
-# If it terminated successfully, the PID file has been removed by the server.
-printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-printf "Checking for application PID file %s \n" "${cfg_pidfile}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-if [ -f "${cfg_pidfile}" ]
-then
-	printf "WARNING: server %s [%s] (pid:%s) terminated unexpectedly!\n" "${SERVERNAME}" "$WDS_BIN" "$locProcPid" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	myExit 1
+if [ $cfg_dbgctl -eq 0 ]; then
+	$WDA_BIN $cfg_srvopts &
+	locProcPid=$!
+	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
+	printf "started process with pid %s\n" "$locProcPid" | tee -a ${ServerMsgLog};
+	wait
+	# Server has not been stopped by SIGTERM/HUP
+	# Thus if we end up here, the server runs in batch mode to completion.
+	# If it terminated successfully, the PID file has been removed by the server.
+	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
+	printf "Checking for application PID file %s \n" "${cfg_pidfile}" | tee -a ${ServerMsgLog} ${ServerErrLog};
+	if [ -f "${cfg_pidfile}" ]
+	then
+		printf "WARNING: server %s [%s] (pid:%s) terminated unexpectedly!\n" "${SERVERNAME}" "$WDS_BIN" "$locProcPid" | tee -a ${ServerMsgLog} ${ServerErrLog};
+		myExit 1
+	else
+		printf "server %s on %s with pid(s) %s...done\n" "${SERVERNAME}" "${HOSTNAME}" "${locProcPid}" | tee -a ${ServerMsgLog} ${ServerErrLog};
+		printf "stopped\n" | tee -a ${ServerMsgLog} ${ServerErrLog};
+		myExit 0;
+	fi
 else
-	printf "server %s on %s with pid(s) %s...done\n" "${SERVERNAME}" "${HOSTNAME}" "${locProcPid}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	printf "stopped\n" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	myExit 0;
+	gdb --command ${cfg_gdbcommands}
 fi
 myExit 1;
