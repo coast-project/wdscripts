@@ -185,7 +185,8 @@ SearchJoinedDir()
 		# check if we have found a directory yet
 		if [ -z "$tmppath" ]; then
 			# directory not yet found, only search with last segment specifier
-			for dname in `cd $testpath && $FINDEXE . -name "*${lastseg}*" -follow -type d ${FINDOPT1} 2>/dev/null`; do
+			cd $testpath;
+			for dname in *${lastseg}*; do
 				# take the first we find
 				if [ -n "$tmppath" ]; then
 					tmppath="${tmppath}${pathsep}";
@@ -195,7 +196,8 @@ SearchJoinedDir()
 				if [ $showalldirs -eq 0 ]; then
 					break;
 				fi;
-			done
+			done;
+			cd -;
 		fi
 	fi
 	export ${varname}="${tmppath}"
