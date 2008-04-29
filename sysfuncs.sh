@@ -183,7 +183,7 @@ SearchJoinedDir()
 	# check if we got a searchable directory first
 	if [ -d "$testpath" -a -r "$testpath" -a -x "$testpath" ]; then
 		# search for a 'compound' directory name in the given directory
-		cd $testpath;
+		cd $testpath && \
 		for dname in ${firstseg}*${lastseg}* *${lastseg}*; do
 			if [ -d "${dname}" ]; then
 				if [ -n "$tmppath" ]; then
@@ -195,8 +195,8 @@ SearchJoinedDir()
 					break;
 				fi;
 			fi;
-		done;
-		cd -;
+		done; \
+		cd - >/dev/null;
 	fi
 	export ${varname}="${tmppath}"
 	if [ -z "${tmppath}" ]; then
