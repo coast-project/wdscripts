@@ -185,13 +185,15 @@ SearchJoinedDir()
 		# search for a 'compound' directory name in the given directory
 		cd $testpath;
 		for dname in ${firstseg}*${lastseg}* *${lastseg}*; do
-			if [ -n "$tmppath" ]; then
-				tmppath="${tmppath}${pathsep}";
-			fi;
-			# strip trailing slash
-			tmppath="${tmppath}${dname##*/}";
-			if [ $showalldirs -eq 0 ]; then
-				break;
+			if [ -d "${dname}" ]; then
+				if [ -n "$tmppath" ]; then
+					tmppath="${tmppath}${pathsep}";
+				fi;
+				# strip trailing slash
+				tmppath="${tmppath}${dname##*/}";
+				if [ $showalldirs -eq 0 ]; then
+					break;
+				fi;
 			fi;
 		done;
 		cd -;
