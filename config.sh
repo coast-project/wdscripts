@@ -102,12 +102,18 @@ fi
 PROJECTNAME=${PROJECTDIR##*/}
 
 # needed in deployable version, points to the directory where wd-binaries are in
-BINDIR=`cd $PROJECTDIR/bin 2>/dev/null && pwd`
+SearchJoinedDir "BINDIR" "$PROJECTDIR" "bin" "${OSREL}" "" "0"
+if [ $? -eq 0 ]; then
+	SearchJoinedDir "BINDIR" "$PROJECTDIR" "bin" "${CURSYSTEM}" "" "0"
+	if [ $? -eq 0 ]; then
+		SearchJoinedDir "BINDIR" "$PROJECTDIR" "bin" "" "" "0"
+	fi;
+fi;
 
 # set default binary name to execute either in foreground or background
 # in case of Coast this is almost always wdapp
-APP_NAME=wdapp
-TEST_NAME=wdtest
+APP_NAME=${APP_NAME:-wdapp}
+TEST_NAME=${TEST_NAME:-wdtest}
 
 # directory name of the log directory, may be overwritten in the project specific prjconfig.sh
 SearchJoinedDir "LOGDIR" "$PROJECTDIR" "$PROJECTNAME" "log"
@@ -253,10 +259,15 @@ SetupTestExe()
 	fi
 }
 
+SearchJoinedDir "myLIBDIR" "$PROJECTDIR" "lib" "${OSREL}" "" "0"
+if [ $? -eq 0 ]; then
+	SearchJoinedDir "myLIBDIR" "$PROJECTDIR" "lib" "${CURSYSTEM}" "" "0"
+	if [ $? -eq 0 ]; then
+		SearchJoinedDir "myLIBDIR" "$PROJECTDIR" "lib" "" "" "0"
+	fi;
+fi;
+
 # directory where WD-Libs are in
-if [ -d "$PROJECTDIR/lib" ]; then
-	myLIBDIR=`cd $PROJECTDIR/lib && pwd`
-fi
 if [ -z "${myLIBDIR}" ]; then
 	# now check if WD_LIBDIR is already set
 	if [ -z "${WD_LIBDIR}" ]; then
@@ -272,10 +283,12 @@ fi
 if [ -n "${myLIBDIR}" ]; then
 	WD_LIBDIR=${myLIBDIR}
 else
-	echo 'WARNING: could not find a library directory, looked in:'
-	echo 'PROJECTDIR/lib: ['${PROJECTDIR}/lib']'
-	echo 'WD_LIBDIR     : ['${WD_LIBDIR}']'
-	echo 'DEV_HOME/lib  : ['${DEV_HOME}/lib']'
+	if [ $PRINT_DBG -eq 1 ]; then
+		echo 'WARNING: could not find a library directory, looked in:'
+		echo 'PROJECTDIR/lib: ['${PROJECTDIR}/lib']'
+		echo 'WD_LIBDIR     : ['${WD_LIBDIR}']'
+		echo 'DEV_HOME/lib  : ['${DEV_HOME}/lib']'
+	fi;
 fi
 
 if [ $isWindows -eq 1 ]; then
