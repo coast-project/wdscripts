@@ -88,6 +88,8 @@ testSetGnuTool()
 		if [ $localBool -eq 0 ]; then
 			# reset tool to std-tool if no gnu tool found
 			testTool="${stdtoolname}";
+			hasVersionReturn "${testTool}";
+			localBool=$?;
 		fi
 	fi
 	export ${boolvarname}="${localBool}";
@@ -181,24 +183,18 @@ SearchJoinedDir()
 	# check if we got a searchable directory first
 	if [ -d "$testpath" -a -r "$testpath" -a -x "$testpath" ]; then
 		# search for a 'compound' directory name in the given directory
-		tmppath=`cd $testpath && $FINDEXE . -name "${firstseg}*${lastseg}*" -follow -type d ${FINDOPT} 2>/dev/null`;
-		# check if we have found a directory yet
-		if [ -z "$tmppath" ]; then
-			# directory not yet found, only search with last segment specifier
-			cd $testpath;
-			for dname in *${lastseg}*; do
-				# take the first we find
-				if [ -n "$tmppath" ]; then
-					tmppath="${tmppath}${pathsep}";
-				fi;
-				# strip trailing slash
-				tmppath="${tmppath}${dname##*/}";
-				if [ $showalldirs -eq 0 ]; then
-					break;
-				fi;
-			done;
-			cd -;
-		fi
+		cd $testpath;
+		for dname in ${firstseg}*${lastseg}* *${lastseg}*; do
+			if [ -n "$tmppath" ]; then
+				tmppath="${tmppath}${pathsep}";
+			fi;
+			# strip trailing slash
+			tmppath="${tmppath}${dname##*/}";
+			if [ $showalldirs -eq 0 ]; then
+				break;
+			fi;
+		done;
+		cd -;
 	fi
 	export ${varname}="${tmppath}"
 	if [ -z "${tmppath}" ]; then
@@ -663,19 +659,7 @@ if [ ${SYSFUNCSLOADED} -eq 0 ]; then
 	export APP_SUFFIX LIB_SUFFIX SHAREDLIB_SUFFIX
 
 	testSetGnuTool FINDEXE IS_GNUFIND gfind find
-
-	if [ $IS_GNUFIND -eq 1 ]; then
-		FINDOPT="-maxdepth 1 -printf %f"
-		FINDOPT1="-maxdepth 1 -printf %f\n"
-	else
-		FINDOPT="-prune -print"
-		FINDOPT1="-prune -print"
-	fi
-
-	export FINDOPT FINDOPT1
-
 	testSetGnuTool DIFFEXE IS_GNUDIFF gdiff diff
 	testSetGnuTool AWKEXE IS_GNUAWK gawk awk
-
 fi
 SYSFUNCSLOADED=1
