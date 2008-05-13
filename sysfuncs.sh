@@ -160,6 +160,7 @@ getUnixDir()
 # param $3 is the name of the beginning segment
 # param $4 is the name of the ending segment
 # param $5, optional, is the field separator when all segments found are required
+# param $6, optional, if set to 0, do not search for *${4}* 
 #
 # returning 1 if it the path was found, 0 otherwise
 #
@@ -179,23 +180,39 @@ SearchJoinedDir()
 		showalldirs=1;
 	fi;
 	local pathsep=${5:-:};
+	local doStarEnding=${6:-1};
 	local tmppath="";
 	# check if we got a searchable directory first
 	if [ -d "$testpath" -a -r "$testpath" -a -x "$testpath" ]; then
 		# search for a 'compound' directory name in the given directory
 		cd $testpath && \
-		for dname in ${firstseg}*${lastseg}* *${lastseg}*; do
-			if [ -d "${dname}" ]; then
-				if [ -n "$tmppath" ]; then
-					tmppath="${tmppath}${pathsep}";
+		if [ ${doStarEnding} -eq 1 ]; then \
+			for dname in ${firstseg}*${lastseg}* *${lastseg}*; do
+				if [ -d "${dname}" ]; then
+					if [ -n "$tmppath" ]; then
+						tmppath="${tmppath}${pathsep}";
+					fi;
+					# strip trailing slash
+					tmppath="${tmppath}${dname##*/}";
+					if [ $showalldirs -eq 0 ]; then
+						break;
+					fi;
 				fi;
-				# strip trailing slash
-				tmppath="${tmppath}${dname##*/}";
-				if [ $showalldirs -eq 0 ]; then
-					break;
+			done; \
+		else \
+			for dname in ${firstseg}*${lastseg}*; do
+				if [ -d "${dname}" ]; then
+					if [ -n "$tmppath" ]; then
+						tmppath="${tmppath}${pathsep}";
+					fi;
+					# strip trailing slash
+					tmppath="${tmppath}${dname##*/}";
+					if [ $showalldirs -eq 0 ]; then
+						break;
+					fi;
 				fi;
-			fi;
-		done; \
+			done; \
+		fi; \
 		cd - >/dev/null;
 	fi
 	export ${varname}="${tmppath}"
