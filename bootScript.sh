@@ -260,7 +260,7 @@ derefd_name=`basename $derefd_name`;
 MYNAME=${derefd_name};
 SCRIPTDIR=`cd ${scriptPath}; pwd`;
 HOSTNAME=`(uname -n) 2>/dev/null` || HOSTNAME="unkown"
-cfg_waitcount=30;
+cfg_waitcount=1200;
 
 # getting the projectpath and -name is not simple because we have at least three ways
 #  to get executed:

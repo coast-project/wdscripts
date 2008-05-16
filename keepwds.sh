@@ -20,7 +20,6 @@ if [ "$DNAM" = "${DNAM#/}" ]; then
 else
 	mypath=$DNAM
 fi
-
 # source in config switching helper
 . $mypath/_cfgSwitch.sh
 
@@ -128,10 +127,19 @@ startIt()
 	return $?;
 }
 
+_killActive=0;
+_stopRetCode=0;
 killIt()
 {
 	locPIDs="${1}";
-	$mypath/stopwds.sh $cfg_dbgopt $cfg_toks $cfg_cfgdir
+	if [ $_killActive -eq 0 ]; then
+		_killActive=1;
+		# give some time ( 600s ) to terminate
+		$mypath/stopwds.sh $cfg_dbgopt $cfg_toks $cfg_cfgdir -w 600
+		_stopRetCode=$?;
+		_killActive=0;
+	fi;
+	return $_stopRetCode;
 }
 
 myExit()
@@ -150,7 +158,7 @@ exitproc()
 	printf "got SIG%s\n" "${locSigName}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
 	doRun=0;
 	killIt ${PID};
-	myExit 0;
+	myExit $?;
 }
 
 doRun=1;
@@ -194,5 +202,13 @@ else
 	myExit 1;
 fi
 
-killIt;
+# wait until kill has finished
+while [ $_killActive -eq 1 ]; do
+	sleep 1;
+done;
+
+# if killing was not successful, try again
+if [ $_stopRetCode -ne 0 ]; then
+	killIt;
+fi;
 myExit 0;
