@@ -195,7 +195,7 @@ if [ $cfg_dbgctl -eq 0 ]; then
 	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
 	printf "starting %s [%s] with options [%s] on [%s]\n" "${SERVERNAME}" "$WDS_BINABS" "$cfg_srvopts" "${HOSTNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
 	# start the server process
-	$WDS_BINABS $cfg_srvopts 2>> ${ServerErrLog} >> ${ServerMsgLog} &
+	$WDS_BIN $cfg_srvopts 2>> ${ServerErrLog} >> ${ServerMsgLog} &
 else
 	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
 	printf "starting %s [%s] using GDB in batch mode with options [%s] on [%s]\n" "${SERVERNAME}" "$WDS_BINABS" "$cfg_srvopts" "${HOSTNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
