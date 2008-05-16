@@ -559,7 +559,7 @@ cat > ${outputfile} <<-EOF
 	set environment LOGDIR=${LOGDIR}
 	set environment PID_FILE=${PID_FILE}
 	set auto-solib-add 1
-	file ${WDS_BIN}
+	file ${WDS_BINABS}
 	set args ${locsrvopts}
 EOF
 	if [ $locRunAsServer -eq 1 ]; then
