@@ -319,10 +319,14 @@ getconfigvar "${prj_path}" "${SCRIPTDIR}" ServerMsgLog ServerMsgLog
 getconfigvar "${prj_path}" "${SCRIPTDIR}" ServerErrLog ServerErrLog
 getconfigvar "${prj_path}" "${SCRIPTDIR}" WDS_BIN wds_bin
 getconfigvar "${prj_path}" "${SCRIPTDIR}" WDS_BINABS wds_binabs
+getconfigvar "${prj_path}" "${SCRIPTDIR}" SERVERNAME my_servername
+
+locWDS_BIN=$wds_bin".*"${my_servername};
+locWDS_BINABS=$wds_binabs".*"${my_servername};
 
 if [ $PRINT_DBG -eq 1 ]; then
 	echo "I am executing in ["${PWD}"]";
-	for varname in prj_name prj_path prj_pathabs scriptPath keep_script stop_script softstart_script my_logdir link_name MYNAME my_keeppidfile wd_pidfile my_runuserfile my_runuser my_uid ServerMsgLog ServerErrLog SERVICENAME run_service wds_bin wds_binabs; do
+	for varname in prj_name prj_path prj_pathabs scriptPath keep_script stop_script softstart_script my_logdir link_name MYNAME my_keeppidfile wd_pidfile my_runuserfile my_runuser my_uid ServerMsgLog ServerErrLog SERVICENAME run_service wds_bin wds_binabs locWDS_BIN locWDS_BINABS; do
 		locVar="echo $"$varname;
 		locVarVal=`eval $locVar`;
 		if [ -n "${locVarVal}" ]; then
@@ -351,11 +355,11 @@ if [ $locKeepOk -eq 0 -a -n "${keep_script}" ]; then
 fi
 checkProcessId ${wdpid};
 locProcOk=$?;
-if [ $locProcOk -eq 0 -a -n "${wds_bin}" ]; then
-	checkProcessWithName "${wds_bin}" "${my_runuser}" wdpid
+if [ $locProcOk -eq 0 -a -n "${locWDS_BIN}" ]; then
+	checkProcessWithName "${locWDS_BIN}" "${my_runuser}" wdpid
 	locProcOk=$?;
-	if [ $locProcOk -eq 0 -a "${wds_bin}" != "${wds_binabs}" ]; then
-		checkProcessWithName "${wds_binabs}" "${my_runuser}" wdpid
+	if [ $locProcOk -eq 0 -a "${locWDS_BIN}" != "${locWDS_BINABS}" ]; then
+		checkProcessWithName "${locWDS_BINABS}" "${my_runuser}" wdpid
 		locProcOk=$?;
 	fi
 fi
