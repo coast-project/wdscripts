@@ -132,9 +132,11 @@ _stopRetCode=0;
 killIt()
 {
 	locPIDs="${1}";
+	printf "%s %s: killactive: %s PID: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${_killActive}" "${locPIDs}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
 	if [ $_killActive -eq 0 ]; then
 		_killActive=1;
 		# give some time ( 600s ) to terminate
+		printf "%s %s: executing stopwds.sh\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
 		$mypath/stopwds.sh $cfg_dbgopt $cfg_toks $cfg_cfgdir -w 600
 		_stopRetCode=$?;
 		_killActive=0;
@@ -153,7 +155,7 @@ myExit()
 exitproc()
 {
 	locSigName=${1:-4};
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog}
+	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
 	if [ $cfg_dbg -eq 1 ]; then echo "got SIG${locSigName}"; fi;
 	printf "got SIG%s\n" "${locSigName}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
 	doRun=0;
