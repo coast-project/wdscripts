@@ -160,12 +160,6 @@ fi
 
 # do the tests now
 if [ -f "${cfg_subscript}" ]; then
-	if [ -f .ld-search-path ]; then
-		prependPath "LD_LIBRARY_PATH" ":" "`cat .ld-search-path`"
-		if [ $cfg_dbg -ge 1 ]; then
-			echo LD_LIBRARY_PATH is now [$LD_LIBRARY_PATH]
-		fi;
-	fi;
 	if [ $TestExeOK -eq 1 ]; then
 		echo '  --- calling prepareTest'
 		# this function MUST be defined in prjRunTest.sh

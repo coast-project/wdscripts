@@ -227,10 +227,16 @@ TestExecWdBinaries()
 	if [ ! -x ${WDA_BIN} ]; then
 		WDA_BIN=
 	fi
+	if [ ! -x ${WDA_BINABS} ]; then
+		WDA_BINABS=
+	fi
 
 	# test if the server executable exists, or clear the var if not
 	if [ ! -x ${WDS_BIN} ]; then
 		WDS_BIN=
+	fi
+	if [ ! -x ${WDS_BINABS} ]; then
+		WDS_BINABS=
 	fi
 }
 
@@ -257,6 +263,33 @@ SetupTestExe()
 			fi
 		done
 	fi
+}
+
+SetupLDPath()
+{
+	locLdPathVar=LD_LIBRARY_PATH;
+	if [ $isWindows -eq 1 ]; then
+		locLdPathVar="PATH";
+	fi
+	prependPath "${locLdPathVar}" ":" "${WD_LIBDIR}"
+	locBinPath="";
+	for binname in ${WDA_BINABS} ${WDS_BINABS} ${TEST_EXE}; do
+		if [ -n "${binname}" ]; then
+			dname="`dirname ${binname}`";
+			if [ -n "${dname}" -a "${locBinPath}" != "${dname}" -a -d "${dname}" ]; then
+				locBinPath="${dname%/${OSREL}}";
+				locLdSearchFile=${locBinPath}/.ld-search-path;
+				if [ -n "${locBinPath}" -a -f ${locLdSearchFile} ]; then
+					prependPath "${locLdPathVar}" ":" "`cat ${locLdSearchFile}`"
+				fi;
+			fi;
+		fi;
+	done;
+	cleanPath "${locLdPathVar}" ":"
+	if [ $PRINT_DBG -ge 1 ]; then
+		locVar="echo $"${locLdPathVar};
+		echo ${locLdPathVar} is now [`eval $locVar`]
+	fi;
 }
 
 SearchJoinedDir "myLIBDIR" "$PROJECTDIR" "lib" "${OSREL}" "" "0"
@@ -289,14 +322,6 @@ else
 		echo 'WD_LIBDIR     : ['${WD_LIBDIR}']'
 		echo 'DEV_HOME/lib  : ['${DEV_HOME}/lib']'
 	fi;
-fi
-
-if [ $isWindows -eq 1 ]; then
-	cleanPath "PATH" ":"
-	prependPath "PATH" ":" "${WD_LIBDIR}"
-else
-	cleanPath "LD_LIBRARY_PATH" ":"
-	prependPath "LD_LIBRARY_PATH" ":" "${WD_LIBDIR}"
 fi
 
 if [ -z "${SERVERNAME}" ]; then
@@ -347,6 +372,7 @@ SetBindir
 SetBinary
 TestExecWdBinaries
 SetupTestExe
+SetupLDPath
 
 if [ -z "${PID_FILE}" ]; then
 	PID_FILE=$PROJECTDIR/$LOGDIR/$SERVERNAME.PID
