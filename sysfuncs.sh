@@ -493,24 +493,24 @@ setDevelopmentEnv()
 #	Function tries host and nslookup commands
 getdomain()
 {
-        $(host $1 >/dev/null 2>&1)
-        if [ $? -eq 0 ]
-        then
-                fullqualified=$(host $1)
-                set -- $fullqualified   # re-evaluate positional params
-                echo ${1#*.*}           # operate on $1
-                return 0
-        fi
-        $(nslookup $1  >/dev/null 2>&1)
-        if [ $? -eq 0 ]
-        then
-                fullqualified=$(nslookup $1  | grep -i name)
-                set -- $fullqualified   # re-evaluate positional params
-                echo ${2#*.*}         # operate on $1
-                return 0
-        fi
-        echo "unknown domain"
-        return 1
+	$(host $1 >/dev/null 2>&1)
+	if [ $? -eq 0 ]
+	then
+		fullqualified=$(host $1)
+		set -- $fullqualified   # re-evaluate positional params
+		echo ${1#*.*}           # operate on $1
+		return 0
+	fi
+	$(nslookup $1  >/dev/null 2>&1)
+	if [ $? -eq 0 ]
+	then
+		fullqualified=$(nslookup $1  | grep -i name)
+		set -- $fullqualified   # re-evaluate positional params
+		echo ${2#*.*}         # operate on $1
+		return 0
+	fi
+	echo "unknown domain"
+	return 1
 }
 
 # append the given tokens to the given variable name
@@ -624,6 +624,23 @@ checkProcessId()
 		loc_ret=0;
 	fi
 	return $loc_ret;
+}
+
+# extend given directory name into absolute path
+#
+# param $1 is the path to make absolute
+# param $2 the name of the variable to put the absolute path into, empty if ${1} is not a directory
+#
+# output exporting absolute path into given name ($2), empty if ${1} is not a directory
+makeAbsPath()
+{
+	loc_name=${1};
+	ret_var=${2};
+	lRetVal="";
+	if [ -d "${loc_name}" ]; then
+		lRetVal=`cd ${loc_name} 2> /dev/null && pwd -P`;
+	fi;
+	eval ${ret_var}="${lRetVal}";
 }
 
 SYSFUNCSLOADED=${SYSFUNCSLOADED:-0};

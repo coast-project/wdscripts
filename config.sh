@@ -68,12 +68,12 @@ fi
 
 # points to the directory where the scripts reside
 SCRIPTDIR=`cd $mypath 2> /dev/null && pwd`
-SCRIPTDIRABS=`cd $mypath 2> /dev/null && pwd -P`
+makeAbsPath "${mypath}" SCRIPTDIRABS
 
 # the directory where all starts is where we call the script from
 # here we can find project specific directories, eg. config, Docs etc.
 PROJECTDIR=${PWD}
-PROJECTDIRABS=`cd ${PROJECTDIR} 2> /dev/null && pwd -P`
+makeAbsPath "${PROJECTDIR}" PROJECTDIRABS
 
 if [ ${isWindows} -eq 1 ]; then
 	# get projectdir in native NT drive:path notation
@@ -171,7 +171,7 @@ SetWD_PATH()
 			CONFIGDIR=${IntWD_PATH};
 		fi
 	fi
-	CONFIGDIRABS=`cd ${PROJECTDIR}/${CONFIGDIR} 2>/dev/null && pwd -P`;
+	makeAbsPath "${PROJECTDIR}/${CONFIGDIR}" CONFIGDIRABS
 }
 
 # set the WD_PATH
@@ -198,7 +198,7 @@ SetBindir()
 			echo "failed when looking for a valid BINDIR..."
 		fi
 	fi
-	BINDIRABS=`cd ${BINDIR} 2>/dev/null && pwd -P`;
+	makeAbsPath "${BINDIR}" BINDIRABS
 }
 
 SetBinary()
@@ -271,7 +271,7 @@ SetupLDPath()
 	if [ $isWindows -eq 1 ]; then
 		locLdPathVar="PATH";
 	fi
-	prependPath "${locLdPathVar}" ":" "${WD_LIBDIR}"
+	deleteFromPath "${locLdPathVar}" ":" "${WD_LIBDIR}"
 	locBinPath="";
 	for binname in ${WDA_BINABS} ${WDS_BINABS} ${TEST_EXE}; do
 		if [ -n "${binname}" ]; then
@@ -286,6 +286,7 @@ SetupLDPath()
 		fi;
 	done;
 	cleanPath "${locLdPathVar}" ":"
+	prependPath "${locLdPathVar}" ":" "${WD_LIBDIR}"
 	if [ $PRINT_DBG -ge 1 ]; then
 		locVar="echo $"${locLdPathVar};
 		echo ${locLdPathVar} is now [`eval $locVar`]
@@ -314,7 +315,7 @@ if [ -z "${myLIBDIR}" ]; then
 	fi
 fi
 if [ -n "${myLIBDIR}" ]; then
-	WD_LIBDIR=${myLIBDIR}
+	makeAbsPath "${myLIBDIR}" "WD_LIBDIR"
 else
 	if [ $PRINT_DBG -eq 1 ]; then
 		echo 'WARNING: could not find a library directory, looked in:'
@@ -400,11 +401,11 @@ else
 	fi;
 fi
 
-export BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SERVERNAME TARGZNAME WD_PATH WD_ROOT
+export BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SCRIPTDIRABS SERVERNAME TARGZNAME WD_PATH WD_ROOT
 
 # for debugging only
 if [ $PRINT_DBG -eq 1 ]; then
-	for varname in PID_FILE BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME DOMAIN LOGDIR ServerMsgLog ServerErrLog OSREL OSTYPE PATH LD_LIBRARY_PATH PERFTESTDIR PRJCONFIGPATH PRJ_DESCRIPTION PROJECTDIRABS PROJECTDIR PROJECTDIRNT PROJECTNAME RUN_USER RUN_SERVICE SCRIPTDIR SERVERNAME PROJECTSRCDIR SYS_TMP TARGZNAME TEST_NAME TEST_EXE USR_TMP WD_LIBDIR WD_PATH WD_ROOT APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS; do
+	for varname in PID_FILE BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME DOMAIN LOGDIR ServerMsgLog ServerErrLog OSREL OSTYPE PATH LD_LIBRARY_PATH PERFTESTDIR PRJCONFIGPATH PRJ_DESCRIPTION PROJECTDIRABS PROJECTDIR PROJECTDIRNT PROJECTNAME RUN_USER RUN_SERVICE SCRIPTDIR SCRIPTDIRABS SERVERNAME PROJECTSRCDIR SYS_TMP TARGZNAME TEST_NAME TEST_EXE USR_TMP WD_LIBDIR WD_PATH WD_ROOT APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS; do
 		locVar="echo $"$varname;
 		printf "%-16s: [%s]\n" $varname "`eval $locVar`"
 	done
