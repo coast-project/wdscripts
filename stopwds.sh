@@ -146,8 +146,8 @@ if [ -z "${locRunUser}" ]; then
 	locRunUser="${locRunUser:-${USER}}";
 fi
 if [ -z "${locRunUser}" ]; then
-	echo " name of user the process runs as is empty"
-	myExit 5;
+	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
+	printf "name of user the process runs as is empty, still continuing...\n" | tee -a ${ServerMsgLog} ${ServerErrLog};
 fi;
 
 if [ -z "${cfg_procname}" -a -n "${locWDS_BIN}" ]; then
