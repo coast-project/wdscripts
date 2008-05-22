@@ -9,6 +9,8 @@
 # functions and preparations to encapsulate os specific items
 #
 
+PRINT_DBG=${PRINT_DBG:-0};
+
 # retrieve value of variable by sourcing a file and checking for its value
 #
 # param $1 path to start from
@@ -78,20 +80,14 @@ testSetGnuTool()
 	local boolvarname=${2};
 	local gnutoolname="${3}";
 	local stdtoolname="${4}";
-	local testTool="${stdtoolname}";
-	hasVersionReturn "${testTool}";
-	local localBool=$?;
-	if [ $localBool -eq 0 ]; then
-		testTool="${gnutoolname}";
+	local localBool=0;
+	for testTool in ${gnutoolname} ${stdtoolname}; do
 		hasVersionReturn "${testTool}";
 		localBool=$?;
-		if [ $localBool -eq 0 ]; then
-			# reset tool to std-tool if no gnu tool found
-			testTool="${stdtoolname}";
-			hasVersionReturn "${testTool}";
-			localBool=$?;
+		if [ $localBool -eq 1 ]; then
+			break;
 		fi
-	fi
+	done
 	export ${boolvarname}="${localBool}";
 	export ${toolvarname}="${testTool}";
 }
@@ -223,6 +219,37 @@ SearchJoinedDir()
 	fi
 }
 
+# insert sorted
+#
+# param $1 is the name of the 'path'-variable
+# param $2 is the path-segment separator
+# param $3 is the path-segment to insert
+#
+insertInPathSorted()
+{
+	local pathname=${1};
+	local segsep=${2};
+	local tstseg=${3};
+	local path="echo $"${pathname};
+	local inpath=`eval $path`;
+	local outpath="";
+	local seg="";
+	while seg="${inpath%%${segsep}*}"; [ -n "${tstseg}" -a -n "${inpath}" ]; do
+		deleteFromPath inpath "${segsep}" "${seg}";
+		if [[ "${seg}" < "${tstseg}" ]]; then
+			appendPath outpath "${segsep}" "${seg}" 1;
+		else
+			break;
+		fi;
+	done
+	appendPath outpath "${segsep}" "${tstseg}" 1;
+	appendPath outpath "${segsep}" "${seg}" 1;
+	if [ -n "${inpath}" ]; then
+		appendPath outpath "${segsep}" "${inpath}";
+	fi
+	export ${pathname}="${outpath}";
+}
+
 # test if given path-segment exists in given path
 #
 # param $1 is the path to test
@@ -257,6 +284,7 @@ existInPath()
 # param $1 is the name of the 'path'-variable
 # param $2 is the path-segment separator
 # param $3 is the path-segment to append
+# param $4 allow duplicates, default 0, optional
 #
 # output exporting new path into given name ($1)
 appendPath()
@@ -265,10 +293,11 @@ appendPath()
 	local _path="echo $"${pathname};
 	local segsep=${2};
 	local addseg=${3};
+	local allowdups=${4:-0};
 	if [ -n "$addseg" ]; then
 		local path=`eval $_path`;
 		existInPath "${path}" "$segsep" "$addseg"
-		if [ $? -eq 0 ]; then
+		if [ $? -eq 0 -o ${allowdups} -eq 1 ]; then
 			# path-segment does not exist, append it
 			if [ -z "${path}" ]; then
 				path=${addseg};
@@ -330,7 +359,7 @@ deleteFromPath()
 			locDummy=1;
 		else
 			# append unmatched segment
-			appendPath "_PATH" ":" "$seg"
+			appendPath "_PATH" "${segsep}" "${seg}"
 		fi
 		ptmp=${path#*${segsep}};
 		# the previous command fails if the very last character is not a segment-separator
@@ -425,16 +454,145 @@ selectDevelopDir()
 	fi;
 }
 
+# look for installed gcc/g++ compilers in given list of directories
+#
+# param $1 is name of the output variable for selected compilers
+# param $2 is the path to check for gnu compilers
+# param $3 is the name of the compiler to searchs
+# param $4 is the version suffix for the compiler to search
+#
+# output setting variable $1 to value of selected compilers, separated by ':'
+searchGccInDir()
+{
+	local outvarname=${1};
+	local path=${2};
+	local compname=${3};
+	local versuffix=${4};
+	local _outVarCont="echo $"${outvarname};
+	outnames=`eval $_outVarCont`;
+	cd ${path} 2>/dev/null && \
+		for ccname in ${compname} ${compname}${versuffix} bin/${compname} bin/${compname}${versuffix}; do
+			if [ -d ${ccname} ]; then
+				searchGccInDir outnames "${path}/${ccname}" "${compname}" "${versuffix}"
+			else
+				if [ -n "${ccname}" -a -r "${ccname}" -a -x "${ccname}" ]; then
+					pwhat="";
+					if [ -h ${ccname} ]; then
+						pwhat="linked ";
+					else
+						appendPath outnames ":" "${path}/${ccname}"
+					fi;
+				fi;
+			fi;
+		done; \
+	cd - >/dev/null;
+	if [ -n "${outnames}" ]; then
+		export ${outvarname}="${outnames}";
+		if [ $PRINT_DBG -eq 1 ]; then echo "found gcc(s) ["${outnames}"]"; fi
+	fi;
+}
+
+# display a selection list of currently installed gcc/g++ compilers in given list of directories
+#
+# param $1 is name of the output variable for selected compilers
+# param $2 is the path to check for gnu compilers
+# param $3 is the path-segment separator
+# param $4 is optional and can be used to specify default for non-interactive mode
+#
+# output setting variable $1 to value of selected compilers, separated by ':'
+selectGnuCompilers()
+{
+	local outvarname=${1};
+	local path=${2};
+	local segsep=${3:-:};
+	local defselect=${4};
+	allcompilers="";
+	oldifs="${IFS}";
+	IFS=${segsep};
+	for segname in ${path}; do
+		IFS=$oldifs;
+		gcccompilers="";
+		searchGccInDir gcccompilers "${segname}" "gcc" '-*';
+		appendPath allcompilers ":" "${gcccompilers}"
+		if [ $PRINT_DBG -eq 1 ]; then echo "segment is ["${segname}"] with compilers [${gcccompilers}]"; fi
+	done;
+	if [ $PRINT_DBG -eq 1 ]; then echo "all compilers [${allcompilers}]"; fi
+	IFS=$oldifs;
+
+	selectvar="";
+	oldifs="${IFS}";
+	IFS=":";
+	for segname in ${allcompilers}; do
+		IFS=$oldifs;
+		dname=`dirname ${segname}`;
+		cpname=`basename ${segname}`;
+		vername=${cpname#gcc};
+		gppcomp="";
+		searchGccInDir gppcomp "${dname}" "g++" "${vername}";
+		if [ -n "${segname}" -a -n "${gppcomp}" ]; then
+			verstrgcc=`${segname} -v 2>&1 | grep "gcc version"`;
+			insertInPathSorted selectvar "!" "${verstrgcc}:${segname}:${gppcomp}";
+			if [ $PRINT_DBG -eq 1 ]; then echo "current path [${dname}] and g++ compiler [${gppcomp}] vername [${verstrgcc}]"; fi
+		fi;
+	done;
+	IFS=$oldifs;
+	if [ $PRINT_DBG -eq 1 ]; then echo "selectvar is [${selectvar}]"; fi
+	linetouse="";
+	if [ -n "${defselect}" ]; then
+		if [ $PRINT_DBG -eq 1 ]; then echo "testing for specified default [${defselect}]"; fi
+		oldifs="${IFS}";
+		IFS="!";
+		for myset in ${selectvar}; do
+			IFS=${oldifs};
+			curgcc=`echo ${myset} | cut -d':' -f2`;
+			if [ "${curgcc}" = "${defselect}" ]; then
+				linetouse="${myset}";
+				break
+			fi;
+		done;
+	fi;
+	# fallback if given default selection was not successful
+	if [ -z "${linetouse}" ]; then
+		if [ -n "${selectvar}" ]; then
+			echo ""
+			echo "Which gcc/gpp compilerset would you like to use?"
+			echo ""
+			oldifs="${IFS}";
+			IFS="!";
+			select myset in ${selectvar}; do
+				IFS=$oldifs;
+				if [ $PRINT_DBG -eq 1 ]; then echo "selected set is [${myset}]"; fi
+				linetouse="${myset}";
+				break
+			done
+		fi;
+	fi;
+	if [ -n "${linetouse}" ]; then
+		export ${outvarname}="`echo ${linetouse} | cut -d':' -f2,3`";
+	fi
+}
+
 # set-up variables for a selectable development environment
 # - display a selection list of current Develop-directories
 # - set WD_OUTDIR and WD_LIBDIR
 # - adjust PATH and LD_LIBRARY_PATH
 #
-# param $1 is optional and can be used to specify the directory to select for non-interactive mode
+# param $1 used to specify the directory to select for non-interactive mode, optional
+# param $2 used to specify the default gcc compiler to use
 #
 # return 1 if successful, 0 otherwise
 setDevelopmentEnv()
 {
+	local GNU_COMPS="";
+	prependPath GCC_SEARCH_PATH ":" "/usr/bin:/usr/local/bin:/opt:/usr/sfw/bin:/opt/sfw/bin"
+	selectGnuCompilers "GNU_COMPS" "${GCC_SEARCH_PATH}" ":" "${2}"
+	if [ $PRINT_DBG -eq 1 ]; then echo "selected compilerset [${GNU_COMPS}]"; fi;
+	if [ -n "${GNU_COMPS}" ]; then
+		CC="`echo ${GNU_COMPS} | cut -d':' -f1`";
+		CXX="`echo ${GNU_COMPS} | cut -d':' -f2`";
+		export CC CXX
+	fi
+
 	selectDevelopDir "DEV_HOME" "DEVNAME" $1
 	if [ -n "${DEV_HOME}" -a -n "${DEVNAME}" ]; then
 		if [ -z "${WD_OUTDIR}" ]; then
@@ -467,6 +625,12 @@ setDevelopmentEnv()
 	echo ""
 	echo "following variables were set:"
 	echo ""
+	if [ -n "${CC}" ]; then
+		echo "CC                : ["${CC:-gcc}"]"
+	fi
+	if [ -n "${CXX}" ]; then
+		echo "CXX               : ["${CXX:-g++}"]"
+	fi
 	echo "DEV_HOME          : ["${DEV_HOME}"]"
 	if [ $isWindows -eq 1 ]; then
 		echo "DEV_HOME_NT       : ["${DEV_HOME_NT}"]"
