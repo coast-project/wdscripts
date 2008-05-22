@@ -7,10 +7,12 @@
 # the license that is included with this library/application in the file license.txt.
 #-----------------------------------------------------------------------------------------------------
 
-if [ -n "${0}" ]; then
-	MYNAME=`basename $0`
+if [ "${0%wdenv.sh}" = "${0}" ]; then
+	# failed to find scriptname in $0
+	# -> use default
+	MYNAME=wdenv.sh
+	MYNAME=`which wdenv.sh`;
 fi;
-MYNAME=${MYNAME:-wdenv.sh};
 
 # check if the caller already used an absolute path to start this script
 DNAM=`dirname $MYNAME`
