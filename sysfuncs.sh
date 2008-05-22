@@ -469,7 +469,7 @@ searchGccInDir()
 	local compname=${3};
 	local versuffix=${4};
 	local _outVarCont="echo $"${outvarname};
-	outnames=`eval $_outVarCont`;
+	local outnames=`eval $_outVarCont`;
 	cd ${path} 2>/dev/null && \
 		for ccname in ${compname} ${compname}${versuffix} bin/${compname} bin/${compname}${versuffix}; do
 			if [ -d ${ccname} ]; then
@@ -506,8 +506,9 @@ selectGnuCompilers()
 	local path=${2};
 	local segsep=${3:-:};
 	local defselect=${4};
-	allcompilers="";
-	oldifs="${IFS}";
+	local allcompilers="";
+	local gppcomp="";
+	local oldifs="${IFS}";
 	IFS=${segsep};
 	for segname in ${path}; do
 		IFS=$oldifs;
@@ -519,7 +520,7 @@ selectGnuCompilers()
 	if [ $PRINT_DBG -eq 1 ]; then echo "all compilers [${allcompilers}]"; fi
 	IFS=$oldifs;
 
-	selectvar="";
+	local selectvar="";
 	oldifs="${IFS}";
 	IFS=":";
 	for segname in ${allcompilers}; do
@@ -537,7 +538,7 @@ selectGnuCompilers()
 	done;
 	IFS=$oldifs;
 	if [ $PRINT_DBG -eq 1 ]; then echo "selectvar is [${selectvar}]"; fi
-	linetouse="";
+	local linetouse="";
 	if [ -n "${defselect}" ]; then
 		if [ $PRINT_DBG -eq 1 ]; then echo "testing for specified default [${defselect}]"; fi
 		oldifs="${IFS}";
