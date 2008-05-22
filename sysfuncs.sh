@@ -469,7 +469,7 @@ searchGccInDir()
 	local compname=${3};
 	local versuffix=${4};
 	local _outVarCont="echo $"${outvarname};
-	local outnames=`eval $_outVarCont`;
+	outnames=`eval $_outVarCont`;
 	cd ${path} 2>/dev/null && \
 		for ccname in ${compname} ${compname}${versuffix} bin/${compname} bin/${compname}${versuffix}; do
 			if [ -d ${ccname} ]; then
