@@ -7,10 +7,17 @@
 # the license that is included with this library/application in the file license.txt.
 #-----------------------------------------------------------------------------------------------------
 
-MYNAME=`basename $0`
+if [ -n "${0}" ]; then
+	MYNAME=`basename $0`
+fi;
+MYNAME=${MYNAME:-wdenv.sh};
 
 # check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
+DNAM=`dirname $MYNAME`
+if [ -z "${DNAM}" -o "${DNAM}" = "." ]; then
+	DNAM=`which $MYNAME`;
+	DNAM=`dirname $DNAM`;
+fi
 if [ "$DNAM" = "${DNAM#/}" ]; then
 	# non absolute path
 	mypath=`pwd`/$DNAM

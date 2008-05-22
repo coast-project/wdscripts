@@ -470,6 +470,7 @@ searchGccInDir()
 	local versuffix=${4};
 	local _outVarCont="echo $"${outvarname};
 	outnames=`eval $_outVarCont`;
+	local lCurDir=`pwd`;
 	cd ${path} 2>/dev/null && \
 		for ccname in ${compname} ${compname}${versuffix} bin/${compname} bin/${compname}${versuffix}; do
 			if [ -d ${ccname} ]; then
@@ -486,6 +487,7 @@ searchGccInDir()
 			fi;
 		done; \
 	cd - >/dev/null;
+	cd $lCurDir;
 	if [ -n "${outnames}" ]; then
 		export ${outvarname}="${outnames}";
 		if [ $PRINT_DBG -eq 1 ]; then echo "found gcc(s) ["${outnames}"]"; fi
