@@ -156,7 +156,7 @@ getUnixDir()
 # param $3 is the name of the beginning segment
 # param $4 is the name of the ending segment
 # param $5, optional, is the field separator when all segments found are required
-# param $6, optional, if set to 0, do not search for *${4}* 
+# param $6, optional, if set to 0, do not search for *${4}*
 #
 # returning 1 if it the path was found, 0 otherwise
 #
@@ -472,22 +472,21 @@ searchGccInDir()
 	outnames=`eval $_outVarCont`;
 	local lCurDir=`pwd`;
 	cd ${path} 2>/dev/null && \
-		for ccname in ${compname} ${compname}${versuffix} bin/${compname} bin/${compname}${versuffix}; do
-			if [ -d ${ccname} ]; then
-				searchGccInDir outnames "${path}/${ccname}" "${compname}" "${versuffix}"
-			else
-				if [ -n "${ccname}" -a -r "${ccname}" -a -x "${ccname}" ]; then
-					pwhat="";
-					if [ -h ${ccname} ]; then
-						pwhat="linked ";
-					else
-						appendPath outnames ":" "${path}/${ccname}"
-					fi;
+	for ccname in ${compname} ${compname}${versuffix} bin/${compname} bin/${compname}${versuffix}; do
+		if [ -d ${ccname} ]; then
+			searchGccInDir outnames "${path}/${ccname}" "${compname}" "${versuffix}"
+		else
+			if [ -n "${ccname}" -a -r "${ccname}" -a -x "${ccname}" ]; then
+				pwhat="";
+				if [ -h ${ccname} ]; then
+					pwhat="linked ";
+				else
+					appendPath outnames ":" "${path}/${ccname}"
 				fi;
 			fi;
-		done; \
-	cd - >/dev/null;
-	cd $lCurDir;
+		fi;
+	done;
+	cd $lCurDir >/dev/null;
 	if [ -n "${outnames}" ]; then
 		export ${outvarname}="${outnames}";
 		if [ $PRINT_DBG -eq 1 ]; then echo "found gcc(s) ["${outnames}"]"; fi
@@ -654,6 +653,17 @@ setDevelopmentEnv()
 	return 1;
 }
 
+cleanDevelopmentEnv()
+{
+	if [ ${isWindows} -eq 1 ]; then
+		deleteFromPath PATH ":" "$WD_LIBDIR";
+		unset WD_OUTDIR_NT DEV_HOME_NT;
+	else
+		deleteFromPath LD_LIBRARY_PATH ":" "$WD_LIBDIR";
+	fi
+	unset WD_OUTDIR WD_LIBDIR DEV_HOME DEVNAME;
+}
+
 #
 #	Parameter 1: 	a literal hostname
 #	Returns:	the passed in host's full quqlified domain name
@@ -700,10 +710,10 @@ appendTokens()
 	if [ $cfg_dbg -eq 1 ]; then echo 'appended Output is ['$locOutput']'; fi
 	export ${locOutname}="${locOutput}";
 }
-# generate gnu debugger command file which may be used for batch 
+# generate gnu debugger command file which may be used for batch
 # invocations of the debugger.
 #
-# param $1 is the name of the generated file 
+# param $1 is the name of the generated file
 # param $2 arguments passed to the debugged progam, do not forget to quote them!
 # param $3 run executable within script or not, default 1, set to 0 to execute it manually
 #
