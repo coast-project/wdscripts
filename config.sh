@@ -267,19 +267,23 @@ SetupTestExe()
 
 SetupLDPath()
 {
-	locLdPathVar=LD_LIBRARY_PATH;
+	local locLdPathVar=LD_LIBRARY_PATH;
 	if [ $isWindows -eq 1 ]; then
 		locLdPathVar="PATH";
 	fi
 	deleteFromPath "${locLdPathVar}" ":" "${WD_LIBDIR}"
-	locBinPath="";
+	local locBinPath="";
+	local locLastBinPath="";
 	for binname in ${WDA_BINABS} ${WDS_BINABS} ${TEST_EXE}; do
 		if [ -n "${binname}" ]; then
 			dname="`dirname ${binname}`";
-			if [ -n "${dname}" -a "${locBinPath}" != "${dname}" -a -d "${dname}" ]; then
-				locBinPath="${dname%/${OSREL}}";
-				locLdSearchFile=${locBinPath}/.ld-search-path;
-				if [ -n "${locBinPath}" -a -f ${locLdSearchFile} ]; then
+			locBinPath="${dname%${OSREL}}";
+			locBinPath=${locBinPath:=./};
+			if [ -n "${locBinPath}" -a "${locBinPath}" != "${locLastBinPath}" -a -d "${locBinPath}" ]; then
+				locLastBinPath=${locBinPath};
+				locLdSearchFile=${locBinPath}.ld-search-path;
+				if [ $PRINT_DBG -ge 1 ]; then echo "testing in dir [${locBinPath}], file [${locLdSearchFile}]"; fi;
+				if [ -r ${locLdSearchFile} ]; then
 					prependPath "${locLdPathVar}" ":" "`cat ${locLdSearchFile}`"
 				fi;
 			fi;
