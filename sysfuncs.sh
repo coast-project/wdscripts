@@ -283,7 +283,7 @@ existInPath()
 #
 # param $1 is the name of the 'path'-variable
 # param $2 is the path-segment separator
-# param $3 is the path-segment to append
+# param $3 is the path-segment(s) to append
 # param $4 allow duplicates, default 0, optional
 #
 # output exporting new path into given name ($1)
@@ -296,16 +296,27 @@ appendPath()
 	local allowdups=${4:-0};
 	if [ -n "$addseg" ]; then
 		local path=`eval $_path`;
-		existInPath "${path}" "$segsep" "$addseg"
-		if [ $? -eq 0 -o ${allowdups} -eq 1 ]; then
-			# path-segment does not exist, append it
-			if [ -z "${path}" ]; then
-				path=${addseg};
-			else
-				path=${path%:}${segsep}${addseg};
+		local ptmp="";
+		local seg="";
+		while seg=${addseg%%${segsep}*}; [ -n "${addseg}" ]; do
+			ptmp=${addseg#*${segsep}};
+			# the previous command fails if the very last character is not a segment-separator
+			# i have to check for this with comparing the last path we had with the new one
+			if [ "${ptmp}" = "${addseg}" ]; then
+				ptmp="";
 			fi
-			export ${pathname}="$path";
-		fi
+			addseg=${ptmp};
+			existInPath "${path}" "$segsep" "$seg"
+			if [ $? -eq 0 -o ${allowdups} -eq 1 ]; then
+				# path-segment does not exist, append it
+				if [ -z "${path}" ]; then
+					path=${seg};
+				else
+					path=${path%:}${segsep}${seg};
+				fi
+			fi
+		done
+		export ${pathname}="$path";
 	fi
 }
 
@@ -313,7 +324,7 @@ appendPath()
 #
 # param $1 is the name of the 'path'-variable
 # param $2 is the path-segment separator
-# param $3 is the path-segment to prepend
+# param $3 is the path-segment(s) to prepend
 #
 # output exporting new path into given name ($1)
 prependPath()
@@ -324,16 +335,27 @@ prependPath()
 	local addseg=${3};
 	if [ -n "$addseg" ]; then
 		local path=`eval $_path`;
-		existInPath "${path}" "$segsep" "$addseg"
-		if [ $? -eq 0 ]; then
-			# path-segment does not exist, prepend it
-			if [ -z "${path}" ]; then
-				path=${addseg};
-			else
-				path=${addseg}${segsep}${path#:};
+		local ptmp="";
+		local seg="";
+		while seg=${addseg%%${segsep}*}; [ -n "${addseg}" ]; do
+			ptmp=${addseg#*${segsep}};
+			# the previous command fails if the very last character is not a segment-separator
+			# i have to check for this with comparing the last path we had with the new one
+			if [ "${ptmp}" = "${addseg}" ]; then
+				ptmp="";
 			fi
-			export ${pathname}="$path";
-		fi
+			addseg=${ptmp};
+			existInPath "${path}" "$segsep" "$seg"
+			if [ $? -eq 0 ]; then
+				# path-segment does not exist, prepend it
+				if [ -z "${path}" ]; then
+					path=${seg};
+				else
+					path=${seg}${segsep}${path#:};
+				fi
+			fi
+		done
+		export ${pathname}="$path";
 	fi
 }
 
