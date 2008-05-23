@@ -319,6 +319,9 @@ if [ -z "${myLIBDIR}" ]; then
 	fi
 fi
 if [ -n "${myLIBDIR}" ]; then
+	if [ -n "${myLIBDIR}" -a ! -d "${myLIBDIR}" ]; then
+		mkdir -p ${myLIBDIR};
+	fi;
 	makeAbsPath "${myLIBDIR}" "WD_LIBDIR"
 else
 	if [ $PRINT_DBG -eq 1 ]; then
@@ -328,6 +331,7 @@ else
 		echo 'DEV_HOME/lib  : ['${DEV_HOME}/lib']'
 	fi;
 fi
+echo WD_LIBDIR [$WD_LIBDIR]
 
 if [ -z "${SERVERNAME}" ]; then
 	SERVERNAME=$PROJECTNAME
