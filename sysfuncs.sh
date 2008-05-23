@@ -675,15 +675,20 @@ setDevelopmentEnv()
 	return 1;
 }
 
+# param $1 if set to 1, also unset some variables, optional
 cleanDevelopmentEnv()
 {
 	if [ ${isWindows} -eq 1 ]; then
 		deleteFromPath PATH ":" "$WD_LIBDIR";
-		unset WD_OUTDIR_NT DEV_HOME_NT;
+		if [ ${1:-0} -eq 1 ]; then
+			unset WD_OUTDIR_NT DEV_HOME_NT;
+		fi;
 	else
 		deleteFromPath LD_LIBRARY_PATH ":" "$WD_LIBDIR";
 	fi
-	unset WD_OUTDIR WD_LIBDIR DEV_HOME DEVNAME;
+	if [ ${1:-0} -eq 1 ]; then
+		unset WD_OUTDIR WD_LIBDIR DEV_HOME DEVNAME;
+	fi;
 }
 
 #

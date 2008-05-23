@@ -52,7 +52,7 @@ PRINT_DBG=0;
 while getopts ":cC:E:D" opt; do
 	case $opt in
 		c)
-			cleanDevelopmentEnv;
+			cleanDevelopmentEnv 1;
 		;;
 		C)
 			myDefComp="${OPTARG}";
