@@ -331,7 +331,6 @@ else
 		echo 'DEV_HOME/lib  : ['${DEV_HOME}/lib']'
 	fi;
 fi
-echo WD_LIBDIR [$WD_LIBDIR]
 
 if [ -z "${SERVERNAME}" ]; then
 	SERVERNAME=$PROJECTNAME
