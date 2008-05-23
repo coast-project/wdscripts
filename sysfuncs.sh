@@ -335,6 +335,7 @@ prependPath()
 	local addseg=${3};
 	if [ -n "$addseg" ]; then
 		local path=`eval $_path`;
+		local toPrepend="";
 		local ptmp="";
 		local seg="";
 		while seg=${addseg%%${segsep}*}; [ -n "${addseg}" ]; do
@@ -345,16 +346,15 @@ prependPath()
 				ptmp="";
 			fi
 			addseg=${ptmp};
-			existInPath "${path}" "$segsep" "$seg"
-			if [ $? -eq 0 ]; then
-				# path-segment does not exist, prepend it
-				if [ -z "${path}" ]; then
-					path=${seg};
-				else
-					path=${seg}${segsep}${path#:};
-				fi
-			fi
+			appendPath toPrepend "${segsep}" "${seg}"
 		done
+		# path-segment does not exist, prepend it
+		if [ -z "${path}" ]; then
+			path=${toPrepend};
+		else
+			path=${toPrepend}${segsep}${path#:};
+			cleanPath path "${segsep}"
+		fi
 		export ${pathname}="$path";
 	fi
 }
