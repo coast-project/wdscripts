@@ -91,8 +91,8 @@ done
 
 prjTestScript=prjRunTest.sh
 globalTestScript="${mypath}/RunTests.sh"
-globalTestScriptOpts=" "$cfg_mailaddrs" $cfg_toks $cfg_dbgopt -- -all"
-RunTestCmd=${globalTestScript}" "${globalTestScriptOpts}' 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE}';
+globalTestScriptOpts=" $cfg_mailaddrs $cfg_toks $cfg_dbgopt -- -all"
+RunTestCmd="${globalTestScript} ${globalTestScriptOpts}' 2>${WDTEST_ERRFILE} >${WDTEST_OUTFILE}'";
 firstErrorEntry=1;
 
 . ${mypath}/envForTests.sh $cfg_dbgopt
