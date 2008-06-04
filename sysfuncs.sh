@@ -726,13 +726,13 @@ appendTokens()
 {
 	local locOutname=${1};
 	local locPreOutname="echo $"${locOutname};
-	local locOutput=`eval $locPreOutname`;
-	local locTokens=${2};
+	local locOutput="`eval $locPreOutname`";
+	local locTokens="${2}";
 	local locSep="${3}";
 	if [ $cfg_dbg -eq 1 ]; then echo 'current token separator is ['$locSep']'; fi
 	for cfgtok in $locTokens; do
 		if [ $cfg_dbg -eq 1 ]; then echo 'current token is ['$cfgtok']'; fi
-		locOutput=$locOutput${locSep}$cfgtok;
+		locOutput="$locOutput${locSep}$cfgtok";
 	done;
 	if [ $cfg_dbg -eq 1 ]; then echo 'appended Output is ['$locOutput']'; fi
 	export ${locOutname}="${locOutput}";
