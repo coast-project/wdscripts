@@ -447,7 +447,7 @@ case "$locCommand" in
 			WaitOnTermination "${my_keeppid} ${wdpid}" ${cfg_waitcount}
 		else
 			if [ $locProcOk -eq 1 ]; then
-				eval "${stop_script} ${cfg_dbgopt} >/dev/null 2>&1";
+				eval "${stop_script} ${cfg_dbgopt} -w ${cfg_waitcount} >/dev/null 2>&1";
 				if [ $? -ne 0 ]; then
 					# try hardkill to ensure it died
 					eval "${stop_script} ${cfg_dbgopt} -K >/dev/null 2>&1 || return=$rc_failed";
