@@ -857,6 +857,8 @@ if [ ${SYSFUNCSLOADED} -eq 0 ]; then
 		CURSYSTEM="Windows"
 		isWindows=1;
 		OSREL=Win_i386
+		OSREL_MAJOR=0
+		OSREL_MINOR=0
 		USR_TMP=${HOME}/tmp;
 		SYS_TMP=${TEMP:-${TMP:-$USR_TMP}};
 	else
@@ -864,14 +866,19 @@ if [ ${SYSFUNCSLOADED} -eq 0 ]; then
 		if [ "${CURSYSTEM}" == "Linux" ]; then
 			getGLIBCVersion "GLIBCVER" ".";
 			OSREL=${CURSYSTEM}_glibc_${GLIBCVER};
+			OSREL_MAJOR=${GLIBCVER%%.*};
+			OSREL_MINOR=${GLIBCVER#*.};
 		else
-			OSREL=${CURSYSTEM}_`uname -r`;
+			unameResult=`uname -r`;
+			OSREL=${CURSYSTEM}_${unameResult};
+			OSREL_MAJOR=${unameResult%%.*};
+			OSREL_MINOR=${unameResult#*.};
 		fi;
 		USR_TMP=${HOME}/tmp;
 		SYS_TMP=/tmp;
 	fi
 
-	export CURSYSTEM isWindows OSREL USR_TMP SYS_TMP;
+	export CURSYSTEM isWindows OSREL OSREL_MAJOR OSREL_MINOR USR_TMP SYS_TMP;
 
 	# OSTYPE is needed for compilation using makefiles, ensure it is set
 	if [ -z "${OSTYPE}" ]; then
