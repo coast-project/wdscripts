@@ -281,7 +281,8 @@ SetupLDPath()
 			locBinPath=${locBinPath:=./};
 			if [ -n "${locBinPath}" -a "${locBinPath}" != "${locLastBinPath}" -a -d "${locBinPath}" ]; then
 				locLastBinPath=${locBinPath};
-				locLdSearchFile=${locBinPath}.ld-search-path;
+				locLdSearchFile=${locBinPath};
+				appendPath "locLdSearchFile" "/" ".ld-search-path"
 				if [ $PRINT_DBG -ge 1 ]; then echo "testing in dir [${locBinPath}], file [${locLdSearchFile}]"; fi;
 				if [ -r ${locLdSearchFile} ]; then
 					prependPath "${locLdPathVar}" ":" "`cat ${locLdSearchFile}`"
