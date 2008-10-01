@@ -41,6 +41,7 @@ showhelp()
 	echo ' -F            : force starting service even it was disabled by setting RUN_SERVICE=0'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ' -d            : run under debugger control'
+	echo ' -P            : print full path to wdapp binary (helps with ps -ef command)'
 	echo ' -p            : name of application PID file (only needed if PID_FILE does not point to the right place)'
 	echo ''
 	exit 4;
@@ -59,9 +60,10 @@ cfg_dbgctl=0;
 cfg_coresize="-c 20000";	# default to 10MB
 cfg_pidfile="";
 cfg_forceStart=0;
+cfg_fullPath=0;
 
 # process config switching options first
-myPrgOptions=":c:C:de:s:h:p:F-D"
+myPrgOptions=":c:C:de:s:h:p:FP-D"
 ProcessSetConfigOptions "${myPrgOptions}" "$@"
 OPTIND=1;
 
@@ -108,6 +110,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 		d)
 			cfg_dbgctl=1;
 		;;
+		P)
+			cfg_fullPath=1;
+		;;
 		p)
 			cfg_pidfile=${OPTARG};
 		;;
@@ -137,6 +142,11 @@ DoSetConfigWithToks
 
 if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 . $mypath/config.sh $cfg_dbgopt
+
+if [ $cfg_fullPath -eq 1 ]; then
+	WDA_BIN=$WDA_BINABS;
+	WDS_BIN=$WDS_BINABS;
+fi	
 
 # add SERVERNAME to application options as default
 if [ -z "$cfg_srvopts" ]; then
