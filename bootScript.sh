@@ -1,3 +1,4 @@
+#!/bin/ksh
 #-----------------------------------------------------------------------------------------------------
 # Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
 # All rights reserved.
@@ -136,10 +137,14 @@ checkProcessWithName()
 	return $locRet;
 }
 
+# Returns:
+# 0, if the server isn't running
+# 1, if the server was started using startwds.sh instead of bootScript.sh
+# 4, if keepwds.sh doesn't run, but the server is running
 checkPidFilesAndServer()
 {
 	# check if the keepwds script is still running
-	_locExists=0;
+	_locExists=0;	
 	if [ -n "$my_keeppid" ]; then
 		if [ $locKeepOk -eq 0 ]; then
 			outmsg="INFO: orphaned keepwds-pidfile found but keepwds.sh is not running anymore";
@@ -150,7 +155,7 @@ checkPidFilesAndServer()
 		fi;
 	fi
 	# double check to see if someone started the process using startwds.sh instead of using bootScript.sh
-	if [ -n "$wdpid" ]; then
+	if [ -n "$wdpid" ]; then  # this means the server is running
 		if [ $locProcOk -eq 1 ]; then
 			_locExists=1;
 		else
@@ -161,6 +166,9 @@ checkPidFilesAndServer()
 			rm -f ${wd_pidfile};
 		fi
 	fi
+
+	# keepwds.sh doesn't run ($my_keeppid is empty), but the server is running (which means it was started with startwds.sh or that it was started with
+	# boosScript.sh but someone killed keepwds.sh), 
 	if [ -z "$my_keeppid" -a $_locExists -eq 1 ]; then
 		outmsg="WARNING: server is running but it seems that it was not started using ${MYNAME}";
 		printf "%s\n" "${outmsg}"
@@ -356,7 +364,12 @@ fi
 checkProcessId ${wdpid};
 locProcOk=$?;
 if [ $locProcOk -eq 0 -a -n "${locWDS_BIN}" ]; then
-	checkProcessWithName "${locWDS_BIN}" "${my_runuser}" wdpid
+	# Must replace locWDS_BIN by locWDS_BINABS, to enable 2 instances of the same server to run in the same machine. Otherwise, when we try to start
+	# the 2nd server instance "checkProcessWithName bin.SunOS_5.10/wdapp user wdpid" will return that the server already runs! Ex:
+	# wds_bin         : [bin.SunOS_5.10/wdapp]
+	# wds_binabs      : [/home/myApp_norm/bin.SunOS_5.10/wdapp]
+	# wds_binabs      : [/home/myApp_fast/bin.SunOS_5.10/wdapp]
+	checkProcessWithName "${locWDS_BINABS}" "${my_runuser}" wdpid
 	locProcOk=$?;
 	if [ $locProcOk -eq 0 -a "${locWDS_BIN}" != "${locWDS_BINABS}" ]; then
 		checkProcessWithName "${locWDS_BINABS}" "${my_runuser}" wdpid
@@ -373,7 +386,7 @@ if [ "`pwd`" != "$prj_path" -a "`pwd`" != "$prj_pathabs" ]; then
 fi
 
 checkPidFilesAndServer
-loc_Exists=$?;
+loc_Exists=$?;				# set to the exit status of the last called method, e.g. checkPidFilesAndServer
 ret_pid=0;
 loc_CommandText="";
 
