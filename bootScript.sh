@@ -7,6 +7,8 @@
 # the license that is included with this library/application in the file license.txt.
 #-----------------------------------------------------------------------------------------------------
 #
+# generic script to start and stop Coast servers/apps either from an rc.x directory or locally
+#
 # init-usage:
 #  you *must* create a symbolic link from the installed packages bootScript.sh location into the
 #  the correct rc.x directory using appropriate start/kill script name
@@ -19,6 +21,15 @@
 #    $> ln -s /export/apps/helloworld/scripts/bootScript.sh S20helloworld
 #    $> cd /etc/rc0.d
 #    $> ln -s /export/apps/helloworld/scripts/bootScript.sh K20helloworld
+#
+# Variables used in this script:
+#  $_locExists - might evaluate to 0, 1 or 4, depending on several situations (is the server, wdapp, not running but keepwds.sh still running? Was the server started with startwds.sh?
+#                Is the server, wdapp, running but keepwds.sh dead?)
+#  $locProcOK - tells if a process is running or not
+#  $my_keeppidfile - contains the file location of keepwds.sh
+#  $my_keeppid - contains the PID of the keepwds.sh
+#  $wd_pidfile - contains the file with the PID for a Coast Application
+#  $wdpid - contains the PID of the Coast Application
 #
 
 org_name=$0;
@@ -127,7 +138,7 @@ checkProcessWithName()
 		if [ "$lPid" = "PID" ]; then
 			continue;
 		fi
-		if [ -n "${locPids}" ]; then 
+		if [ -n "${locPids}" ]; then
 			locPids="${locPids} ";
 		fi
 		locPids="${locPids}${lPid}";
@@ -144,9 +155,9 @@ checkProcessWithName()
 checkPidFilesAndServer()
 {
 	# check if the keepwds script is still running
-	_locExists=0;	
-	if [ -n "$my_keeppid" ]; then
-		if [ $locKeepOk -eq 0 ]; then
+	_locExists=0;
+	if [ -n "$my_keeppid" ]; then       # keepswds.sh is still running
+		if [ $locKeepOk -eq 0 ]; then   # but the wdapp is not running
 			outmsg="INFO: orphaned keepwds-pidfile found but keepwds.sh is not running anymore";
 			printf "%s\n" "${outmsg}";
 			printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
@@ -168,7 +179,7 @@ checkPidFilesAndServer()
 	fi
 
 	# keepwds.sh doesn't run ($my_keeppid is empty), but the server is running (which means it was started with startwds.sh or that it was started with
-	# boosScript.sh but someone killed keepwds.sh), 
+	# boosScript.sh but someone killed keepwds.sh),
 	if [ -z "$my_keeppid" -a $_locExists -eq 1 ]; then
 		outmsg="WARNING: server is running but it seems that it was not started using ${MYNAME}";
 		printf "%s\n" "${outmsg}"
