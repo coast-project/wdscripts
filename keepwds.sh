@@ -38,6 +38,7 @@ showhelp()
 	echo ' -h <num>      : number of file handles to set for the process, default 1024'
 	echo ' -C <cfgdir>   : config directory to use within ['$locPrjDir'] directory'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	echo ' -P            : print full path to wdapp binary (helps with ps -ef command)'
 	echo ''
 	exit 4;
 }
@@ -48,10 +49,11 @@ cfg_handles="-h 1024";
 cfg_dbg=0;
 cfg_errorlog="";
 cfg_syslog="";
+cfg_fullPath=0;
 cfg_coresize="-c 20000";	# default to 10MB
 
 # process config switching options first
-myPrgOptions=":c:e:s:h:C:D"
+myPrgOptions=":c:e:s:h:C:PD"
 ProcessSetConfigOptions "${myPrgOptions}" "$@"
 OPTIND=1;
 
@@ -92,6 +94,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			cfg_dbgopt="-D";
 			cfg_dbg=1;
 		;;
+		P)
+			cfg_fullPath="-P";
+		;;
 		\?)
 			showhelp;
 		;;
@@ -123,7 +128,7 @@ if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 
 startIt()
 {
-	$mypath/startwds.sh $cfg_dbgopt $cfg_toks $cfg_cfgdir $cfg_errorlog $cfg_handles $cfg_syslog $cfg_coresize $cfg_srvopts
+	$mypath/startwds.sh $cfg_dbgopt $cfg_toks $cfg_cfgdir $cfg_fullPath $cfg_errorlog $cfg_handles $cfg_syslog $cfg_coresize $cfg_srvopts
 	return $?;
 }
 
