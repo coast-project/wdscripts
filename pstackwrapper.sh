@@ -66,7 +66,12 @@ do
 	echo "------------------------------------------------------------" >> $outfile
 	/usr/proc/bin/pfiles $proc >> $outfile
 	echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" >> $outfile
-	/usr/proc/bin/pstack $proc >> $outfile
+	which c++filt 2>/dev/null;
+	if [ $? -eq 0 ]; then
+		/usr/proc/bin/pstack $proc | c++filt >> $outfile
+	else
+		/usr/proc/bin/pstack $proc >> $outfile
+	fi;
 	echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" >> $outfile
 	if [ $sleepinterval -eq 0 ]; then
 		break;
