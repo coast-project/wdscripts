@@ -7,6 +7,7 @@
 # the license that is included with this library/application in the file license.txt.
 #-----------------------------------------------------------------------------------------------------
 
+MYNAME=${0}
 if [ "${0%wdenv.sh}" = "${0}" ]; then
 	# failed to find scriptname in $0
 	# -> use default
