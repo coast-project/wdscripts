@@ -16,7 +16,6 @@
 # params:
 #   $1 : set to -D for debugging output
 #
-
 if [ "$1" = "-D" ]; then
 	PRINT_DBG=1
 	shift
@@ -35,10 +34,15 @@ if [ $PRINT_DBG -eq 1 ]; then
 	echo 'arg0 is ['$0']'
 	echo 'basename of arg0 is ['`basename $0`']'
 fi
+
+MYNAME=config.sh
 if [ `basename $0` == "config.sh" ]; then
 	# check if the caller already used an absolute path to start this script
 	DNAM=`dirname $0`
-
+	if [ -z "${DNAM}" -o "${DNAM}" = "." ]; then
+		DNAM=`which $MYNAME`;
+		DNAM=`dirname $DNAM`;
+	fi
 	if [ "$DNAM" != "${DNAM#*:}" ]; then
 		# Windows-style pathname !
 		# take care, this one is absolute

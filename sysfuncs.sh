@@ -643,6 +643,7 @@ setDevelopmentEnv()
 	if [ $isWindows -eq 1 ]; then
 		prependPath "PATH" ":" "${WD_LIBDIR}"
 	else
+		export LD_LIBRARY_PATH_NATIVE=${LD_LIBRARY_PATH};
 		cleanPath "LD_LIBRARY_PATH" ":"
 		prependPath "LD_LIBRARY_PATH" ":" "${WD_LIBDIR}"
 	fi
@@ -650,26 +651,27 @@ setDevelopmentEnv()
 	echo "following variables were set:"
 	echo ""
 	if [ -n "${CC}" ]; then
-		echo "CC                : ["${CC:-gcc}"]"
+		echo "CC                     : ["${CC:-gcc}"]"
 	fi
 	if [ -n "${CXX}" ]; then
-		echo "CXX               : ["${CXX:-g++}"]"
+		echo "CXX                    : ["${CXX:-g++}"]"
 	fi
-	echo "DEV_HOME          : ["${DEV_HOME}"]"
+	echo "DEV_HOME               : ["${DEV_HOME}"]"
 	if [ $isWindows -eq 1 ]; then
-		echo "DEV_HOME_NT       : ["${DEV_HOME_NT}"]"
+		echo "DEV_HOME_NT            : ["${DEV_HOME_NT}"]"
 	fi
-	echo "WD_OUTDIR         : ["${WD_OUTDIR}"]"
+	echo "WD_OUTDIR              : ["${WD_OUTDIR}"]"
 	if [ $isWindows -eq 1 ]; then
 		echo "WD_OUTDIR_NT      : ["${WD_OUTDIR_NT}"]"
 	fi
-	echo "WD_LIBDIR         : ["${WD_LIBDIR}"]"
-	echo "PATH              : ["${PATH}"]"
+	echo "WD_LIBDIR              : ["${WD_LIBDIR}"]"
+	echo "PATH                   : ["${PATH}"]"
 	if [ $isWindows -eq 0 ]; then
-		echo "LD_LIBRARY_PATH   : ["${LD_LIBRARY_PATH}"]"
+		echo "LD_LIBRARY_PATH        : ["${LD_LIBRARY_PATH}"]"
+		echo "LD_LIBRARY_PATH_NATIVE : ["${LD_LIBRARY_PATH_NATIVE}"]"
 	fi
 	if [ $isWindows -eq 0 -a -n "${LD_RUN_PATH}" ]; then
-		echo "LD_RUN_PATH       : ["${LD_RUN_PATH}"]"
+		echo "LD_RUN_PATH            : ["${LD_RUN_PATH}"]"
 	fi
 	echo ""
 	return 1;
