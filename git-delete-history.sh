@@ -19,8 +19,8 @@ fi
 exec >`basename $0`.out
 # remove all paths passed as arguments from the history of the repo
 files=$@
-git filter-branch --index-filter "git rm -rf --cached --ignore-unmatch $files" HEAD
+git filter-branch --index-filter "git rm -rf --cached --ignore-unmatch $files" --commit-filter 'git_commit_non_empty_tree "$@"' HEAD
 
 # remove the temporary history git-filter-branch otherwise leaves behind for a long time
-rm -rf .git/refs/original/ && git reflog expire --expire="now" --all &&  git gc --aggressive --prune
+rm -rf .git/refs/original/ && git reflog expire --expire="now" --all &&  git repack -a -d && git gc --aggressive --prune
 
