@@ -23,7 +23,7 @@ git ls-files -s | sed "s-\t${srch}-\t${repl}-" | \
 	mv \${GIT_INDEX_FILE}.new \${GIT_INDEX_FILE}
 EOF
 )
-cmd="git filter-branch --index-filter '${index_filter}' -- HEAD"
+cmd="git filter-branch --tag-name-filter cat --index-filter '${index_filter}' -- HEAD"
 echo ${cmd}
 eval ${cmd}
 
