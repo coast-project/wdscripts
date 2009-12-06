@@ -4,7 +4,7 @@ USAGE="file_or_dir [another_file_or_dir...]"
 LONG_USAGE=""
 
 OPTIONS_SPEC=
-. `dirname $0`/git-sh-setup
+. "$(git --exec-path)/git-sh-setup"
 require_work_tree
 
 ##exec >`basename $0`.out # disabled due to using git rm -q
@@ -20,7 +20,7 @@ git_commit_non_empty_tree "\$@"
 EOF
 )
 
-cmd="git filter-branch --tag-name-filter cat --index-filter '${index_filter}' --commit-filter '${commit_filter}' -- HEAD"
+cmd="git filter-branch --tag-name-filter 'cat -- --all' --index-filter '${index_filter}' --commit-filter '${commit_filter}' -- HEAD"
 echo ${cmd}
 echo "Continue (*y|n)?"
 read yesno
@@ -30,5 +30,6 @@ fi
 eval ${cmd}
 
 # remove the temporary history git-filter-branch otherwise leaves behind for a long time
-rm -rf .git/refs/original/ && git reflog expire --expire="now" --all &&  git repack -a -d && git gc --aggressive --prune
+git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d
+git reflog expire --expire=now --all &&  git repack -ad && git gc --aggressive --prune=now
 

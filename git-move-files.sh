@@ -4,7 +4,7 @@ USAGE="\"srch_path_sedArg1\" \"repl_path_sedArg2\" [more s/r tuples]"
 LONG_USAGE="bla"
 
 OPTIONS_SPEC=
-. `dirname $0`/git-sh-setup
+. "$(git --exec-path)/git-sh-setup"
 require_work_tree
 
 ##exec >`basename $0`.out
@@ -35,7 +35,7 @@ git ls-files -s | sed ${sed_expression} | \
 	mv \${GIT_INDEX_FILE}.new \${GIT_INDEX_FILE}
 EOF
 )
-cmd="git filter-branch --tag-name-filter cat --index-filter '${index_filter}' -- HEAD"
+cmd="git filter-branch --tag-name-filter 'cat -- --all' --index-filter '${index_filter}' -- HEAD"
 echo ${cmd}
 echo "Continue (*y|n)?"
 read yesno
@@ -45,4 +45,6 @@ fi
 eval ${cmd}
 
 # remove the temporary history git-filter-branch otherwise leaves behind for a long time
-rm -rf .git/refs/original/ && git reflog expire --expire="now" --all &&  git repack -a -d && git gc --aggressive --prune
+git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d
+git reflog expire --expire=now --all &&  git repack -ad && git gc --aggressive --prune=now
+
