@@ -1,13 +1,11 @@
 #!/bin/bash
 
 USAGE="\"srch_path_sedArg1\" \"repl_path_sedArg2\" [more s/r tuples]"
-LONG_USAGE="bla"
+LONG_USAGE=""
 
 OPTIONS_SPEC=
 . "$(git --exec-path)/git-sh-setup"
 require_work_tree
-
-##exec >`basename $0`.out
 
 testeven() {
 if [ $1 -eq 1 ]; then
@@ -35,7 +33,11 @@ git ls-files -s | sed ${sed_expression} | \
 	mv \${GIT_INDEX_FILE}.new \${GIT_INDEX_FILE}
 EOF
 )
-cmd="git filter-branch --tag-name-filter 'cat -- --all' --index-filter '${index_filter}' -- HEAD"
+
+cmd="git filter-branch --tag-name-filter cat"
+cmd="${cmd} --index-filter '${index_filter}'"
+cmd="${cmd} -- --all"
+
 echo ${cmd}
 echo "Continue (*y|n)?"
 read yesno

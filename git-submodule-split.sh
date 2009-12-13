@@ -8,7 +8,7 @@
 USAGE="[--url submodule_repo_url] submodule_dir [alternate_dir...]"
 
 OPTIONS_SPEC=
-. `dirname $0`/git-sh-setup
+. "$(git --exec-path)/git-sh-setup"
 require_work_tree
 
 # Set up our temporary directory. We export these variables because we
