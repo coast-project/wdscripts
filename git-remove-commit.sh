@@ -1,7 +1,7 @@
 #!/bin/bash
 
-USAGE="sha1"
-LONG_USAGE=""
+USAGE="sha1 [revisions]"
+LONG_USAGE="Default revision is --all, use something like HEAD~10..HEAD to only work on last 10 commits"
 
 OPTIONS_SPEC=
 . "$(git --exec-path)/git-sh-setup"
@@ -13,6 +13,7 @@ if [ $# -lt 1 ]; then
 fi
 
 commit_id=$1
+revs=${2:-"--all"}
 
 commit_filter=$(cat <<- EOF
 if [ ! \$GIT_COMMIT = "$commit_id" ]; then
@@ -30,7 +31,7 @@ if [ -n "${index_filter}" ]; then
 	cmd="${cmd} --index-filter '${index_filter}'"
 fi
 cmd="${cmd} --commit-filter '${commit_filter}'"
-cmd="${cmd} -- --all"
+cmd="${cmd} -- ${revs}"
 
 echo ${cmd}
 echo "Continue (*y|n)?"
@@ -40,7 +41,14 @@ if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
 fi
 eval ${cmd}
 
-# remove the temporary history git-filter-branch otherwise leaves behind for a long time
-git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d
-git reflog expire --expire=now --all &&  git repack -ad && git gc --aggressive --prune=now
+cmdCode=$?
+echo "retcode of command ${cmdCode}"
+
+if [ ${cmdCode} -eq 0 ]; then
+	# remove the temporary history git-filter-branch otherwise leaves behind for a long time
+	git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d 2>/dev/null
+	git reflog expire --expire=now --all &&  git repack -ad && git gc --aggressive --prune=now
+else
+	git reset --hard
+fi
 
