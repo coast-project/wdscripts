@@ -447,7 +447,7 @@ selectDevelopDir()
 				#echo 'we have a match at ['$relSeg']';
 				# use pwd -P to follow links and get 'real' directory
 				# especially needed for windows! but shouldn't matter for Unix
-				local devpath=`cd && cd $myenv && pwd -P`;
+				local devpath=`cd && cd $myenv >/dev/null 2>&1 && pwd -P`;
 				if [ $isWindows -eq 1 ]; then
 					getDosDir "$devpath" "${1}_NT";
 				fi
@@ -464,7 +464,7 @@ selectDevelopDir()
 		select myenv in $myDirs; do
 			# use pwd -P to follow links and get 'real' directory
 			# especially needed for windows! but shouldn't matter for Unix
-			local devpath=`cd && cd $myenv && pwd -P`;
+			local devpath=`cd && cd $myenv >/dev/null 2>&1 && pwd -P`;
 			if [ $isWindows -eq 1 ]; then
 				getDosDir "$devpath" "${1}_NT";
 			fi
@@ -844,7 +844,7 @@ makeAbsPath()
 	ret_var=${2};
 	lRetVal="";
 	if [ -d "${loc_name}" ]; then
-		lRetVal=`cd ${loc_name} 2> /dev/null && pwd -P`;
+		lRetVal=`cd ${loc_name} >/dev/null 2>&1 && pwd -P`;
 	fi;
 	eval ${ret_var}="${lRetVal}";
 }
