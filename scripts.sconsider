@@ -1,0 +1,27 @@
+import os, pdb
+import SConsider
+from stat import *
+
+Import('*')
+
+buildSettings = {
+    packagename : {
+        'targetType'       : 'CopyFiles',
+        'copyFiles' : [
+            ( SConsider.findFiles(['.'], matchfiles=['bootScript.sh',
+                                                     'config.sh',
+                                                     'install.sh',
+                                                     'keepwds.sh',
+                                                     'restartwds.sh',
+                                                     'trapsignalfuncs.sh',
+                                                     'serverfuncs.sh',
+                                                     'startwda.sh',
+                                                     'startwds.sh',
+                                                     'stopwds.sh',
+                                                     'sysfuncs.sh']), S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR),
+        ],
+        'appendUnique'     : { 'RELTARGETDIR' : os.path.join('globals', packagename, 'scripts') },
+    },
+}
+
+SConsider.createTargets(packagename, buildSettings)

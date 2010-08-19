@@ -19,15 +19,19 @@ else
 fi
 
 # source in config switching helper
+if [ -r $mypath/_cfgSwitch.sh ]; then
 . $mypath/_cfgSwitch.sh
+fi
 
 showhelp()
 {
 	echo ''
 	echo 'usage: '$MYNAME' [options] -- TestOptions...'
 	echo 'where options are:'
-	PrintSwitchHelp
-	PrintSubSwitchHelp
+	if [ -n "`typeset -f PrintSwitchHelp`" ]; then
+		PrintSwitchHelp
+		PrintSubSwitchHelp
+	fi
 	echo ' -c                 : check if test-executable was built, returns 1 on success'
 	echo ' -e <level>         : specify level of error-logging to console, default:4, see below for possible values'
 	echo ' -s <level>         : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
@@ -53,7 +57,9 @@ cfg_docheckforexe=0;
 
 # process config switching options first
 myPrgOptions=":e:s:rcm:-D"
-ProcessSetConfigOptions "${myPrgOptions}" "$@"
+if [ -n "`typeset -f ProcessSetConfigOptions`" ]; then
+	ProcessSetConfigOptions "${myPrgOptions}" "$@"
+fi
 OPTIND=1;
 
 # process other command line options
@@ -108,14 +114,18 @@ shift $(($OPTIND - 1))
 
 cfg_testparams="$@";
 
-# prepare config switching tokens
-PrepareTokensForCommandline
+if [ -n "`typeset -f PrepareTokensForCommandline`" ]; then
+	# prepare config switching tokens
+	PrepareTokensForCommandline
+fi
 
 # include global configuration
 . ${mypath}/config.sh $cfg_dbgopt
 
-# switch configuration now to ensure correct settings
-DoSetConfigWithToks
+if [ -n "`typeset -f DoSetConfigWithToks`" ]; then
+	# switch configuration now to ensure correct settings
+	DoSetConfigWithToks
+fi
 
 # allow overriding of cfg_toks variable within common part of prjRunTest.sh
 cfg_subscript=`pwd`/prjRunTest.sh;

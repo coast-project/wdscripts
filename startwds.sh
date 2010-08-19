@@ -22,7 +22,9 @@ else
 fi
 
 # source in config switching helper
+if [ -r $mypath/_cfgSwitch.sh ]; then
 . $mypath/_cfgSwitch.sh
+fi
 
 showhelp()
 {
@@ -30,7 +32,9 @@ showhelp()
 	echo ''
 	echo 'usage: '$MYNAME' [options] -- [server-params]...'
 	echo 'where options are:'
-	PrintSwitchHelp
+	if [ -n "`typeset -f PrintSwitchHelp`" ]; then
+		PrintSwitchHelp
+	fi
 	echo ' -c <coresize> : maximum size of core file to produce, in 512Byte blocks!'
 	echo ' -e <level>    : specify level of error-logging to console, default:4, see below for possible values'
 	echo ' -s <level>    : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
@@ -61,7 +65,9 @@ cfg_fullPath=0;
 
 # process config switching options first
 myPrgOptions=":c:C:de:s:h:FP-D"
-ProcessSetConfigOptions "${myPrgOptions}" "$@"
+if [ -n "`typeset -f ProcessSetConfigOptions`" ]; then
+	ProcessSetConfigOptions "${myPrgOptions}" "$@"
+fi
 OPTIND=1;
 
 # process other command line options
@@ -127,11 +133,14 @@ if [ -n "$cfg_cfgdir" ]; then
 	export WD_PATH=${cfg_cfgdir};
 fi
 
-# prepare config switching tokens
-PrepareTokensForCommandline
-
-# switch configuration now to ensure correct settings
-DoSetConfigWithToks
+if [ -n "`typeset -f PrepareTokensForCommandline`" ]; then
+	# prepare config switching tokens
+	PrepareTokensForCommandline
+fi
+if [ -n "`typeset -f DoSetConfigWithToks`" ]; then
+	# switch configuration now to ensure correct settings
+	DoSetConfigWithToks
+fi
 
 if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 . $mypath/config.sh $cfg_dbgopt
