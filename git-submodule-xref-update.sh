@@ -118,9 +118,9 @@ reftagfile=${_refrepo}_tags.tmp
 subtagfile=${_subdir}_tags.tmp
 joinfile=$HOME/${_refrepo}_${_subdir}_join.tmp
 tagnamefilter=${_xrefprefix}${_tagsep}${_refrepo}${_tagsep}${_subdir}${_tagsep}
-git ls-remote --tags . | grep ${tagnamefilter} | while read h t; do tagn=`echo $t | cut -d'/' -f3`; hsh=`git ls-tree -d --no-abbrev ${h} | grep ${_subdir} | awk '{print $3}'`; echo ${tagn} ${h} ${hsh}; done | sort -k 1b,1 >${reftagfile}
-git ls-remote --tags ${_subdir} | grep ${tagnamefilter} | while read h t; do tagn=`echo $t | cut -d'/' -f3`; echo $tagn $h; done | sort -k 1b,1 >${subtagfile}
-join ${reftagfile} ${subtagfile} -o '1.3 2.2' | while read oldh newh; do test "${oldh}" != "${newh}" && echo "s-${oldh}-${newh}-"; done | sort | uniq >${joinfile}
+git ls-remote --tags . | grep ${tagnamefilter} | while read h t; do tagn=`echo $t | cut -d'/' -f3 | cut -d${_tagsep} -f4`; hsh=`git ls-tree -d --no-abbrev ${h} | grep ${_subdir} | awk '{print $3}'`; echo ${tagn} ${h} ${hsh}; done | sort -n >${reftagfile}
+git ls-remote --tags ${_subdir} | grep ${tagnamefilter} | while read h t; do tagn=`echo $t | cut -d'/' -f3 | cut -d${_tagsep} -f4`; echo $tagn $h; done | sort -n >${subtagfile}
+join ${reftagfile} ${subtagfile} | awk 'BEGIN{delete arr;}{arr[$3]=$4;}END{for (k in arr) { print "s-"k"-"arr[k]"-" }}' | sort | uniq >${joinfile}
 
 sed_expression="-f ${joinfile}"
 index_filter=$(cat <<- EOF
