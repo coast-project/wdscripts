@@ -113,7 +113,7 @@ shift $(($OPTIND - 1))
 cfg_srvopts="$@";
 
 if [ -n "$cfg_cfgdir" ]; then
-	export WD_PATH=${cfg_cfgdir};
+	export COAST_PATH=${cfg_cfgdir};
 	cfg_cfgdir="-C "${cfg_cfgdir};
 fi
 

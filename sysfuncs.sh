@@ -598,7 +598,7 @@ selectGnuCompilers()
 
 # set-up variables for a selectable development environment
 # - display a selection list of current Develop-directories
-# - set WD_OUTDIR and WD_LIBDIR
+# - set COAST_OUTDIR and COAST_LIBDIR
 # - adjust PATH and LD_LIBRARY_PATH
 #
 # param $1 used to specify the directory to select for non-interactive mode, optional
@@ -619,33 +619,33 @@ setDevelopmentEnv()
 
 	selectDevelopDir "DEV_HOME" "DEVNAME" $1
 	if [ -n "${DEV_HOME}" -a -n "${DEVNAME}" ]; then
-		if [ -z "${WD_OUTDIR}" ]; then
-			WD_OUTDIR=${SYS_TMP}/objectfiles_${USER}/${DEVNAME};
+		if [ -z "${COAST_OUTDIR}" ]; then
+			COAST_OUTDIR=${SYS_TMP}/objectfiles_${USER}/${DEVNAME};
 		else
-			WD_OUTDIR=${WD_OUTDIR}/${USER}/${DEVNAME};
+			COAST_OUTDIR=${COAST_OUTDIR}/${USER}/${DEVNAME};
 		fi
 		if [ "$USER" = "whoever" -o "$USER" = "whoeverToo" ]; then
-			WD_LIBDIR=${DEV_HOME}/lib
+			COAST_LIBDIR=${DEV_HOME}/lib
 		else
-			if [ -z "${WD_LIBDIR}" ]; then
-				WD_LIBDIR=${WD_OUTDIR}/lib/${OSREL}
+			if [ -z "${COAST_LIBDIR}" ]; then
+				COAST_LIBDIR=${COAST_OUTDIR}/lib/${OSREL}
 			fi
 		fi
 		if [ $isWindows -eq 1 ]; then
-			getDosDir "$WD_OUTDIR" "WD_OUTDIR_NT"
+			getDosDir "$COAST_OUTDIR" "COAST_OUTDIR_NT"
 		fi
-		export WD_OUTDIR WD_LIBDIR
+		export COAST_OUTDIR COAST_LIBDIR
 	else
 		echo "no environment selected, exiting..."
 		return 0;
 	fi
 
 	if [ $isWindows -eq 1 ]; then
-		prependPath "PATH" ":" "${WD_LIBDIR}"
+		prependPath "PATH" ":" "${COAST_LIBDIR}"
 	else
 		export LD_LIBRARY_PATH_NATIVE=${LD_LIBRARY_PATH};
 		cleanPath "LD_LIBRARY_PATH" ":"
-		prependPath "LD_LIBRARY_PATH" ":" "${WD_LIBDIR}"
+		prependPath "LD_LIBRARY_PATH" ":" "${COAST_LIBDIR}"
 	fi
 	echo ""
 	echo "following variables were set:"
@@ -660,11 +660,11 @@ setDevelopmentEnv()
 	if [ $isWindows -eq 1 ]; then
 		echo "DEV_HOME_NT            : ["${DEV_HOME_NT}"]"
 	fi
-	echo "WD_OUTDIR              : ["${WD_OUTDIR}"]"
+	echo "COAST_OUTDIR              : ["${COAST_OUTDIR}"]"
 	if [ $isWindows -eq 1 ]; then
-		echo "WD_OUTDIR_NT      : ["${WD_OUTDIR_NT}"]"
+		echo "COAST_OUTDIR_NT      : ["${COAST_OUTDIR_NT}"]"
 	fi
-	echo "WD_LIBDIR              : ["${WD_LIBDIR}"]"
+	echo "COAST_LIBDIR              : ["${COAST_LIBDIR}"]"
 	echo "PATH                   : ["${PATH}"]"
 	if [ $isWindows -eq 0 ]; then
 		echo "LD_LIBRARY_PATH        : ["${LD_LIBRARY_PATH}"]"
@@ -681,15 +681,15 @@ setDevelopmentEnv()
 cleanDevelopmentEnv()
 {
 	if [ ${isWindows} -eq 1 ]; then
-		deleteFromPath PATH ":" "$WD_LIBDIR";
+		deleteFromPath PATH ":" "$COAST_LIBDIR";
 		if [ ${1:-0} -eq 1 ]; then
-			unset WD_OUTDIR_NT DEV_HOME_NT;
+			unset COAST_OUTDIR_NT DEV_HOME_NT;
 		fi;
 	else
-		deleteFromPath LD_LIBRARY_PATH ":" "$WD_LIBDIR";
+		deleteFromPath LD_LIBRARY_PATH ":" "$COAST_LIBDIR";
 	fi
 	if [ ${1:-0} -eq 1 ]; then
-		unset WD_OUTDIR WD_LIBDIR DEV_HOME DEVNAME;
+		unset COAST_OUTDIR COAST_LIBDIR DEV_HOME DEVNAME;
 	fi;
 }
 
@@ -758,10 +758,10 @@ cat > ${outputfile} <<-EOF
 	handle SIGTERM nostop pass
 	handle SIGINT  nostop pass
 	set environment PATH=${PATH}
-	set environment WD_ROOT=${WD_ROOT}
-	set environment WD_PATH=${WD_PATH}
+	set environment COAST_ROOT=${COAST_ROOT}
+	set environment COAST_PATH=${COAST_PATH}
 	set environment LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
-	set environment WD_LIBDIR=${WD_LIBDIR}
+	set environment COAST_LIBDIR=${COAST_LIBDIR}
 	set environment LOGDIR=${LOGDIR}
 	set environment PID_FILE=${PID_FILE}
 	set auto-solib-add 1

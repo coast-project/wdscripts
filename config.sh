@@ -141,15 +141,15 @@ fi
 SetWD_PATH()
 {
 	# check if we have a wd_path yet
-	if [ -z "$WD_PATH" ]; then
+	if [ -z "$COAST_PATH" ]; then
 		# we do not have a wd_path, copy from IntWD_PATH or use . if empty
-		appendPath "WD_PATH" ":" "${IntWD_PATH:-.}"
+		appendPath "COAST_PATH" ":" "${IntWD_PATH:-.}"
 		CONFIGDIR=${IntWD_PATH:-.};
 	else
 		# we have a wd_path, copy first existing segment into CONFIGDIR
-		tmpWD_PATH=${WD_PATH};
+		tmpWD_PATH=${COAST_PATH};
 		CONFIGDIR="";
-		WD_PATH="";
+		COAST_PATH="";
 		oldifs="${IFS}";
 		IFS=":";
 		for segname in ${tmpWD_PATH}; do
@@ -157,8 +157,8 @@ SetWD_PATH()
 			if [ $PRINT_DBG -eq 1 ]; then echo "segment is ["$segname"]"; fi
 			if [ -d "${segname}" ]; then
 				if [ $PRINT_DBG -eq 1 ]; then echo "found valid config path ["${segname}"]"; fi
-				if [ $PRINT_DBG -eq 1 ]; then echo "wd-path before ["$WD_PATH"]"; fi
-				appendPath "WD_PATH" ":" "${segname}";
+				if [ $PRINT_DBG -eq 1 ]; then echo "wd-path before ["$COAST_PATH"]"; fi
+				appendPath "COAST_PATH" ":" "${segname}";
 				if [ -z "$CONFIGDIR" ]; then
 					CONFIGDIR=${segname};
 				fi
@@ -169,16 +169,16 @@ SetWD_PATH()
 		fi
 
 		# if someone would better like to use the path found in IntWD_PATH instead of the existing
-		#  path in WD_PATH he could add a switch to enable the following code
+		#  path in COAST_PATH he could add a switch to enable the following code
 		if [ 1 -eq 0 ]; then
-			prependPath "WD_PATH" ":" "${IntWD_PATH}"
+			prependPath "COAST_PATH" ":" "${IntWD_PATH}"
 			CONFIGDIR=${IntWD_PATH};
 		fi
 	fi
 	makeAbsPath "${PROJECTDIR}/${CONFIGDIR}" CONFIGDIRABS
 }
 
-# set the WD_PATH
+# set the COAST_PATH
 SetWD_PATH
 
 # try to find out on which machine we are running
@@ -275,7 +275,7 @@ SetupLDPath()
 	if [ $isWindows -eq 1 ]; then
 		locLdPathVar="PATH";
 	fi
-	deleteFromPath "${locLdPathVar}" ":" "${WD_LIBDIR}"
+	deleteFromPath "${locLdPathVar}" ":" "${COAST_LIBDIR}"
 	local locBinPath="";
 	local locLastBinPath="";
 	for binname in ${WDA_BINABS} ${WDS_BINABS} ${TEST_EXE}; do
@@ -295,7 +295,7 @@ SetupLDPath()
 		fi;
 	done;
 	cleanPath "${locLdPathVar}" ":"
-	prependPath "${locLdPathVar}" ":" "${WD_LIBDIR}"
+	prependPath "${locLdPathVar}" ":" "${COAST_LIBDIR}"
 	if [ $PRINT_DBG -ge 1 ]; then
 		locVar="echo $"${locLdPathVar};
 		echo ${locLdPathVar} is now [`eval $locVar`]
@@ -312,27 +312,27 @@ fi;
 
 # directory where WD-Libs are in
 if [ -z "${myLIBDIR}" ]; then
-	# now check if WD_LIBDIR is already set
-	if [ -z "${WD_LIBDIR}" ]; then
+	# now check if COAST_LIBDIR is already set
+	if [ -z "${COAST_LIBDIR}" ]; then
 		if [ -n "$DEV_HOME" ]; then
 			# finally use $DEV_HOME/lib
 			myLIBDIR=${DEV_HOME}/lib
 		fi
 	else
-		# use WD_LIBDIR
-		myLIBDIR=${WD_LIBDIR}
+		# use COAST_LIBDIR
+		myLIBDIR=${COAST_LIBDIR}
 	fi
 fi
 if [ -n "${myLIBDIR}" ]; then
 	if [ -n "${myLIBDIR}" -a ! -d "${myLIBDIR}" ]; then
 		mkdir -p ${myLIBDIR};
 	fi;
-	makeAbsPath "${myLIBDIR}" "WD_LIBDIR"
+	makeAbsPath "${myLIBDIR}" "COAST_LIBDIR"
 else
 	if [ $PRINT_DBG -eq 1 ]; then
 		echo 'WARNING: could not find a library directory, looked in:'
 		echo 'PROJECTDIR/lib: ['${PROJECTDIR}/lib']'
-		echo 'WD_LIBDIR     : ['${WD_LIBDIR}']'
+		echo 'COAST_LIBDIR     : ['${COAST_LIBDIR}']'
 		echo 'DEV_HOME/lib  : ['${DEV_HOME}/lib']'
 	fi;
 fi
@@ -359,7 +359,7 @@ if [ -f "$CONFIGDIRABS/prjconfig.sh" ]; then
 	fi
 	. $CONFIGDIRABS/prjconfig.sh
 	PRJCONFIGPATH=$CONFIGDIRABS
-	# re-evaluate WD_PATH, sets CONFIGDIR and CONFIGDIRABS again
+	# re-evaluate COAST_PATH, sets CONFIGDIR and CONFIGDIRABS again
 	SetWD_PATH
 elif [ -f "$PRJCONFIGPATH/prjconfig.sh" ]; then
 	if [ $PRINT_DBG -eq 1 ]; then
@@ -367,7 +367,7 @@ elif [ -f "$PRJCONFIGPATH/prjconfig.sh" ]; then
 		echo ""
 	fi
 	. $PRJCONFIGPATH/prjconfig.sh
-	# re-evaluate WD_PATH, sets CONFIGDIR and CONFIGDIRABS again
+	# re-evaluate COAST_PATH, sets CONFIGDIR and CONFIGDIRABS again
 	SetWD_PATH
 elif [ -f "$SCRIPTDIR/prjconfig.sh" ]; then
 	if [ $PRINT_DBG -eq 1 ]; then
@@ -377,7 +377,7 @@ elif [ -f "$SCRIPTDIR/prjconfig.sh" ]; then
 	fi
 	. $SCRIPTDIR/prjconfig.sh
 	PRJCONFIGPATH=$SCRIPTDIR
-	# re-evaluate WD_PATH, sets CONFIGDIR and CONFIGDIRABS again
+	# re-evaluate COAST_PATH, sets CONFIGDIR and CONFIGDIRABS again
 	SetWD_PATH
 fi
 
@@ -398,26 +398,26 @@ if [ -z "${ServerErrLog}" ]; then
 	ServerErrLog=$PROJECTDIR/$LOGDIR/server.err
 fi
 
-# check if WD_ROOT is already set and if so do not overwrite it but warn about
+# check if COAST_ROOT is already set and if so do not overwrite it but warn about
 if [ $isWindows -eq 1 ]; then
 	locWD_ROOT=${PROJECTDIRNT};
 else
 	locWD_ROOT=${PROJECTDIR};
 fi
-if [ -z "$WD_ROOT"  ]; then
-	WD_ROOT=$locWD_ROOT;
+if [ -z "$COAST_ROOT"  ]; then
+	COAST_ROOT=$locWD_ROOT;
 else
 	# warn only if the root dir is not the same
-	if [ "$WD_ROOT" != "$locWD_ROOT" ]; then
-		echo "WARNING: WD_ROOT already set to ["$WD_ROOT"] but it should be ["$locWD_ROOT"]"
+	if [ "$COAST_ROOT" != "$locWD_ROOT" ]; then
+		echo "WARNING: COAST_ROOT already set to ["$COAST_ROOT"] but it should be ["$locWD_ROOT"]"
 	fi;
 fi
 
-export BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME WD_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SCRIPTDIRABS SERVERNAME TARGZNAME WD_PATH WD_ROOT
+export BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME COAST_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SCRIPTDIRABS SERVERNAME TARGZNAME COAST_PATH COAST_ROOT
 
 # for debugging only
 if [ $PRINT_DBG -eq 1 ]; then
-	for varname in PID_FILE BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME DOMAIN LOGDIR ServerMsgLog ServerErrLog OSREL OSREL_MAJOR OSREL_MINOR OSTYPE PATH LD_LIBRARY_PATH PERFTESTDIR PRJCONFIGPATH PRJ_DESCRIPTION PROJECTDIRABS PROJECTDIR PROJECTDIRNT PROJECTNAME RUN_USER RUN_SERVICE SCRIPTDIR SCRIPTDIRABS SERVERNAME PROJECTSRCDIR SYS_TMP TARGZNAME TEST_NAME TEST_EXE USR_TMP WD_LIBDIR WD_PATH WD_ROOT APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS; do
+	for varname in PID_FILE BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME DOMAIN LOGDIR ServerMsgLog ServerErrLog OSREL OSREL_MAJOR OSREL_MINOR OSTYPE PATH LD_LIBRARY_PATH PERFTESTDIR PRJCONFIGPATH PRJ_DESCRIPTION PROJECTDIRABS PROJECTDIR PROJECTDIRNT PROJECTNAME RUN_USER RUN_SERVICE SCRIPTDIR SCRIPTDIRABS SERVERNAME PROJECTSRCDIR SYS_TMP TARGZNAME TEST_NAME TEST_EXE USR_TMP COAST_LIBDIR COAST_PATH COAST_ROOT APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS; do
 		locVar="echo $"$varname;
 		printf "%-16s: [%s]\n" $varname "`eval $locVar`"
 	done

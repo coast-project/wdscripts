@@ -127,7 +127,7 @@ if [ -z "$cfg_cfgdir" ]; then
 	done;
 fi
 
-export WD_PATH=${locPERFTESTDIR}/${cfg_cfgdir};
+export COAST_PATH=${locPERFTESTDIR}/${cfg_cfgdir};
 SERVERNAME=${locPERFTESTDIR}
 
 # prepare config switching tokens
@@ -147,7 +147,7 @@ cfg_srvopts=${cfg_srvopts}${SERVERNAME};
 
 # check if we have to execute anything depending on RUN_SERVICE setting
 # -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
-outmsg="WebDisplay2 perftest [${SERVERNAME}] with config [${WD_PATH}]";
+outmsg="WebDisplay2 perftest [${SERVERNAME}] with config [${COAST_PATH}]";
 rc_ServiceDisabled=" => will not execute, because it was disabled (RUN_SERVICE=0)!"
 if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStart} -eq 0 ]; then
 	return=$rc_ServiceDisabled;
@@ -160,7 +160,7 @@ fi
 
 echo ''
 echo '------------------------------------------------------------------------'
-echo $MYNAME' - script to start perftest ['${SERVERNAME}'] with configdir ['${WD_PATH}']'
+echo $MYNAME' - script to start perftest ['${SERVERNAME}'] with configdir ['${COAST_PATH}']'
 echo ''
 
 # set the file handle limit
@@ -168,10 +168,10 @@ ulimit -n $cfg_handles
 
 # enable logging if wanted
 if [ $cfg_errorlog -gt 0 ]; then
-	export WD_LOGONCERR=$cfg_errorlog;
+	export COAST_LOGONCERR=$cfg_errorlog;
 fi
 if [ $cfg_syslog -gt 0 ]; then
-	export WD_DOLOG=$cfg_syslog;
+	export COAST_DOLOG=$cfg_syslog;
 fi
 
 # start the perftest

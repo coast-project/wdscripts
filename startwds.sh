@@ -130,7 +130,7 @@ cfg_srvopts="$@";
 if [ $cfg_dbg -eq 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;
 
 if [ -n "$cfg_cfgdir" ]; then
-	export WD_PATH=${cfg_cfgdir};
+	export COAST_PATH=${cfg_cfgdir};
 fi
 
 if [ -n "`typeset -f PrepareTokensForCommandline`" ]; then
@@ -194,10 +194,10 @@ ulimit $cfg_coresize
 
 # enable logging if wanted
 if [ $cfg_errorlog -gt 0 ]; then
-	export WD_LOGONCERR=$cfg_errorlog;
+	export COAST_LOGONCERR=$cfg_errorlog;
 fi
 if [ $cfg_syslog -gt 0 ]; then
-	export WD_DOLOG=$cfg_syslog;
+	export COAST_DOLOG=$cfg_syslog;
 fi
 
 printf "%s %s: ---- entering ----\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};

@@ -96,7 +96,7 @@ done
 shift $(($OPTIND - 1))
 
 if [ -n "$cfg_cfgdir" ]; then
-	export WD_PATH=${cfg_cfgdir};
+	export COAST_PATH=${cfg_cfgdir};
 fi
 
 if [ -n "`typeset -f PrepareTokensForCommandline`" ]; then
