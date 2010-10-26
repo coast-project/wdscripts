@@ -117,10 +117,10 @@ fi
 
 if [ -z "$cfg_cfgdir" ]; then
 	# find all config directories and give a selection
-	SearchJoinedDir "tmpWD_PATH" "${locPROJECTDIR}/${locPERFTESTDIR}" "a" "config" ":";
+	SearchJoinedDir "tmpCOAST_PATH" "${locPROJECTDIR}/${locPERFTESTDIR}" "a" "config" ":";
 	oldifs="${IFS}";
 	IFS=":";
-	select segname in ${tmpWD_PATH}; do
+	select segname in ${tmpCOAST_PATH}; do
 		IFS=$oldifs;
 		cfg_cfgdir=$segname
 		break;

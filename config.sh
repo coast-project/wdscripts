@@ -133,26 +133,26 @@ SearchJoinedDir "PERFTESTDIR" "$PROJECTDIR" "$PROJECTNAME" "perftest"
 SearchJoinedDir "PROJECTSRCDIR" "$PROJECTDIR" "$PROJECTNAME" "src"
 
 # directory name of the config directory
-SearchJoinedDir "IntWD_PATH" "$PROJECTDIR" "$PROJECTNAME" "config"
+SearchJoinedDir "IntCOAST_PATH" "$PROJECTDIR" "$PROJECTNAME" "config"
 if [ $PRINT_DBG -eq 1 ]; then
-	echo "IntWD_PATH ["$IntWD_PATH"]"
+	echo "IntCOAST_PATH ["$IntCOAST_PATH"]"
 fi
 
-SetWD_PATH()
+SetCOAST_PATH()
 {
 	# check if we have a wd_path yet
 	if [ -z "$COAST_PATH" ]; then
-		# we do not have a wd_path, copy from IntWD_PATH or use . if empty
-		appendPath "COAST_PATH" ":" "${IntWD_PATH:-.}"
-		CONFIGDIR=${IntWD_PATH:-.};
+		# we do not have a wd_path, copy from IntCOAST_PATH or use . if empty
+		appendPath "COAST_PATH" ":" "${IntCOAST_PATH:-.}"
+		CONFIGDIR=${IntCOAST_PATH:-.};
 	else
 		# we have a wd_path, copy first existing segment into CONFIGDIR
-		tmpWD_PATH=${COAST_PATH};
+		tmpCOAST_PATH=${COAST_PATH};
 		CONFIGDIR="";
 		COAST_PATH="";
 		oldifs="${IFS}";
 		IFS=":";
-		for segname in ${tmpWD_PATH}; do
+		for segname in ${tmpCOAST_PATH}; do
 			IFS=$oldifs;
 			if [ $PRINT_DBG -eq 1 ]; then echo "segment is ["$segname"]"; fi
 			if [ -d "${segname}" ]; then
@@ -168,18 +168,18 @@ SetWD_PATH()
 			CONFIGDIR=".";
 		fi
 
-		# if someone would better like to use the path found in IntWD_PATH instead of the existing
+		# if someone would better like to use the path found in IntCOAST_PATH instead of the existing
 		#  path in COAST_PATH he could add a switch to enable the following code
 		if [ 1 -eq 0 ]; then
-			prependPath "COAST_PATH" ":" "${IntWD_PATH}"
-			CONFIGDIR=${IntWD_PATH};
+			prependPath "COAST_PATH" ":" "${IntCOAST_PATH}"
+			CONFIGDIR=${IntCOAST_PATH};
 		fi
 	fi
 	makeAbsPath "${PROJECTDIR}/${CONFIGDIR}" CONFIGDIRABS
 }
 
 # set the COAST_PATH
-SetWD_PATH
+SetCOAST_PATH
 
 # try to find out on which machine we are running
 HOSTNAME=`(uname -n) 2>/dev/null` || HOSTNAME="unkown"
@@ -360,7 +360,7 @@ if [ -f "$CONFIGDIRABS/prjconfig.sh" ]; then
 	. $CONFIGDIRABS/prjconfig.sh
 	PRJCONFIGPATH=$CONFIGDIRABS
 	# re-evaluate COAST_PATH, sets CONFIGDIR and CONFIGDIRABS again
-	SetWD_PATH
+	SetCOAST_PATH
 elif [ -f "$PRJCONFIGPATH/prjconfig.sh" ]; then
 	if [ $PRINT_DBG -eq 1 ]; then
 		echo "loading $PRJCONFIGPATH/prjconfig.sh"
@@ -368,7 +368,7 @@ elif [ -f "$PRJCONFIGPATH/prjconfig.sh" ]; then
 	fi
 	. $PRJCONFIGPATH/prjconfig.sh
 	# re-evaluate COAST_PATH, sets CONFIGDIR and CONFIGDIRABS again
-	SetWD_PATH
+	SetCOAST_PATH
 elif [ -f "$SCRIPTDIR/prjconfig.sh" ]; then
 	if [ $PRINT_DBG -eq 1 ]; then
 		echo "configuration/project specific $CONFIGDIRABS/prjconfig.sh not found!"
@@ -378,7 +378,7 @@ elif [ -f "$SCRIPTDIR/prjconfig.sh" ]; then
 	. $SCRIPTDIR/prjconfig.sh
 	PRJCONFIGPATH=$SCRIPTDIR
 	# re-evaluate COAST_PATH, sets CONFIGDIR and CONFIGDIRABS again
-	SetWD_PATH
+	SetCOAST_PATH
 fi
 
 SetBindir
@@ -400,16 +400,16 @@ fi
 
 # check if COAST_ROOT is already set and if so do not overwrite it but warn about
 if [ $isWindows -eq 1 ]; then
-	locWD_ROOT=${PROJECTDIRNT};
+	locCOAST_ROOT=${PROJECTDIRNT};
 else
-	locWD_ROOT=${PROJECTDIR};
+	locCOAST_ROOT=${PROJECTDIR};
 fi
 if [ -z "$COAST_ROOT"  ]; then
-	COAST_ROOT=$locWD_ROOT;
+	COAST_ROOT=$locCOAST_ROOT;
 else
 	# warn only if the root dir is not the same
-	if [ "$COAST_ROOT" != "$locWD_ROOT" ]; then
-		echo "WARNING: COAST_ROOT already set to ["$COAST_ROOT"] but it should be ["$locWD_ROOT"]"
+	if [ "$COAST_ROOT" != "$locCOAST_ROOT" ]; then
+		echo "WARNING: COAST_ROOT already set to ["$COAST_ROOT"] but it should be ["$locCOAST_ROOT"]"
 	fi;
 fi
 
