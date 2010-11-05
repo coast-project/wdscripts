@@ -172,7 +172,7 @@ fi
 
 # check if we have to execute anything depending on RUN_SERVICE setting
 # -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
-outmsg="Starting WebDisplay2 server: ${SERVERNAME}";
+outmsg="Starting coast server: ${SERVERNAME}";
 rc_ServiceDisabled=" => will not execute, because it was disabled (RUN_SERVICE=0)!"
 if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStart} -eq 0 ]; then
 	return=$rc_ServiceDisabled;
