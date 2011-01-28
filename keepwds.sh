@@ -20,10 +20,6 @@ if [ "$DNAM" = "${DNAM#/}" ]; then
 else
 	mypath=$DNAM
 fi
-# source in config switching helper
-if [ -r $mypath/_cfgSwitch.sh ]; then
-. $mypath/_cfgSwitch.sh
-fi
 
 showhelp()
 {
@@ -31,9 +27,6 @@ showhelp()
 	echo ''
 	echo 'usage: '$MYNAME' [options] [server-params]...'
 	echo 'where options are:'
-	if [ -n "`typeset -f PrintSwitchHelp`" ]; then
-		PrintSwitchHelp
-	fi
 	echo ' -c <coresize> : maximum size of core file to produce, in 512Byte blocks!'
 	echo ' -e <level>    : specify level of error-logging to console, default:4, see below for possible values'
 	echo ' -s <level>    : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
@@ -58,9 +51,6 @@ cfg_coresize="-c 20000";	# default to 10MB
 
 # process config switching options first
 myPrgOptions=":c:e:s:h:C:PD"
-if [ -n "`typeset -f ProcessSetConfigOptions`" ]; then
-	ProcessSetConfigOptions "${myPrgOptions}" "$@"
-fi
 OPTIND=1;
 
 # process other command line options
@@ -115,15 +105,6 @@ cfg_srvopts="$@";
 if [ -n "$cfg_cfgdir" ]; then
 	export COAST_PATH=${cfg_cfgdir};
 	cfg_cfgdir="-C "${cfg_cfgdir};
-fi
-
-if [ -n "`typeset -f PrepareTokensForCommandline`" ]; then
-	# prepare config switching tokens
-	PrepareTokensForCommandline
-fi
-if [ -n "`typeset -f DoSetConfigWithToks`" ]; then
-	# switch configuration now to ensure correct settings
-	DoSetConfigWithToks
 fi
 
 if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;

@@ -22,9 +22,6 @@ else
 	mypath=$DNAM
 fi
 
-# source in config switching helper
-. $mypath/_cfgSwitch.sh
-
 showhelp()
 {
 	locPrjDir=` . $mypath/config.sh >/dev/null 2>&1; echo $PROJECTDIR`;
