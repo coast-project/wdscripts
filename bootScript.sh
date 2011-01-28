@@ -1,4 +1,4 @@
-#!/bin/ksh
+#!/bin/sh
 #-----------------------------------------------------------------------------------------------------
 # Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
 # All rights reserved.
@@ -87,7 +87,7 @@ getconfigvar()
 	loc_scDir=${2};
 	loc_name=${3};
 	ret_var=${4};
-	loc_name=`/bin/ksh -c "cd ${loc_prjPath}; mypath=${loc_scDir}; . ${loc_scDir}/config.sh >/dev/null 2>&1; eval \"echo $\"$loc_name"`
+	loc_name=`/bin/sh -c "cd ${loc_prjPath}; mypath=${loc_scDir}; . ${loc_scDir}/config.sh >/dev/null 2>&1; eval \"echo $\"$loc_name"`
 	eval ${ret_var}="$loc_name";
 }
 

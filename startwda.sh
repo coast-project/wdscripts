@@ -1,4 +1,4 @@
-#!/bin/ksh
+#!/bin/sh
 #-----------------------------------------------------------------------------------------------------
 # Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
 # All rights reserved.
@@ -155,7 +155,7 @@ if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 if [ $cfg_fullPath -eq 1 ]; then
 	WDA_BIN=$WDA_BINABS;
 	WDS_BIN=$WDS_BINABS;
-fi	
+fi
 
 # add SERVERNAME to application options as default
 if [ -z "$cfg_srvopts" ]; then

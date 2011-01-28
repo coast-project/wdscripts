@@ -35,11 +35,7 @@ PRJ_DESCRIPTION="Coast scripts"
 # if the RUN_SERVICE flag is left off or set to 1, the server will always be controllable using any of the bootScript.sh, startwd[as].sh, startprf.sh or stopwds.sh scripts
 # if RUN_SERVICE is set to 0, the server will not be started/stopped except the -F option is given to override the variable
 #RUN_SERVICE_CFGFILE=${DEV_HOME}/my_services.sh
-#RUN_SERVICE=`/bin/ksh -c ". ${RUN_SERVICE_CFGFILE} >/dev/null 2>&1; eval \"echo $\"RUN_SERVICE_${SERVERNAME}"`
-
-# name of the tared and gzipped distribution file, caution: try to use short names
-# because some CD burning software do only store 8.3 names
-#TARGZNAME=$SERVERNAME.tgz
+#RUN_SERVICE=`/bin/sh -c ". ${RUN_SERVICE_CFGFILE} >/dev/null 2>&1; eval \"echo $\"RUN_SERVICE_${SERVERNAME}"`
 
 # overwrite this one ONLY if the COAST_PATH variable points to the wrong place
 #COAST_PATH=config
@@ -58,29 +54,3 @@ PRJ_DESCRIPTION="Coast scripts"
 #  2: Trace detailed statistics
 #  3: Trace unfreed blocks
 #export TRACE_STORAGE=0
-
-# use this function to do preparations prior to creating the distribution package
-# e.g. increment a build number
-#function preDoallFunc {}
-
-# The following variables are used during package generation using MkPckg.sh or the old doall.sh
-# Its values are needed within cpall.sh and control if project-directories and its contents get copied.
-# do we have to copy WDA_BIN/WDS_BIN binary, default 1, otherwise set to 0
-cfg_doBin=1;
-# do we have to copy libraries from COAST_LIBDIR, default 1, otherwise set to 0
-cfg_doLib=1;
-# do we have to copy CONFIGDIR contents, default 1, otherwise set to 0
-cfg_doCfg=1;
-# do we have to create a log directory, default 1, otherwise set to 0
-cfg_doLog=1;
-# do we have to copy Coast scripts into package, default 1, otherwise set to 0
-cfg_doScr=0;
-# define relative destination directory for Coast scripts
-cfg_destScriptDir="";
-# define relative or absolute source directory for Coast scripts
-#cfg_sourceScriptDir=${PROJECTDIR};
-
-############################################################################
-#
-# from here on you can add your own variables which you can use in the
-# project specific prjcopy.sh file for example

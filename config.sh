@@ -1,4 +1,4 @@
-#!/bin/ksh
+#!/bin/sh
 #-----------------------------------------------------------------------------------------------------
 # Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
 # All rights reserved.
@@ -36,7 +36,7 @@ if [ $PRINT_DBG -eq 1 ]; then
 fi
 
 MYNAME=config.sh
-if [ `basename $0` == "config.sh" ]; then
+if [ `basename $0` = "config.sh" ]; then
 	# check if the caller already used an absolute path to start this script
 	DNAM=`dirname $0`
 	if [ -z "${DNAM}" -o "${DNAM}" = "." ]; then
@@ -191,7 +191,7 @@ SetBindir()
 	if [ -z "$BINDIR" ]; then
 		if [ -n "$DEV_HOME" ]; then
 			# we are in development environment
-			if [ "${APP_NAME}" == "wdapp" ]; then
+			if [ "${APP_NAME}" = "wdapp" ]; then
 				# BINDIR not set, use development defaults
 				BINDIR=${DEV_HOME}/wdapp/${OSREL}
 			else
@@ -341,7 +341,6 @@ if [ -z "${SERVERNAME}" ]; then
 	SERVERNAME=$PROJECTNAME
 fi;
 PRJ_DESCRIPTION="$SERVERNAME"
-TARGZNAME=$SERVERNAME.tgz
 
 # in case where we are installing the prjconfig.sh has to be located in the install directory
 if [ ! -f "$CONFIGDIRABS/prjconfig.sh" -a ! -f "$SCRIPTDIR/prjconfig.sh" ]; then
@@ -413,11 +412,11 @@ else
 	fi;
 fi
 
-export BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME COAST_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SCRIPTDIRABS SERVERNAME TARGZNAME COAST_PATH COAST_ROOT
+export BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME COAST_LIBDIR LOGDIR PRJ_DESCRIPTION PROJECTDIR PROJECTDIRABS PROJECTNAME SCRIPTDIR SCRIPTDIRABS SERVERNAME COAST_PATH COAST_ROOT
 
 # for debugging only
 if [ $PRINT_DBG -eq 1 ]; then
-	for varname in PID_FILE BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME DOMAIN LOGDIR ServerMsgLog ServerErrLog OSREL OSREL_MAJOR OSREL_MINOR OSTYPE PATH LD_LIBRARY_PATH PERFTESTDIR PRJCONFIGPATH PRJ_DESCRIPTION PROJECTDIRABS PROJECTDIR PROJECTDIRNT PROJECTNAME RUN_USER RUN_SERVICE SCRIPTDIR SCRIPTDIRABS SERVERNAME PROJECTSRCDIR SYS_TMP TARGZNAME TEST_NAME TEST_EXE USR_TMP COAST_LIBDIR COAST_PATH COAST_ROOT APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS; do
+	for varname in PID_FILE BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS CURSYSTEM HOSTNAME DOMAIN LOGDIR ServerMsgLog ServerErrLog OSREL OSREL_MAJOR OSREL_MINOR OSTYPE PATH LD_LIBRARY_PATH PERFTESTDIR PRJCONFIGPATH PRJ_DESCRIPTION PROJECTDIRABS PROJECTDIR PROJECTDIRNT PROJECTNAME RUN_USER RUN_SERVICE SCRIPTDIR SCRIPTDIRABS SERVERNAME PROJECTSRCDIR SYS_TMP TEST_NAME TEST_EXE USR_TMP COAST_LIBDIR COAST_PATH COAST_ROOT APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS; do
 		locVar="echo $"$varname;
 		printf "%-16s: [%s]\n" $varname "`eval $locVar`"
 	done
