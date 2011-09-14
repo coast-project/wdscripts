@@ -41,9 +41,9 @@ getGLIBCVersion()
 {
 	local versionname=${1};
 	local versep=${2};
-	glibcstr=`strings /lib/libc.so.6 | grep GLIBC_[0-9]\.`;
+	glibcstr=`strings \`find /lib32 /lib /lib64 -name 'libc.so*' 2>/dev/null | head -1\` | grep GLIBC_[0-9]\.`;
 	if [ $? -eq 0 ]; then
-		glibcstr=`strings /lib/libc.so.6 | grep GLIBC_[0-9]\. | sort -r`;
+		glibcstr=`strings \`find /lib32 /lib /lib64 -name 'libc.so*' 2>/dev/null | head -1\` | grep GLIBC_[0-9]\. | sort -r`;
 		# versions found, the highest number should be the first string because of the reverse sort
 		# get the first string and cut away GLIBC_ part
 		local verbase=`echo $glibcstr | cut -d' ' -f 1 | cut -b 7-`;
@@ -51,7 +51,7 @@ getGLIBCVersion()
 		# no version in libc - seems to be quite old and we have to use another method
 		# we know that ld-linux.so.2 is linked to ld-V.V.V.so where V stands for a version number
 		# we simply take this number and use it as the glibc version
-		ldfilename=`ls -l /lib/ld-linux.so.2`;
+		ldfilename=`ls -l \`find /lib32 /lib /lib64 -name 'ld-linux.so*' 2>/dev/null | head -1\``;
 		# just need the real file name of the link and cut away ld- part
 		local verbase=`echo ${ldfilename##* } | cut -b 4-`;
 	fi;
