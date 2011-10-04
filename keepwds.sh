@@ -46,7 +46,7 @@ cfg_handles="-h 1024";
 cfg_dbg=0;
 cfg_errorlog="";
 cfg_syslog="";
-cfg_fullPath=0;
+cfg_fullPath="";
 cfg_coresize="-c 20000";	# default to 10MB
 
 # process config switching options first
@@ -118,7 +118,7 @@ if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 
 startIt()
 {
-	$mypath/startwds.sh $cfg_dbgopt $cfg_toks $cfg_cfgdir $cfg_fullPath $cfg_errorlog $cfg_handles $cfg_syslog $cfg_coresize $cfg_srvopts
+	$mypath/startwds.sh $cfg_dbgopt $cfg_cfgdir $cfg_fullPath $cfg_errorlog $cfg_handles $cfg_syslog $cfg_coresize $cfg_srvopts
 	return $?;
 }
 
@@ -132,7 +132,7 @@ killIt()
 		_killActive=1;
 		# give some time ( 600s ) to terminate
 		printf "%s %s: executing stopwds.sh\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
-		$mypath/stopwds.sh $cfg_dbgopt $cfg_toks $cfg_cfgdir -w 600
+		$mypath/stopwds.sh $cfg_dbgopt $cfg_cfgdir -w 600
 		_stopRetCode=$?;
 		_killActive=0;
 	fi;
