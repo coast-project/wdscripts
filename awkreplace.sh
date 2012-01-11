@@ -51,7 +51,7 @@ while getopts ":r:s:T" opt; do
 		;;
 	esac
 done
-shift $(($OPTIND - 1))
+shift `expr $OPTIND - 1`
 
 # load os-specific settings and functions
 . ${mypath}/sysfuncs.sh

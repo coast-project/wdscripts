@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh
 #-----------------------------------------------------------------------------------------------------
 # Copyright (c) 2011, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
 # All rights reserved.
@@ -14,50 +14,6 @@
 SHORTNAME=`basename $0`
 LONGNAME=`cd \`dirname $0\` && pwd -P`/${SHORTNAME}
 DRY_RUN="";
-
-_add_remote()
-{
-    username=$1
-    project=$2
-
-    echo "No remote set, testing ssh://$username@${gerrithost}:${gerritport}"
-    if ssh -p${gerritport} -o StrictHostKeyChecking=no $username@${gerrithost} gerrit ls-projects >/dev/null 2>&1
-    then
-        echo "$username@${gerrithost}:${gerritport} worked."
-        echo "Creating a git remote called gerrit that maps to:"
-        echo "  ssh://$username@${gerrithost}:${gerritport}/$project"
-        git remote add gerrit ssh://$username@${gerrithost}:${gerritport}/$project
-        return 0
-    fi
-    return 1
-}
-
-_check_remote()
-{
-    if ! git remote | grep gerrit >/dev/null 2>&1
-    then
-        origin_project=`git remote show origin | grep 'Fetch URL' | sed -r -e 's;^[^/]+//([^.:/]+\.)+([^.:/]+)(:[0-9]+)?[/:];;'`
-        if add_remote $USERNAME $origin_project
-        then
-            return 0
-        else
-            echo "Your local name doesn't work on Gerrit."
-            echo -n "Enter Gerrit username: "
-            read gerrit_user
-            if add_remote $gerrit_user $origin_project
-            then
-                return 0
-            else
-                echo "Can't infer where gerrit is - please set a remote named"
-                echo "gerrit manually and then try again."
-                echo
-                echo "For more information, please see:"
-                echo "\t${gerritinfowiki}"
-                exit 1
-            fi
-        fi
-    fi
-}
 
 # new and modified functions
 isFunction() {
@@ -153,7 +109,6 @@ askUserInputWithDefault() {
   varToSetBack="$2";
   question="$3";
   printfTemplate='\n%s\n(press enter to use default [%s]):';
-#  dflt="`getConfigValue \"${key}\" \"${dflt}\"`";
   printf "${printfTemplate}" "${question}" "${dflt}";
   read answer;
   test -n "${answer}" || answer="${dflt}";
@@ -162,7 +117,7 @@ askUserInputWithDefault() {
 
 getKeyDefaultValue() {
   keyname="$1";
-  echo ${keyname} | egrep -q "^CONFIG_KEY(_\w+)+";
+  echo ${keyname} | sed -n -e "s|^\(CONFIG_KEY\(_[A-Z]\{1,\}\)\)|\1|p" >/dev/null 2>&1;
   if [ $? -eq 0 ]; then
     dfltkey="\$${keyname}_DEFAULT";
     dflt=`eval echo $dfltkey`;
@@ -205,25 +160,30 @@ ensureCommitMsgFile() {
   return ${scpCode:-0};
 }
 
-setupGerritHost() {
+getGerritUrl() {
   remoteName=`findGerritRemoteName`;
   dfltUrl="";
   test -n "${remoteName}" && dfltUrl=`getConfigValue "remote.${remoteName}.url"`;
+  echo "${dfltUrl}"
+}
+
+setupGerritHost() {
+  dfltUrl=`getGerritUrl`;
   test -n "${dfltUrl}" && setHostPortProjectFromUrl "${dfltUrl}";
-  askAndSetConfigValue "${CONFIG_KEY_PREFIX}.${CONFIG_KEY_GHOST}" "N" "Please specify your gerrit remote host (without port!)" "`getKeyDefaultValue CONFIG_KEY_GHOST`";
+  askAndSetConfigValue "${CONFIG_KEY_PREFIX}.${CONFIG_KEY_GHOST}" "N" "Please specify your gerrit remote host without port but with optional username@ prefix" "`getKeyDefaultValue CONFIG_KEY_GHOST`";
   askAndSetConfigValue "${CONFIG_KEY_PREFIX}.${CONFIG_KEY_GPORT}" "N" "Please specify your gerrit remote port" "`getKeyDefaultValue CONFIG_KEY_GPORT`";
 }
 
 getProjectNameFromUrl() {
-  echo $1 | sed -E "s/.*\///" | sed -E "s/\.git$//";
+  echo $1 | sed -e "s|.*/||" | sed -e "s|\.git$||";
 }
 
 getPortFromUrl() {
-  echo $1 | sed -E "s/.*:([0-9]*).*/\1/";
+  echo $1 | sed -n -e "s|.*:\([0-9]\{1,5\}\).*|\1|p";
 }
 
 getHostFromUrl() {
-  echo $1 | sed -E "s/ssh:\/\/([^:\/]*).*/\1/";
+  echo $1 | sed -n -e "s|.*://\([^:/]*\).*|\1|p"
 }
 
 setHostPortProjectFromUrl() {
@@ -231,6 +191,35 @@ setHostPortProjectFromUrl() {
   project=`getProjectNameFromUrl $remoteUrlValue`;
   CONFIG_KEY_GPORT_DEFAULT=`getPortFromUrl $remoteUrlValue`;
   CONFIG_KEY_GHOST_DEFAULT=`getHostFromUrl $remoteUrlValue`;
+}
+
+test_remote_access() {
+  dfltUrl=${1:-`getGerritUrl`};
+  test -n "${dfltUrl}" || die "Gerrit remote url is empty, set it up first";
+  gerritport=`getPortFromUrl $dfltUrl`;
+  gerrithost=`getHostFromUrl $dfltUrl`;
+  echo "Testing access to remote ${dfltUrl}";
+  sshoutput=`ssh -p${gerritport} -o StrictHostKeyChecking=no ${gerrithost} gerrit ls-projects 2>&1`;
+  sshcode=$?;
+  if [ $sshcode -eq 0 ]; then
+    echo "Access to $dfltUrl was successful";
+    return 0
+  fi
+  echo "Access to $dfltUrl failed";
+  if [ -n "${sshoutput}" ]; then
+    echo "ssh output:\n[${sshoutput}\n]";
+  fi;
+  cat <<- EOF
+Please check your ssh access to gerrit, maybe you need to use a different username.
+Either the name you specified when setting up gerrit host was not correct or
+the name configured in ~/.ssh/config or your current login name is not accepted.
+The username must match your gerrit username and might be different to your current
+systems login/user name.
+
+You can use this function to test another gerrit url by specifying it as
+argument to the call.
+
+EOF
 }
 
 findGerritRemoteName() {
@@ -259,6 +248,7 @@ setup() {
   setupReviewAlias;
   setupEmail;
   setupGerritHost;
+  test_remote_access;
   setupRebaseForTrackingBranches;
   ensureCommitMsgFile "`getConfigValue \"CONFIG_KEY_GHOST\" \"${CONFIG_KEY_GHOST_DEFAULT}\"`" "`getConfigValue \"CONFIG_KEY_GPORT\" \"${CONFIG_KEY_GPORT_DEFAULT}\"`";
 }
@@ -289,11 +279,11 @@ isLocalBranchBehindRemote() {
 }
 
 hasBranchDiverged() {
-  base=${1};
-  current=${2};
+  base="${1}";
+  current="${2}";
   # check for commits between base and current
   #  current ^base means commits from base to current -> see gitrevisions
-  changes=`git log --oneline --no-decorate ${current} ^${base}`;
+  changes="`git log --oneline --no-decorate ${current} \^${base}`";
   echo "${changes}";
 }
 
@@ -378,7 +368,7 @@ while getopts :nh opt; do
     ;;
   esac;
 done
-shift $((OPTIND -1))
+shift `expr $OPTIND - 1`
 
 CONFIG_KEY_PREFIX=greview
 CONFIG_KEY_ALIAS=review
@@ -394,9 +384,8 @@ project="";
 inGitRepository && defaultsFileToSource="`getGitRepositoryPath`/.gerritdefaults"
 test -r "$defaultsFileToSource" && . "$defaultsFileToSource"
 
-gerriturl='${gerrithost}:${gerritport}'
 givencommand=${1:-usage}
-execfunc=`echo $givencommand | sed s/-/_/g`
+execfunc=`echo $givencommand | sed 's|-|_|g'`
 isFunction $execfunc || die "requested function [$execfunc] (dash replaced) is not defined, check spelling"
 test $# -gt 0 && shift
 echo "calling function [${execfunc}] with arguments [$@]"

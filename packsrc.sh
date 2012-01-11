@@ -97,7 +97,7 @@ while getopts ":c:f:m:n:t:x:X:D" opt; do
 		;;
 	esac
 done
-shift $(($OPTIND - 1))
+shift `expr $OPTIND - 1`
 
 dopath="$@"
 # if no project name is given take the first argument as name

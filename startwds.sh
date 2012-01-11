@@ -113,7 +113,7 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 		;;
 	esac
 done
-shift $(($OPTIND - 1))
+shift `expr $OPTIND - 1`
 
 cfg_srvopts="$@";
 if [ $cfg_dbg -eq 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;

@@ -44,7 +44,7 @@ while getopts ":ap:f:s:" opt; do
                 ;;
         esac
 done
-shift $(($OPTIND - 1))
+shift `expr $OPTIND - 1`
 
 if [ $proc -eq 0 -o -z "${outfile}" ]; then
 	showhelp;
