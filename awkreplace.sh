@@ -12,13 +12,8 @@
 
 MYNAME=`basename $0`
 
-DNAM=`dirname $0`
-if [ "${DNAM}" = "${DNAM#/}" ]; then
-# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
+mypath=`dirname $0`
+test "/" = "`echo ${mypath} | cut -c1`" || mypath=`pwd`/${mypath}
 
 showhelp()
 {
@@ -55,6 +50,11 @@ shift `expr $OPTIND - 1`
 
 # load os-specific settings and functions
 . ${mypath}/sysfuncs.sh
+
+IS_GNUAWK=0;
+FINDEXE="`getFirstValidTool \"/usr/local/bin:/usr/bin:/bin\" gfind find`"
+AWKEXE="`getFirstValidTool \"/usr/local/bin:/usr/bin:/bin\" gawk awk`"
+hasVersionReturn "$AWKEXE" >/dev/null && IS_GNUAWK=1;
 
 # check that we have GNU-awk available, otherways we can not execute the awk script
 if [ $IS_GNUAWK -eq 0 ]; then

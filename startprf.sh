@@ -11,77 +11,72 @@
 #  in a *perftest* directory
 #
 
-MYNAME=`basename $0`
+startprfScriptName=`basename $0`
 
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-	# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
+mypath=`dirname $0`
+test "/" = "`echo ${mypath} | cut -c1`" || mypath=`pwd`/${mypath}
 
 showhelp()
 {
-	locPrjDir=` . $mypath/config.sh >/dev/null 2>&1; echo $PROJECTDIR`;
+	. $mypath/config.sh >/dev/null 2>&1;
+	test -n "${1}" && echo "${1}";
 	echo ''
-	echo 'usage: '$MYNAME' [options] [perftest-params]...'
+	echo 'usage: '$startprfScriptName' [options] -- [perftest-params]...'
 	echo 'where options are:'
-	PrintSwitchHelp
-	echo ' -e <level>  : specify level of error-logging to console, default:4, see below for possible values'
-	echo ' -s <level>  : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
-	echo '                possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5'
-	echo '                the logger will log all levels above or equal the specified value'
-	echo ' -h <num>    : number of file handles to set for the process, default 1024'
-	echo ' -C <cfgdir> : config directory to use within ['$locPrjDir'] directory'
-	echo ' -F          : force starting service even it was disabled by setting RUN_SERVICE=0'
-	echo ' -D          : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	echo ' -c <coresize> : maximum size of core file to produce, in 512Byte blocks!'
+	echo ' -e <level>    : specify level of error-logging to console, default:4, see below for possible values'
+	echo ' -s <level>    : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
+	echo '                  possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5'
+	echo '                  the logger will log all levels above or equal the specified value'
+	echo ' -h <num>      : number of file handles to set for the process, default 1024'
+	echo ' -C <cfgdir>   : config directory to use within ['$PROJECTDIR'] directory'
+	echo ' -F            : force starting service even it was disabled by setting RUN_SERVICE=0'
+	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ''
 	exit 4;
 }
 
 cfg_dbgopt="";
-cfg_handles=1024;
+cfg_cfgdir="";
+cfg_handles="-n 1024";
 cfg_dbg=0;
 cfg_errorlog=0;
 cfg_syslog=0;
-cfg_cfgdir="";
+cfg_coresize="-c 20000";	# default to 10MB
 cfg_forceStart=0;
 
 # process config switching options first
-myPrgOptions=":C:e:s:h:FD"
-ProcessSetConfigOptions "${myPrgOptions}" "$@"
+myPrgOptions=":c:C:e:s:h:F-D"
 OPTIND=1;
 
 # process other command line options
 while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 	case $opt in
 		:)
-			echo "ERROR: -$OPTARG parameter missing, exiting!";
-			showhelp;
+			showhelp "ERROR: -$OPTARG parameter missing, exiting!";
 		;;
 		e)
 			if [ ${OPTARG} -ge 0 2>/dev/null -a ${OPTARG} -le 5 ]; then
 				cfg_errorlog=${OPTARG};
 			else
-				echo "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
-				showhelp;
+				showhelp "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
 			fi
 		;;
 		s)
 			if [ ${OPTARG} -ge 0 -a ${OPTARG} -le 5 ]; then
 				cfg_syslog=${OPTARG};
 			else
-				echo "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
-				showhelp;
+				showhelp "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
 			fi
+		;;
+		c)
+			cfg_coresize="-c "${OPTARG};
 		;;
 		C)
 			cfg_cfgdir=${OPTARG};
 		;;
 		h)
-			cfg_handles=${OPTARG};
+			cfg_handles="-n "${OPTARG};
 		;;
 		F)
 			cfg_forceStart=1;
@@ -91,6 +86,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			cfg_dbgopt="-D";
 			cfg_dbg=1;
 		;;
+		-)
+			break;
+		;;
 		\?)
 			showhelp;
 		;;
@@ -99,82 +97,82 @@ done
 shift `expr $OPTIND - 1`
 
 cfg_srvopts="$@";
+if [ $cfg_dbg -ge 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;
 
-locPERFTESTDIR=`. $mypath/config.sh >/dev/null 2>&1; echo \$PERFTESTDIR`;
-locPROJECTDIR=`. $mypath/config.sh >/dev/null 2>&1; echo \$PROJECTDIR`;
+test $cfg_errorlog -gt 0 && COAST_LOGONCERR=$cfg_errorlog;
+test $cfg_syslog -gt 0 && COAST_DOLOG=$cfg_syslog;
 
-if [ -z "${locPERFTESTDIR}" ]; then
-	echo ''
-	echo 'ERROR: could not locate perftest directory, exiting !'
-	showhelp;
-fi
-
-# load os-specific settings and functions
-. ${mypath}/sysfuncs.sh
-
-if [ -z "$cfg_cfgdir" ]; then
-	# find all config directories and give a selection
-	SearchJoinedDir "tmpCOAST_PATH" "${locPROJECTDIR}/${locPERFTESTDIR}" "a" "config" ":";
-	oldifs="${IFS}";
-	IFS=":";
-	select segname in ${tmpCOAST_PATH}; do
-		IFS=$oldifs;
-		cfg_cfgdir=$segname
-		break;
-	done;
-fi
-
-export COAST_PATH=${locPERFTESTDIR}/${cfg_cfgdir};
-SERVERNAME=${locPERFTESTDIR}
-
-# prepare config switching tokens
-PrepareTokensForCommandline
-
-# switch configuration now to ensure correct settings
-DoSetConfigWithToks
-
-if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;
 . $mypath/config.sh $cfg_dbgopt
 
-# add SERVERNAME to application options as default
-if [ -n "$cfg_srvopts" ]; then
-	cfg_srvopts=$cfg_srvopts" ";
+test -n "${PERFTESTDIR}" || showhelp "ERROR: could not locate perftest directory, exiting !";
+test -d "${cfg_cfgdir}" || cfg_cfgdir="";
+if [ -z "$cfg_cfgdir" ]; then
+	# find all config directories and give a selection
+	pertfTestConfigdir=`SearchJoinedDir "${PROJECTDIR}/${PERFTESTDIR}" "a" "config" ":"`
+	selectInMenu segname ":" "${pertfTestConfigdir}"
+	if [ -n "${segname}" ]; then
+		cfg_cfgdir=$segname
+	fi;
 fi
-cfg_srvopts=${cfg_srvopts}${SERVERNAME};
+
+test -n "${cfg_cfgdir}" || showhelp "ERROR: could not locate config directory within perftest directory [${PERFTESTDIR}], exiting !";
+
+COAST_PATH="`prependPathEx \"${COAST_PATH:-${COAST_PATH}}\" \":\" \"${PERFTESTDIR}/${cfg_cfgdir}\"`";
+SERVERNAME=${PERFTESTDIR}
+SetCOAST_PATH
+
+MYNAME=$startprfScriptName	# used within trapsignalfuncs/serverfuncs for logging
+# source server handling funcs
+. $mypath/serverfuncs.sh
+
+# add SERVERNAME to application options as default
+if [ -z "$cfg_srvopts" ]; then
+	cfg_srvopts=${SERVERNAME};
+fi;
+
+# install signal handlers
+. $mypath/trapsignalfuncs.sh
+
+outmsg="COAST perftest [${SERVERNAME}] with config [${COAST_PATH}]";
 
 # check if we have to execute anything depending on RUN_SERVICE setting
 # -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
-outmsg="coast perftest [${SERVERNAME}] with config [${COAST_PATH}]";
-rc_ServiceDisabled=" => will not execute, because it was disabled (RUN_SERVICE=0)!"
-if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStart} -eq 0 ]; then
-	return=$rc_ServiceDisabled;
-	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
-	printf "%s\n" "${return}" >> ${ServerMsgLog};
-	echo "${outmsg}${return}"
-	echo " -> use -F to override if you are sure what you are doing..."
-	exit 7;
-fi
+test ${cfg_forceStart} -eq 1 || exitIfDisabledService "${outmsg}"
 
 echo ''
 echo '------------------------------------------------------------------------'
-echo $MYNAME' - script to start perftest ['${SERVERNAME}'] with configdir ['${COAST_PATH}']'
+echo $startprfScriptName' - script to start perftest ['${SERVERNAME}'] with configdir ['${COAST_PATH}']'
 echo ''
 
-# set the file handle limit
-ulimit -n $cfg_handles
+LogEnterScript
 
-# enable logging if wanted
-if [ $cfg_errorlog -gt 0 ]; then
-	export COAST_LOGONCERR=$cfg_errorlog;
-fi
-if [ $cfg_syslog -gt 0 ]; then
-	export COAST_DOLOG=$cfg_syslog;
-fi
+myExit()
+{
+	locRetCode=${1:-4};
+	locMessage="${2}";
+	test -n "${locMessage}" && LogScriptMessage "${locMessage}";
+	LogLeaveScript ${locRetCode}
+	exit ${locRetCode};
+}
 
-# start the perftest
-echo ' ---- starting ['$WDA_BIN'] with options ['$cfg_srvopts']'
-echo ''
+sigToSend=15;
+sigToSendName="TERM";
+
+exitproc()
+{
+	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`"
+	myExit $?;
+}
+
+# set some limits
+ulimit $cfg_handles
+ulimit $cfg_coresize
+
+test -n "${WDA_BIN}" || myExit 1 "application WDA_BIN not defined"
+test -x "${WDA_BIN}" || myExit 1 "application [${WDA_BIN}] not executable"
+
+LogScriptMessage "starting ${SERVERNAME} [$WDA_BIN] with options [$cfg_srvopts] on [${HOSTNAME}]";
 $WDA_BIN $cfg_srvopts
 
-# this exit code is needed for scripts starting this one
-exit 0
+myExit 0;

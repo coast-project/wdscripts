@@ -7,25 +7,19 @@
 # the license that is included with this library/application in the file license.txt.
 #-----------------------------------------------------------------------------------------------------
 #
-# starts a wdserver and stores its PID in a file
+# starts a wdapp
 #
 
-MYNAME=`basename $0`
+startwdsScriptName=`basename $0`
 
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-	# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
+mypath=`dirname $0`
+test "/" = "`echo ${mypath} | cut -c1`" || mypath=`pwd`/${mypath}
 
 showhelp()
 {
-	locPrjDir=` . $mypath/config.sh >/dev/null 2>&1; echo $PROJECTDIR`;
+	. $mypath/config.sh >/dev/null 2>&1;
 	echo ''
-	echo 'usage: '$MYNAME' [options] -- [server-params]...'
+	echo 'usage: '$startwdsScriptName' [options] -- [server-params]...'
 	echo 'where options are:'
 	echo ' -c <coresize> : maximum size of core file to produce, in 512Byte blocks!'
 	echo ' -e <level>    : specify level of error-logging to console, default:4, see below for possible values'
@@ -33,10 +27,10 @@ showhelp()
 	echo '                  possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5'
 	echo '                  the logger will log all levels above or equal the specified value'
 	echo ' -h <num>      : number of file handles to set for the process, default 1024'
-	echo ' -C <cfgdir>   : config directory to use within ['$locPrjDir'] directory'
+	echo ' -C <cfgdir>   : config directory to use within ['$PROJECTDIR'] directory'
 	echo ' -F            : force starting service even it was disabled by setting RUN_SERVICE=0'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
-	echo ' -d            : run under debugger control'
+	echo ' -d            : run under debugger control, use a second -d to disable debugging even RUN_ATTACHED_TO_GDB was set to 1'
 	echo ' -P            : print full path to wdapp binary (helps with ps -ef command)'
 	echo ''
 	exit 4;
@@ -49,7 +43,7 @@ cfg_handles="-n 1024";
 cfg_dbg=0;
 cfg_errorlog=0;
 cfg_syslog=0;
-cfg_gdbcommands="";
+swdsGdbBatchfile="";
 cfg_dbgctl=0;
 cfg_coresize="-c 20000";	# default to 10MB
 cfg_forceStart=0;
@@ -100,7 +94,7 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			cfg_dbg=1;
 		;;
 		d)
-			cfg_dbgctl=1;
+			cfg_dbgctl=`expr $cfg_dbgctl + 1`;
 		;;
 		P)
 			cfg_fullPath=1;
@@ -116,104 +110,131 @@ done
 shift `expr $OPTIND - 1`
 
 cfg_srvopts="$@";
-if [ $cfg_dbg -eq 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;
 
-if [ -n "$cfg_cfgdir" ]; then
-	export COAST_PATH=${cfg_cfgdir};
-fi
+test -n "$cfg_cfgdir" && COAST_PATH=${cfg_cfgdir};
+test $cfg_errorlog -gt 0 && COAST_LOGONCERR=$cfg_errorlog;
+test $cfg_syslog -gt 0 && COAST_DOLOG=$cfg_syslog;
 
-if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;
 . $mypath/config.sh $cfg_dbgopt
 
+MYNAME=$startwdsScriptName	# used within trapsignalfuncs/serverfuncs for logging
+# source server handling funcs
+. $mypath/serverfuncs.sh
+
+nologExit()
+{
+	locRetCode=${1:-4};
+	printf "%s\n" "${2}";
+	exit ${locRetCode};
+}
+
+myExit()
+{
+	locRetCode=${1:-4};
+	LogLeaveScript ${locRetCode}
+	exit ${locRetCode};
+}
+
+sigToSend=15;
+sigToSendName="TERM";
+
 if [ $cfg_fullPath -eq 1 ]; then
-        WDA_BIN=$WDA_BINABS;
-        WDS_BIN=$WDS_BINABS;
+	WDS_BIN=$WDS_BINABS;
 fi
 
+if [ -z "${WDS_BIN}" ]; then
+	LogScriptMessage "ERROR: server binary not defined, cannot start!";
+	myExit 1;
+fi;
+
 # add SERVERNAME to application options as default
-if [ -n "$cfg_srvopts" ]; then
-	cfg_srvopts=$cfg_srvopts;
-else
+if [ -z "$cfg_srvopts" ]; then
 	cfg_srvopts=${SERVERNAME};
 fi;
 
-# check if we want to run under control of gdb
-# if you want to use either keepwds.sh or bootScript.sh to start the server, this flag can be set in prjconfig.sh
-if [ ${RUN_ATTACHED_TO_GDB:-0} -eq 1 ]; then
-	cfg_dbgctl=1;
-fi
+test -w `dirname ${ServerMsgLog}` || nologExit 1 "Cannot create/write into ${ServerMsgLog}, please ensure correct settings before continuing!";
+test -w `dirname ${ServerErrLog}` || nologExit 1 "Cannot create/write into ${ServerErrLog}, please ensure correct settings before continuing!";
+
+# install signal handlers
+. $mypath/trapsignalfuncs.sh
+
+exitproc()
+{
+	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`"
+	myExit $?;
+}
+
+outmsg="Starting ${SERVERNAME} server";
 
 # check if we have to execute anything depending on RUN_SERVICE setting
 # -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
-outmsg="Starting coast server: ${SERVERNAME}";
-rc_ServiceDisabled=" => will not execute, because it was disabled (RUN_SERVICE=0)!"
-if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStart} -eq 0 ]; then
-	return=$rc_ServiceDisabled;
-	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
-	printf "%s\n" "${return}" >> ${ServerMsgLog};
-	echo "${outmsg}${return}"
-	echo " -> use -F to override if you are sure what you are doing..."
-	exit 7;
-fi
+test ${cfg_forceStart} -eq 1 || exitIfDisabledService "${outmsg}"
 
-if [ $cfg_dbgctl -eq 1 ]; then
-	cfg_gdbcommands="/tmp/$(basename $0)_$$";
-	generateGdbCommandFile ${cfg_gdbcommands} "${cfg_srvopts}"
-	echo "Generated gdb command file:"
-	cat ${cfg_gdbcommands}
+# check if we want to run under control of gdb
+# if you want to use either keepwds.sh or bootScript.sh to start the server, this flag can be set in prjconfig.sh
+gdbCommand="";
+if [ ${RUN_ATTACHED_TO_GDB:-0} -eq 1 -a $cfg_dbgctl -le 1 -o $cfg_dbgctl -eq 1 ]; then
+	gdbCommand="`findValidGnuToolCommand gdb`";
+	if [ $? -eq 0 ]; then
+		cfg_dbgctl=1
+		swdsGdbBatchfile=`unset TMPDIR ; mktemp -t`;
+		generateGdbCommandFile ${swdsGdbBatchfile} "${WDS_BIN}" 1 "${cfg_srvopts}"
+	else
+		LogScriptMessage "could not find valid gdb executable, starting without gdb!"
+		cfg_dbgctl=0;
+	fi
 fi
 
 echo ''
 echo '------------------------------------------------------------------------'
-echo $MYNAME' - script to start server ['${SERVERNAME}'] on ['${HOSTNAME}']'
+echo $startwdsScriptName' - script to start server ['${SERVERNAME}'] on ['${HOSTNAME}']'
 echo ''
+
+LogEnterScript
 
 # set some limits
 ulimit $cfg_handles
 ulimit $cfg_coresize
 
-# enable logging if wanted
-if [ $cfg_errorlog -gt 0 ]; then
-	export COAST_LOGONCERR=$cfg_errorlog;
-fi
-if [ $cfg_syslog -gt 0 ]; then
-	export COAST_DOLOG=$cfg_syslog;
-fi
-
-printf "%s %s: ---- entering ----\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-prerunscript=./prjprerun.sh
-if [ -x "$prerunscript" ]
-then
-	echo " ---- running (sourcing) local $prerunscript script" | tee -a ${ServerMsgLog};
-	. $prerunscript
+preStartScript=${PROJECTDIRABS}/prjprestart.sh
+test -x $preStartScript || preStartScript=${PROJECTDIRABS}/prjprerun.sh	# deprecated name
+if [ -x "$preStartScript" ]; then
+	echo " ---- running (sourcing) local $preStartScript script" | tee -a ${ServerMsgLog};
+	. $preStartScript
 fi
 
-printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-printf "setting handles to %s and coresize to %s blocks\n" "`echo ${cfg_handles}| cut -d ' ' -f 2`" "`echo ${cfg_coresize} | cut -d ' ' -f 2`" | tee -a ${ServerMsgLog}
-if [ $cfg_dbgctl -eq 0 ]; then
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-	printf "starting %s [%s] with options [%s] on [%s]\n" "${SERVERNAME}" "$WDS_BINABS" "$cfg_srvopts" "${HOSTNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	# start the server process
-	$WDS_BIN $cfg_srvopts 2>> ${ServerErrLog} >> ${ServerMsgLog} &
+LogScriptMessage "setting handles to `echo ${cfg_handles}| cut -d ' ' -f 2` and coresize to `echo ${cfg_coresize} | cut -d ' ' -f 2` blocks"
+if [ $cfg_dbgctl -eq 1 ]; then
+	if [ $cfg_dbg -ge 1 ]; then
+		echo "Generated gdb command file:";
+		cat ${swdsGdbBatchfile};
+	fi;
+	LogScriptMessage "starting ${SERVERNAME} [$WDS_BINABS] using GDB with options [$cfg_srvopts] on [${HOSTNAME}]";
+	eval ${gdbCommand} --batch --command ${swdsGdbBatchfile} 2>> ${ServerErrLog} >> ${ServerMsgLog} &
+	# get server pid and store it in file
+	# -> we can not use $! here as it would either print the pid of gdb or some other script
+	locProcPid=`getServerStatus "dummy" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}"`;
 else
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-	printf "starting %s [%s] using GDB in batch mode with options [%s] on [%s]\n" "${SERVERNAME}" "$WDS_BINABS" "$cfg_srvopts" "${HOSTNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	gdb --batch --command ${cfg_gdbcommands} 2>> ${ServerErrLog} >> ${ServerMsgLog} &
+	LogScriptMessage "starting ${SERVERNAME} [$WDS_BIN] with options [$cfg_srvopts] on [${HOSTNAME}]";
+	$WDS_BIN $cfg_srvopts 2>> ${ServerErrLog} >> ${ServerMsgLog} &
+	locProcPid=$!
 fi
-# this on seems to be simpler to grasp the PID than using ps
-locProcPid=$!
-
-# store the process id from the started process in a file
-echo $locProcPid > $PID_FILE
+test $locProcPid -ne 0 && test -n "${PID_FILE}" && echo $locProcPid > $PID_FILE;
 
 if [ $? -ne 0 ]; then
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-	printf "failed to start process!\n" | tee -a ${ServerMsgLog} ${ServerErrLog};
+	LogScriptMessage "failed to start process!";
 	exit 3
 fi
-printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-printf "started process with pid %s\n" "$locProcPid" | tee -a ${ServerMsgLog} ${ServerErrLog};
+LogScriptMessage "started process with pid $locProcPid";
 
-printf "%s %s: ---- leaving ----\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-# this exit code is needed for scripts starting this one
-exit 0
+postStartScript=${PROJECTDIRABS}/prjpoststart.sh
+test -x $postStartScript || postStartScript=${PROJECTDIRABS}/prjpostrun.sh # deprecated name
+if [ -x "$postStartScript" ]
+then
+	echo " ---- running (sourcing) local $postStartScript script" | tee -a ${ServerMsgLog};
+	. $postStartScript
+fi
+myExit 0;
+

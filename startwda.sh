@@ -10,22 +10,16 @@
 # starts a wdapp
 #
 
-MYNAME=`basename $0`
+startwdaScriptName=`basename $0`
 
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-	# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
+mypath=`dirname $0`
+test "/" = "`echo ${mypath} | cut -c1`" || mypath=`pwd`/${mypath}
 
 showhelp()
 {
-	locPrjDir=` . $mypath/config.sh >/dev/null 2>&1; echo $PROJECTDIR`;
+	. $mypath/config.sh >/dev/null 2>&1;
 	echo ''
-	echo 'usage: '$MYNAME' [options] -- [app-params]...'
+	echo 'usage: '$startwdaScriptName' [options] -- [app-params]...'
 	echo 'where options are:'
 	echo ' -c <coresize> : maximum size of core file to produce, in 512Byte blocks!'
 	echo ' -e <level>    : specify level of error-logging to console, default:4, see below for possible values'
@@ -33,12 +27,11 @@ showhelp()
 	echo '                  possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5'
 	echo '                  the logger will log all levels above or equal the specified value'
 	echo ' -h <num>      : number of file handles to set for the process, default 1024'
-	echo ' -C <cfgdir>   : config directory to use within ['$locPrjDir'] directory'
+	echo ' -C <cfgdir>   : config directory to use within ['$PROJECTDIR'] directory'
 	echo ' -F            : force starting service even it was disabled by setting RUN_SERVICE=0'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
-	echo ' -d            : run under debugger control'
+	echo ' -d            : run under debugger control, use a second -d to disable debugging even RUN_ATTACHED_TO_GDB was set to 1'
 	echo ' -P            : print full path to wdapp binary (helps with ps -ef command)'
-	echo ' -p            : name of application PID file (only needed if PID_FILE does not point to the right place)'
 	echo ''
 	exit 4;
 }
@@ -50,16 +43,14 @@ cfg_handles="-n 1024";
 cfg_dbg=0;
 cfg_errorlog=0;
 cfg_syslog=0;
-cfg_hassrvopts=0;
-cfg_gdbcommands="";
+swdaGdbBatchfile="";
 cfg_dbgctl=0;
 cfg_coresize="-c 20000";	# default to 10MB
-cfg_pidfile="";
 cfg_forceStart=0;
 cfg_fullPath=0;
 
 # process config switching options first
-myPrgOptions=":c:C:de:s:h:p:FP-D"
+myPrgOptions=":c:C:de:s:h:FP-D"
 OPTIND=1;
 
 # process other command line options
@@ -103,16 +94,12 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			cfg_dbg=1;
 		;;
 		d)
-			cfg_dbgctl=1;
+			cfg_dbgctl=`expr $cfg_dbgctl + 1`;
 		;;
 		P)
 			cfg_fullPath=1;
 		;;
-		p)
-			cfg_pidfile=${OPTARG};
-		;;
 		-)
-			cfg_hassrvopts=1;
 			break;
 		;;
 		\?)
@@ -123,82 +110,24 @@ done
 shift `expr $OPTIND - 1`
 
 cfg_srvopts="$@";
-if [ $cfg_dbg -eq 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;
 
-if [ -n "$cfg_cfgdir" ]; then
-	export COAST_PATH=${cfg_cfgdir};
-fi
+test -n "$cfg_cfgdir" && COAST_PATH=${cfg_cfgdir};
+test $cfg_errorlog -gt 0 && COAST_LOGONCERR=$cfg_errorlog;
+test $cfg_syslog -gt 0 && COAST_DOLOG=$cfg_syslog;
 
-if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;
 . $mypath/config.sh $cfg_dbgopt
 
-if [ $cfg_fullPath -eq 1 ]; then
-	WDA_BIN=$WDA_BINABS;
-	WDS_BIN=$WDS_BINABS;
-fi
-
-# add SERVERNAME to application options as default
-if [ -z "$cfg_srvopts" ]; then
-	cfg_srvopts=${SERVERNAME};
-fi
-# Override LOGDIR default when requested to do so
-if [ -z "${cfg_pidfile}" ]
-then
-	cfg_pidfile=${PID_FILE}
-else
-	tmp=${cfg_pidfile}
-	cfg_pidfile=${PROJECTDIR}/${LOGDIR}/${tmp}
-fi
-
-# check if we have to execute anything depending on RUN_SERVICE setting
-# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
-outmsg="Starting coast server: ${SERVERNAME}";
-rc_ServiceDisabled=" => will not execute, because it was disabled (RUN_SERVICE=0)!"
-if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStart} -eq 0 ]; then
-	return=$rc_ServiceDisabled;
-	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
-	printf "%s\n" "${return}" >> ${ServerMsgLog};
-	echo "${outmsg}${return}"
-	echo " -> use -F to override if you are sure what you are doing..."
-	exit 7;
-fi
-
-if [ $cfg_dbgctl -eq 1 ]; then
-	cfg_gdbcommands="/tmp/$(basename $0)_$$";
-	generateGdbCommandFile ${cfg_gdbcommands} "${cfg_srvopts}" 0
-	echo "Generated gdb command file:"
-	cat ${cfg_gdbcommands}
-fi
-
-echo ''
-echo '------------------------------------------------------------------------'
-echo $MYNAME' - script to start application ['${SERVERNAME}'] on ['${HOSTNAME}']'
-echo ''
-
-# install signal handlers
-. $mypath/trapsignalfuncs.sh
-
+MYNAME=$startwdaScriptName	# used within trapsignalfuncs/serverfuncs for logging
 # source server handling funcs
 . $mypath/serverfuncs.sh
 
-LogEnterScript
-
-exitproc()
+nologExit()
 {
-	if [ $locProcPid -ne 0 ]; then
-		sigToSend=15;
-		sigToSendName="TERM";
-		SignalToServer ${sigToSend} "${sigToSendName}" "${locProcPid}" "pidKilled" "${WDS_BIN}"
-		if [ $? -eq 1 -a "${WDS_BIN}" != "${WDS_BINABS}" ]; then
-			# server seems not to be running anymore
-			# -> check for dereferenced binary signature in process list too
-			SignalToServer ${sigToSend} "${sigToSendName}" "${locProcPid}" "pidKilled" "${WDS_BINABS}"
-		fi;
-		if [ $? -eq 0 ]; then
-			WaitOnTermination "${pidKilled}" 60
-		fi
-	fi
-	myExit 0;
+	locRetCode=${1:-4};
+	printf "%s\n" "${2}";
+	exit ${locRetCode};
 }
 
 myExit()
@@ -208,49 +137,100 @@ myExit()
 	exit ${locRetCode};
 }
 
-printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-printf "setting handles to %s and coresize to %s blocks\n" "`echo ${cfg_handles}| cut -d ' ' -f 2`" "`echo ${cfg_coresize} | cut -d ' ' -f 2`" | tee -a ${ServerMsgLog}
-printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-printf "starting %s [%s] with options [%s] on [%s]\n" "${SERVERNAME}" "$WDS_BIN" "$cfg_srvopts" "${HOSTNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
+sigToSend=15;
+sigToSendName="TERM";
+
+if [ $cfg_fullPath -eq 1 ]; then
+	WDA_BIN=$WDA_BINABS;
+fi
+
+if [ -z "${WDA_BIN}" ]; then
+	LogScriptMessage "ERROR: application binary not defined, cannot start!";
+	myExit 1;
+fi;
+
+# add SERVERNAME to application options as default
+if [ -z "$cfg_srvopts" ]; then
+	cfg_srvopts=${SERVERNAME};
+fi;
+
+test -w `dirname ${ServerMsgLog}` || nologExit 1 "Cannot create/write into ${ServerMsgLog}, please ensure correct settings before continuing!";
+test -w `dirname ${ServerErrLog}` || nologExit 1 "Cannot create/write into ${ServerErrLog}, please ensure correct settings before continuing!";
+
+# install signal handlers
+. $mypath/trapsignalfuncs.sh
+
+exitproc()
+{
+	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`"
+	myExit $?;
+}
+
+outmsg="Starting ${SERVERNAME} server";
+
+# check if we have to execute anything depending on RUN_SERVICE setting
+# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
+test ${cfg_forceStart} -eq 1 || exitIfDisabledService "${outmsg}"
+
+# check if we want to run under control of gdb
+# if you want to use either keepwds.sh or bootScript.sh to start the server, this flag can be set in prjconfig.sh
+gdbCommand="";
+if [ ${RUN_ATTACHED_TO_GDB:-0} -eq 1 -a $cfg_dbgctl -le 1 -o $cfg_dbgctl -eq 1 ]; then
+	gdbCommand="`findValidGnuToolCommand gdb`";
+	if [ $? -eq 0 ]; then
+		cfg_dbgctl=1
+		swdaGdbBatchfile=`unset TMPDIR ; mktemp -t`;
+		generateGdbCommandFile ${swdaGdbBatchfile} "${WDA_BIN}" 0 "${cfg_srvopts}"
+	else
+		LogScriptMessage "could not find valid gdb executable, starting without gdb!"
+		cfg_dbgctl=0;
+	fi
+fi
+
+echo ''
+echo '------------------------------------------------------------------------'
+echo $startwdaScriptName' - script to start application ['${SERVERNAME}'] on ['${HOSTNAME}']'
+echo ''
+
+LogEnterScript
+
 # set some limits
 ulimit $cfg_handles
 ulimit $cfg_coresize
 
-# enable logging if wanted
-if [ $cfg_errorlog -gt 0 ]; then
-	export COAST_LOGONCERR=$cfg_errorlog;
-fi
-if [ $cfg_syslog -gt 0 ]; then
-	export COAST_DOLOG=$cfg_syslog;
+preStartScript=${PROJECTDIRABS}/prjprestart.sh
+test -x $preStartScript || preStartScript=${PROJECTDIRABS}/prjprerun.sh # deprecated name
+if [ -x "$preStartScript" ]; then
+	echo " ---- running (sourcing) local $preStartScript script" | tee -a ${ServerMsgLog};
+	. $preStartScript
 fi
 
-# start the app
-prerunscript=./prjprerun.sh
-if [ -x "$prerunscript" ]; then
-	echo " ---- running (sourcing) local $prerunscript script"
-	. $prerunscript
-fi
-if [ $cfg_dbgctl -eq 0 ]; then
+LogScriptMessage "setting handles to `echo ${cfg_handles}| cut -d ' ' -f 2` and coresize to `echo ${cfg_coresize} | cut -d ' ' -f 2` blocks"
+if [ $cfg_dbgctl -eq 1 ]; then
+	if [ $cfg_dbg -ge 1 ]; then
+		echo "Generated gdb command file:";
+		cat ${swdaGdbBatchfile};
+	fi;
+	LogScriptMessage "starting ${SERVERNAME} [$WDA_BIN] using GDB with options [$cfg_srvopts] on [${HOSTNAME}]";
+	eval ${gdbCommand} --command ${swdaGdbBatchfile}
+else
+	LogScriptMessage "starting ${SERVERNAME} [$WDA_BIN] with options [$cfg_srvopts] on [${HOSTNAME}]";
 	$WDA_BIN $cfg_srvopts &
 	locProcPid=$!
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-	printf "started process with pid %s\n" "$locProcPid" | tee -a ${ServerMsgLog};
-	wait
-	# Server has not been stopped by SIGTERM/HUP
-	# Thus if we end up here, the server runs in batch mode to completion.
-	# If it terminated successfully, the PID file has been removed by the server.
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	printf "Checking for application PID file %s \n" "${cfg_pidfile}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	if [ -f "${cfg_pidfile}" ]
-	then
-		printf "WARNING: server %s [%s] (pid:%s) terminated unexpectedly!\n" "${SERVERNAME}" "$WDS_BIN" "$locProcPid" | tee -a ${ServerMsgLog} ${ServerErrLog};
-		myExit 1
-	else
-		printf "server %s on %s with pid(s) %s...done\n" "${SERVERNAME}" "${HOSTNAME}" "${locProcPid}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-		printf "stopped\n" | tee -a ${ServerMsgLog} ${ServerErrLog};
-		myExit 0;
+	test $locProcPid -ne 0 && test -n "${PID_FILE}" && echo $locProcPid > $PID_FILE;
+	if [ $? -ne 0 ]; then
+		LogScriptMessage "failed to start process!";
+		exit 3
 	fi
-else
-	gdb --command ${cfg_gdbcommands}
+	LogScriptMessage "started process with pid $locProcPid";
+	postStartScript=${PROJECTDIRABS}/prjpoststart.sh
+	test -x $postStartScript || postStartScript=${PROJECTDIRABS}/prjpostrun.sh # deprecated name
+	if [ -x "$postStartScript" ]
+	then
+		echo " ---- running (sourcing) local $postStartScript script" | tee -a ${ServerMsgLog};
+		. $postStartScript
+	fi
+	wait
 fi
-myExit 1;
+sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`" 10
+myExit $?;

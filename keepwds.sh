@@ -10,22 +10,16 @@
 # starts the server and tries to keep it alive (in case of a crash)
 #
 
-MYNAME=`basename $0`
+keepScriptName=`basename $0`
 
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-	# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
+mypath=`dirname $0`
+test "/" = "`echo ${mypath} | cut -c1`" || mypath=`pwd`/${mypath}
 
 showhelp()
 {
-	locPrjDir=` . $mypath/config.sh >/dev/null 2>&1; echo $PROJECTDIR`;
+	locPrjDir="${PROJECTDIR:-` . $mypath/config.sh >/dev/null 2>&1; echo $PROJECTDIR`}";
 	echo ''
-	echo 'usage: '$MYNAME' [options] [server-params]...'
+	echo 'usage: '$keepScriptName' [options] [server-params]...'
 	echo 'where options are:'
 	echo ' -c <coresize> : maximum size of core file to produce, in 512Byte blocks!'
 	echo ' -e <level>    : specify level of error-logging to console, default:4, see below for possible values'
@@ -103,38 +97,60 @@ shift `expr $OPTIND - 1`
 cfg_srvopts="$@";
 
 if [ -n "$cfg_cfgdir" ]; then
-	export COAST_PATH=${cfg_cfgdir};
+	COAST_PATH=${cfg_cfgdir};
+	export COAST_PATH;
 	cfg_cfgdir="-C "${cfg_cfgdir};
 fi
 
-if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;
 . $mypath/config.sh $cfg_dbgopt
 
+MYNAME=$keepScriptName	# used within trapsignalfuncs/serverfuncs for logging
 # install signal handlers
 . $mypath/trapsignalfuncs.sh
 
 # source server handling funcs
 . $mypath/serverfuncs.sh
 
+_killActive=0;
+_stopRetCode=0;
+
 startIt()
 {
-	$mypath/startwds.sh $cfg_dbgopt $cfg_cfgdir $cfg_fullPath $cfg_errorlog $cfg_handles $cfg_syslog $cfg_coresize $cfg_srvopts
+	${START_SCRIPT} $cfg_dbgopt $cfg_cfgdir $cfg_fullPath $cfg_errorlog $cfg_handles $cfg_syslog $cfg_coresize $cfg_srvopts
 	return $?;
 }
 
-_killActive=0;
-_stopRetCode=0;
+getPid()
+{
+	echo "`cat $PID_FILE`";
+}
+
 killIt()
 {
-	locPIDs="${1}";
-	printf "%s %s: killactive: %s PID: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${_killActive}" "${locPIDs}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
+	SignalNumber=${1:-15};
+	SignalName="${2:-TERM}";
+	_stopRetCode=1;
 	if [ $_killActive -eq 0 ]; then
 		_killActive=1;
-		# give some time ( 600s ) to terminate
-		printf "%s %s: executing stopwds.sh\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
-		$mypath/stopwds.sh $cfg_dbgopt $cfg_cfgdir -w 600
-		_stopRetCode=$?;
+		locPID=`getServerStatus "${PID_FILE}" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}"`;
+		ServerStatus=$?		# 0: server is alive, dead otherwise
+		if [ $ServerStatus -eq 0 ]; then
+			LogScriptMessage "INFO: stopping server with PID: ${locPID}";
+			killedPids="";
+			SignalToServer ${SignalNumber} "${SignalName}" "${locPID}" "killedPids" "${WDS_BIN}" 2>/dev/null
+			# give some time ( 600s ) to terminate
+			WaitOnTermination 600 ${killedPids}
+			_stopRetCode=$?;
+			test $_stopRetCode -eq 0 && removeFiles ${PID_FILE}
+		else
+			LogScriptMessage "INFO: server has stopped already";
+			_stopRetCode=0;
+			removeFiles ${PID_FILE};
+		fi
 		_killActive=0;
+	else
+		LogScriptMessage "WARNING: function already active, exiting";
 	fi;
 	return $_stopRetCode;
 }
@@ -143,6 +159,8 @@ myExit()
 {
 	locRetCode=${1:-4};
 	LogLeaveScript ${locRetCode}
+	scriptShouldTerminate=1;
+	_killActive=0;
 	exit ${locRetCode};
 }
 
@@ -150,62 +168,63 @@ myExit()
 exitproc()
 {
 	locSigName=${1:-4};
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
-	if [ $cfg_dbg -eq 1 ]; then echo "got SIG${locSigName}"; fi;
-	printf "got SIG%s\n" "${locSigName}" | tee -a ${ServerMsgLog} >> ${ServerErrLog}
-	doRun=0;
-	killIt ${PID};
+	LogScriptMessage "INFO: got SIG${locSigName}";
+	scriptShouldTerminate=1;
+	_killActive=0;
+	killIt;
 	myExit $?;
 }
 
-doRun=1;
+scriptShouldTerminate=0;
 LogEnterScript
 
-printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-printf "PID-Filename is [%s]\n" "$PID_FILE" | tee -a ${ServerMsgLog};
+LogScriptMessage "INFO: PID-Filename is [$PID_FILE]";
 # start server for the first ( and hopefully last time )
 startIt;
 if [ $? -eq 0 ]; then
 	# keep pid information for later usage
-	PID=`cat $PID_FILE`;
-	while [ $doRun -eq 1 ]; do
+	while [ $scriptShouldTerminate -ne 1 ]; do
+		test ${PRINT_DBG} -ge 1 && printf "z";
 		# don't waste too many cycles
-		sleep 10;
+		# -> sleep in an interruptible way by putting it into background and waiting
+		sleep 10&
+		wait $!
+		test ${PRINT_DBG} -ge 1 && LogScriptMessage "DBG: after sleeping";
+		# if we were interrupted by an external signal to kill the server
+		#  we need to skip the loop until the signal is handled
+		# -> otherwise we potentially start the server more than once!
+		test $_killActive -eq 1 && continue;
 		# check if pid still exists
-		checkProcessId "${PID}"
-		if [ $? -eq 0 ]; then
-			printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-			printf "WARNING: server %s [%s] (pid:%s) has gone!\n" "${SERVERNAME}" "$WDS_BIN" "${PID}" | tee -a ${ServerMsgLog}
-			printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-			printf "stopping potentially running processes\n" | tee -a ${ServerMsgLog}
-			killIt "${killPids}";
-			# restart it if it has gone
-			printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-			printf "re-starting server using startwds.sh\n" | tee -a ${ServerMsgLog}
-			startIt;
-			if [ $? -eq 0 ]; then
-				# if it is started again remember the new pid
-				PID=`cat $PID_FILE`;
-			else
-				printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-				printf "ERROR: could not re-start server, exiting\n" | tee -a ${ServerMsgLog}
-				myExit 1;
+		PID=`getServerStatus "${PID_FILE}" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}"`;
+		ServerStatus=$?		# 0: server is alive, dead otherwise
+		if [ $ServerStatus -ne 0 ]; then
+			# double check, in case someone modified PID_FILE in between
+			sleep 1
+			PID=`getServerStatus "${PID_FILE}" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}"`;
+			ServerStatus=$?		# 0: server is alive, dead otherwise
+			if [ $ServerStatus -ne 0 ]; then
+				LogScriptMessage "WARNING: server ${SERVERNAME} [$WDS_BIN] (pid:${PID:-?}) has gone!";
+				# make sure server has gone
+				killIt;
+				killReturnCode=$?
+				test $scriptShouldTerminate -eq 1 && break;
+				# restart it if it has gone
+				LogScriptMessage "INFO: re-starting server";
+				startIt;
+				if [ $? -ne 0 ]; then
+					LogScriptMessage "ERROR: could not re-start server";
+					myExit 1;
+				fi
 			fi
 		fi
 	done
 else
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-	printf "ERROR: could not start server, exiting\n" | tee -a ${ServerMsgLog}
+	LogScriptMessage "ERROR: could not start server";
 	myExit 1;
 fi
 
-# wait until kill has finished
-while [ $_killActive -eq 1 ]; do
-	sleep 1;
-done;
-
-# if killing was not successful, try again
+# if killing was not successful, try hard again
 if [ $_stopRetCode -ne 0 ]; then
-	killIt;
+	killIt 9 "KILL";
 fi;
 myExit 0;

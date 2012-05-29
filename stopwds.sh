@@ -10,24 +10,18 @@
 # stops a running wdserver process, specified by its PID which is stored in a file
 #
 
-MYNAME=`basename $0`
+stopwdsScriptName=`basename $0`
 
-# check if the caller already used an absolute path to start this script
-DNAM=`dirname $0`
-if [ "$DNAM" = "${DNAM#/}" ]; then
-	# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
+mypath=`dirname $0`
+test "/" = "`echo ${mypath} | cut -c1`" || mypath=`pwd`/${mypath}
 
 showhelp()
 {
-	locPrjDir=` . $mypath/config.sh >/dev/null 2>&1; echo $PROJECTDIR`;
+	. $mypath/config.sh >/dev/null 2>&1;
 	echo ''
-	echo 'usage: '$MYNAME' [options]'
+	echo 'usage: '$stopwdsScriptName' [options]'
 	echo 'where options are:'
-	echo ' -C <cfgdir> : config directory to use within ['$locPrjDir'] directory'
+	echo ' -C <cfgdir> : config directory to use within ['$PROJECTDIR'] directory'
 	echo ' -N <process>: name of process to stop/kill, default is (WDS_BIN)'
 	echo ' -U <user>   : name of user the process runs as, default RUN_USER with fallback of USER'
 	echo ' -F          : force stopping service even it was disabled by setting RUN_SERVICE=0'
@@ -85,12 +79,14 @@ done
 shift `expr $OPTIND - 1`
 
 if [ -n "$cfg_cfgdir" ]; then
-	export COAST_PATH=${cfg_cfgdir};
+	COAST_PATH=${cfg_cfgdir};
+	export COAST_PATH
 fi
 
-if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;
 . $mypath/config.sh $cfg_dbgopt
 
+MYNAME=$stopwdsScriptName	# used within trapsignalfuncs/serverfuncs for logging
 # install signal handlers
 . $mypath/trapsignalfuncs.sh
 
@@ -100,73 +96,13 @@ if [ $cfg_dbg -eq 1 ]; then echo ' - sourcing config.sh'; fi;
 myExit()
 {
 	locRetCode=${1:-4};
-	if [ $locRetCode -eq 0 ]; then
-		rm -f $PID_FILE >/dev/null 2>&1;
-		rm -f $runUserFile >/dev/null 2>&1;
-	fi
 	LogLeaveScript ${locRetCode}
 	exit ${locRetCode};
 }
 
-# check if we have to execute anything depending on RUN_SERVICE setting
-# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
-outmsg="Stopping coast server: ${SERVERNAME}";
-rc_ServiceDisabled=" => will not execute, because it was disabled (RUN_SERVICE=0)!"
-if [ -n "${RUN_SERVICE}" -a ${RUN_SERVICE:-1} -eq 0 -a ${cfg_forceStop} -eq 0 ]; then
-	return=$rc_ServiceDisabled;
-	printf "%s %s: %s" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${outmsg}" >> ${ServerMsgLog};
-	printf "%s\n" "${return}" >> ${ServerMsgLog};
-	echo "${outmsg}${return}"
-	echo " -> use -F to override if you are sure what you are doing..."
-	exit 7;
-fi
-
-LogEnterScript
-
-killStep=0;
-locWDS_BIN="${WDS_BIN:-${WDA_BIN:-${cfg_procname}}}";
-locWDS_BINABS="${WDS_BINABS:-${WDA_BINABS:-${cfg_procname}}}";
-runUserFile=${LOGDIR}/.RunUser
-
-if [ -z "${locRunUser}" ]; then
-	if [ -f "${runUserFile}" ]; then
-		locRunUser=`cat ${runUserFile}`;
-	fi;
-	locRunUser="${locRunUser:-${USER}}";
-fi
-if [ -z "${locRunUser}" ]; then
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	printf "name of user the process runs as is empty, still continuing...\n" | tee -a ${ServerMsgLog} ${ServerErrLog};
-fi;
-
-if [ -z "${cfg_procname}" -a -n "${locWDS_BIN}" ]; then
-	if [ $isWindows -eq 1 ]; then
-		# for WIN32 the .exe extension is not shown in the process list, so cut it away
-		locWDS_BIN=${locWDS_BIN%${APP_SUFFIX}};
-		locWDS_BINABS=${locWDS_BINABS%${APP_SUFFIX}};
-	else
-		locWDS_BIN=$locWDS_BIN".*"${SERVERNAME};
-		locWDS_BINABS=$locWDS_BINABS".*"${SERVERNAME};
-	fi;
-fi;
-
-# get pid to send signal to
-# - normally, there is a PID-File which we use to get the signal-handling PID of the process
-#   especially needed on Linux where each thread gets its own process list entry
-sigPids="";
-if [ -f "$PID_FILE" ]; then
-	sigPids="`cat $PID_FILE`";
-fi
-
-if [ -z "${locWDS_BIN}" -a -z "${sigPids}" ]; then
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog};
-	echo " name of process to stop empty (WD[AS]_BIN) and no process id from PID-File given, exiting..." | tee -a ${ServerMsgLog}
-	myExit 6;
-fi;
-
 exitproc()
 {
-	printf "%s %s: got SIG%s " "`date +%Y%m%d%H%M%S`" "${MYNAME}" "$1" | tee -a ${ServerMsgLog}
+	printf "%s %s: got SIG%s " "`date +%Y%m%d%H%M%S`" "${stopwdsScriptName}" "$1" | tee -a ${ServerMsgLog}
 	case $killStep in
 		0) printf "when I was initially checking the process!\n" | tee -a ${ServerMsgLog} ;;
 		1) printf "when I was trying to send a signal to the process!\n" | tee -a ${ServerMsgLog} ;;
@@ -175,33 +111,15 @@ exitproc()
 	myExit 0;
 }
 
-if [ -n "${sigPids}" ]; then
-	checkProcessId "${sigPids}"
-	if [ $? -eq 0 ]; then
-		# server with given pid not alive anymore
-		sigPids="";
-		rm -f $PID_FILE >/dev/null 2>&1;
-	fi
-fi
+outmsg="Stopping ${SERVERNAME} server";
 
-# - fallback is to use the process pids we find in the process list
-procPids="";
-cpRet=1;
-if [ -n "${locWDS_BIN}" ]; then
-	checkProcessWithName "${locWDS_BIN}" "${locRunUser}" procPids
-	cpRet=$?;
-	if [ $cpRet -eq 0 -a "${locWDS_BIN}" != "${locWDS_BINABS}" ]; then
-		checkProcessWithName "${locWDS_BINABS}" "${locRunUser}" procPids
-		cpRet=$?;
-	fi
-fi
-# if the process with the given PID has gone and the process does not appear in within ps, it seems not to be running anymore
-if [ -z "${sigPids}" -a $cpRet -eq 0 ]; then
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	printf "process (%s) not running, exiting\n" "${locWDS_BIN:-?}" | tee -a ${ServerMsgLog} ${ServerErrLog};
-	myExit 7;
-fi
+# check if we have to execute anything depending on RUN_SERVICE setting
+# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
+test ${cfg_forceStop} -eq 1 || exitIfDisabledService "${outmsg}"
 
+LogEnterScript
+
+killStep=0;
 sigToSend=15;
 sigToSendName="TERM";
 if [ ${cfg_hardkill} -eq 1 ]; then
@@ -209,59 +127,6 @@ if [ ${cfg_hardkill} -eq 1 ]; then
 	sigToSendName="KILL";
 fi
 
-sigRet=1;
-# send the signal to the pid from the PID-File first
-if [ -n "${sigPids}" ]; then
-	killStep=1;
-	if [ $cfg_dbg -eq 1 ]; then
-		echo "sending signal to PID (${sigPids}) from PID-File";
-	fi
-	SignalToServer ${sigToSend} "${sigToSendName}" "${sigPids}" "pidKilled" "${locWDS_BIN}"
-	if [ $? -eq 1 -a "${locWDS_BIN}" != "${locWDS_BINABS}" ]; then
-		# server seems not to be running anymore
-		# -> check for dereferenced binary signature in process list too
-		SignalToServer ${sigToSend} "${sigToSendName}" "${sigPids}" "pidKilled" "${locWDS_BINABS}"
-	fi;
-	sigRet=$?
-fi
+sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser \"${locRunUser}\"`" ${cfg_waitcount}
 
-case $sigRet in
-	0)
-		# signal successfully sent, need to wait until terminated
-		killStep=2;
-		WaitOnTermination "${pidKilled}" ${cfg_waitcount}
-		myExit $?;
-	;;
-	1)
-		# no pidfile, or server with given pid disappeared
-		if [ -n "${procPids}" ]; then
-			sigPids="${procPids}";
-			killStep=1;
-			if [ $cfg_dbg -eq 1 ]; then
-				echo "sending signal to PIDs (${sigPids}) of pattern [${locWDS_BIN}]";
-			fi
-			SignalToServer ${sigToSend} "${sigToSendName}" "${sigPids}" "pidKilled" "${locWDS_BIN}"
-			if [ $? -eq 1 -a "${locWDS_BIN}" != "${locWDS_BINABS}" ]; then
-				# server seems not to be running anymore
-				# -> check for dereferenced binary signature in process list too
-				SignalToServer ${sigToSend} "${sigToSendName}" "${sigPids}" "pidKilled" "${locWDS_BINABS}"
-			fi;
-			if [ $? -eq 0 ]; then
-				# signal successfully sent, need to wait until terminated
-				killStep=2;
-				WaitOnTermination "${pidKilled}" ${cfg_waitcount}
-				myExit $?;
-			fi
-		fi
-		# processes already terminated
-		myExit 0;
-	;;
-	2)
-		# processes already terminated
-		myExit 0;
-	;;
-	*)
-		# unhandled case
-		myExit 3;
-	;;
-esac
+myExit $?;

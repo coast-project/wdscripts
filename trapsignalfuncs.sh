@@ -9,6 +9,14 @@
 # trap common signals and redirect to exitproc function which must be defined in outer script
 #
 
+# unset all functions to remove potential definitions
+# generated using $> cat trapsignalfuncs.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
+unset -f exitprocINT
+unset -f exitprocHUP
+unset -f exitprocTERM
+unset -f exitprocKILL
+unset -f exitproc
+
 exitprocINT()
 {
 	exitproc "INT"

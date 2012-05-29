@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/bin/sh
 #-----------------------------------------------------------------------------------------------------
 # Copyright (c) 2006, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
 # All rights reserved.
@@ -62,6 +62,8 @@ fi;
 while true
 do
 	date >> $outfile
+	/usr/proc/bin/pmap $proc >> $outfile
+	echo "============================================================" >> $outfile
 	/usr/proc/bin/pflags $proc >> $outfile
 	echo "------------------------------------------------------------" >> $outfile
 	/usr/proc/bin/pfiles $proc >> $outfile

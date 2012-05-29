@@ -20,7 +20,7 @@
 
 SERVERNAME="wdscripts"
 PRJ_DESCRIPTION="Coast scripts"
-#PID_FILE=$PROJECTDIR/$LOGDIR/$SERVERNAME.PID
+#PID_FILE=$LOGDIRABS/$SERVERNAME.PID
 
 # RUN_USER variable will be used by bootScript.sh to start the server as a different user at boot time or later
 # -> this setting is needed to control the server (start|stop|restart...) by a user different than root
@@ -46,11 +46,11 @@ PRJ_DESCRIPTION="Coast scripts"
 # note: Memory mapped files will always increase the file size by an internally managed blocksize,
 #  on SunOS_5.8, this blocksize seems to be 8192 bytes. If you intend to use a tail -f on these files
 #  you will probably not get what you expect. tail can not handle the reserved - and still unused - space.
-#export COAST_USE_MMAP_STREAMS=0
+#COAST_USE_MMAP_STREAMS=0
 
 # The flag TRACE_STORAGE defines the logging level of memory statistics
 #  0: No pool statistic tracing, except when excess memory was used
 #  1: Trace overall statistics
 #  2: Trace detailed statistics
 #  3: Trace unfreed blocks
-#export TRACE_STORAGE=0
+#COAST_TRACE_STORAGE=0

@@ -10,13 +10,8 @@
 myVersion="$Id$"
 MYNAME=`basename $0`
 
-DNAM=`dirname $0`
-if [ "${DNAM}" = "${DNAM#/}" ]; then
-# non absolute path
-	mypath=`pwd`/$DNAM
-else
-	mypath=$DNAM
-fi
+mypath=`dirname $0`
+test "/" = "`echo ${mypath} | cut -c1`" || mypath=`pwd`/${mypath}
 
 showhelp()
 {
@@ -116,7 +111,8 @@ if [ -z "$dopath" ]; then
 fi
 
 if [ -z "$_mode" ]; then
-	export _mode=2
+	_mode=2
+	export _mode
 fi
 
 if [ "$cfg_dbgopt" = "-D" ]; then
@@ -133,6 +129,12 @@ fi
 
 # load os-specific settings and functions
 . ${mypath}/sysfuncs.sh
+
+IS_GNUFIND=0; IS_GNUAWK=0;
+FINDEXE="`getFirstValidTool \"/usr/local/bin:/usr/bin:/bin\" gfind find`"
+hasVersionReturn "$FINDEXE" >/dev/null && IS_GNUFIND=1;
+AWKEXE="`getFirstValidTool \"/usr/local/bin:/usr/bin:/bin\" gawk awk`"
+hasVersionReturn "$AWKEXE" >/dev/null && IS_GNUAWK=1;
 
 if [ $IS_GNUAWK -eq 0 -o $IS_GNUFIND -eq 0 ]; then
 	echo '';
