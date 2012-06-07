@@ -17,10 +17,8 @@ revs=${2:-"--all"}
 
 commit_filter=$(cat <<- EOF
 if [ ! \$GIT_COMMIT = "$commit_id" ]; then
-	# default case, commit if not empty tree
 	git_commit_non_empty_tree "\$@";
 else
-	# remove commit including pending changes
 	git reset --hard;
 fi;
 EOF
