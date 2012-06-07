@@ -23,8 +23,8 @@ commit_filter=$(cat <<- EOF
 git_commit_non_empty_tree "\$@"
 EOF
 )
-
-cmd="git filter-branch --tag-name-filter cat"
+tmpdir=`mktemp -d`
+cmd="git filter-branch -f -d ${tmpdir} --tag-name-filter cat"
 if [ -n "${index_filter}" ]; then
 	cmd="${cmd} --index-filter '${index_filter}'"
 fi
@@ -35,9 +35,11 @@ echo ${cmd}
 echo "Continue (*y|n)?"
 read yesno
 if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
+  test -d ${tmpdir} && rmdir ${tmpdir};
   exit 3;
 fi
 eval ${cmd}
+test -d ${tmpdir} && rm -rf ${tmpdir};
 
 # remove the temporary history git-filter-branch otherwise leaves behind for a long time
 git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d

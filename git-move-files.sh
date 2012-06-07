@@ -56,7 +56,8 @@ git ls-files -s | sed ${sed_expression} | \
 EOF
 )
 
-cmd="git filter-branch --tag-name-filter cat"
+tmpdir=`mktemp -d`
+cmd="git filter-branch -f -d ${tmpdir} --tag-name-filter cat"
 cmd="${cmd} --index-filter '${index_filter}'"
 cmd="${cmd} -- ${revs}"
 
@@ -64,11 +65,12 @@ echo ${cmd}
 echo "Continue (*y|n)?"
 read yesno
 if [ "$yesno" = "n" -o "$yesno" = "N" ]; then
+  test -d ${tmpdir} && rmdir ${tmpdir};
   exit 3;
 fi
 eval ${cmd}
-
 cmdCode=$?
+test -d ${tmpdir} && rm -rf ${tmpdir};
 echo "retcode of command ${cmdCode}"
 
 if [ ${cmdCode} -eq 0 ]; then
