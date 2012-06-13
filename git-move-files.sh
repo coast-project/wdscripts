@@ -22,17 +22,17 @@ require_work_tree
 
 revs="--all "
 while true; do
-	case "$1" in
-		--dorevs) revs="${revs} $2"; shift 2;;
-		--)	shift; break;;
-		*) break;;
-	esac
+  case "$1" in
+    --dorevs) revs="${revs} $2"; shift 2;;
+    --) shift; break;;
+    *) break;;
+  esac
 done
 
 testeven() {
 if [ $1 -eq 1 ]; then
-	echo "uneven number of search/replace arguments given, exiting!"
-	usage;
+  echo "uneven number of search/replace arguments given, exiting!"
+  usage;
 fi
 }
 
@@ -41,24 +41,27 @@ testeven $#
 sed_expression=""
 
 while [ $# -ge 2 ]; do
-	srch="${1}"
-	repl="${2}"
-	sed_expression="${sed_expression} -e \"s-\t${srch}-\t${repl}-\""
-	shift 2
-	testeven $#
+  srch="${1}"
+  repl="${2}"
+  sed_expression="${sed_expression} -e \"s-\t${srch}-\t${repl}-\""
+  shift 2
+  testeven $#
 done
 
 index_filter=$(cat <<- EOF
 git ls-files -s | sed ${sed_expression} | \
-	GIT_INDEX_FILE=\${GIT_INDEX_FILE}.new \
-	git update-index --index-info &&
-	mv \${GIT_INDEX_FILE}.new \${GIT_INDEX_FILE}
+  GIT_INDEX_FILE=\${GIT_INDEX_FILE}.new \
+  git update-index --index-info &&
+  mv \${GIT_INDEX_FILE}.new \${GIT_INDEX_FILE}
 EOF
 )
 
 tmpdir=`mktemp -d`
 cmd="git filter-branch -f -d ${tmpdir} --tag-name-filter cat"
 cmd="${cmd} --index-filter '${index_filter}'"
+if [ -n "${index_filter}" ]; then
+  cmd="${cmd} --index-filter '${index_filter}'"
+fi
 cmd="${cmd} -- ${revs}"
 
 echo ${cmd}
@@ -71,11 +74,12 @@ fi
 eval ${cmd}
 cmdCode=$?
 test -d ${tmpdir} && rm -rf ${tmpdir};
-echo "retcode of command ${cmdCode}"
+echo "retcode of command ${cmdCode}, 128 can be ignored when using temp directory for filter-branch"
 
-if [ ${cmdCode} -eq 0 ]; then
-	# remove the temporary history git-filter-branch otherwise leaves behind for a long time
-	git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d 2>/dev/null || exit 0
-	git reflog expire --expire=now --all &&  git repack -ad && git gc --aggressive --prune=now
+if [ ${cmdCode} -eq 0 -o ${cmdCode} -eq 128 ]; then
+  # remove the temporary history git-filter-branch otherwise leaves behind for a long time
+  git reset --hard;
+  git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d 2>/dev/null || exit 0
+  git reflog expire --expire=now --all &&  git repack -ad && git gc --aggressive --prune=now
 fi
 

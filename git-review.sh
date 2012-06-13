@@ -140,24 +140,94 @@ setupReviewAlias() {
   askAndSetConfigValue "alias.${CONFIG_KEY_ALIAS}" "Y" "Please confirm setting up a git \"${CONFIG_KEY_ALIAS}\" alias" "`getKeyDefaultValue CONFIG_KEY_ALIAS`";
 }
 
+# this function tries to retrieve the loaction of the git directory
+#  newer version of git create a reference file for submodules instead
+#  of cloning into a .git directory
+getGitDirectory() {
+  baseDir=`getGitRepositoryPath`;
+  gitDirectory="${baseDir}/.git";
+  if [ -f "$gitDirectory" ]; then
+    gitDirectory="${baseDir}/`cat $gitDirectory | sed -n 's|gitdir: || p'`";
+    if [ "$gitDirectory" = "${baseDir}/" ]; then
+      gitDirectory="";
+    else
+      gitDirectory="`cd \"$gitDirectory\" && pwd`";
+    fi
+  fi
+  echo "$gitDirectory";
+}
+
+calcChecksum() {
+  echo "`md5sum ${1} | cut -d' ' -f1`";
+}
+
+# param 1: filename to get date of
+# param 2: optional, date format string, default %Y%m%d%H%M%S
+getDateStampOfFile() {
+  filename="${1}";
+  datestring="${2:-%Y%m%d%H%M%S}";
+  test -r "${filename}" || return;
+  echo "`date --reference="${filename}" +${datestring}`";
+}
+
+# param 1: current filename
+# param 2: additional suffix to renamed file, default nothing
+createLinkToFileWithModDate() {
+  filename="${1}";
+  additionalSuffix="${2}";
+  test -z "$filename" && return;
+  test -h "$filename" -o ! -r "$filename" && return;
+  filedate=`getDateStampOfFile "$filename"`
+  filenameWithModDate="${filename}${additionalSuffix}.${filedate}";
+  suffixnum=0;
+  suffix="";
+  while test -r "${filenameWithModDate}${suffix}"; do
+    suffix=".${suffixnum}";
+    suffixnum=`expr $suffixnum + 1`;
+  done
+  mv "$filename" "${filenameWithModDate}${suffix}" && ln -s "${filenameWithModDate}${suffix}" "$filename"
+}
+
 ensureCommitMsgFile() {
   gerrithost=${1};
   gerritport=${2};
-  baseDir=`getGitRepositoryPath`;
+  test -z "$gerrithost" -o -z "$gerritport" && die "gerrit host and/or port are not setup yet, aborting";
+  gitDirectory="`getGitDirectory`";
+  test -z "$gitDirectory" && die "can not determine git directory, aborting";
   hooksFile="hooks/commit-msg";
-  localFileName="${baseDir}/.git/${hooksFile}";
-  test -x "$localFileName" && return;
-  if [ ! -r "$localFileName" ]; then
-    test -n "${gerritport}" && gerritport="-P ${gerritport}";
-    scpMsg=`scp -q ${gerritport} ${gerrithost}:${hooksFile} ${localFileName} 2>&1`;
-    scpCode=$?;
-  fi;
+  localFileName="${gitDirectory}/${hooksFile}";
+  gerritSuffix=".gerrit";
+  gerritHooksFileName="${gitDirectory}/${hooksFile}${gerritSuffix}";
+  test -n "${gerritport}" && gerritport="-P ${gerritport}";
+  scpMsg=`scp -p -q ${gerritport} ${gerrithost}:${hooksFile} ${gerritHooksFileName} 2>&1`;
+  scpCode=$?;
   if [ -n "${scpMsg}" ]; then
-    echo scp failed with message [$scpMsg];
+    echo "retrieving ${hooksFile} from gerrit failed with message [$scpMsg]";
+    return ${scpCode};
   else
-    chmod +x $localFileName;
+    mustReplace=1;
+    if [ -x "$localFileName" ]; then
+      createLinkToFileWithModDate "${localFileName}" "${gerritSuffix}"
+      oldSum=`calcChecksum "$localFileName"`;
+      newSum=`calcChecksum "${gerritHooksFileName}"`;
+      if [ "$oldSum" != "$newSum" ]; then
+        askYesNoWithDefault "Y" "Found a ${hooksFile} on gerrit (date:`getDateStampOfFile ${gerritHooksFileName}`) which differs (localdate:`getDateStampOfFile ${hooksFile}`),\nshall we replace it?";
+        mustReplace=$?;
+      fi
+    else
+      mustReplace=0;
+    fi;
+    if [ $mustReplace -eq 0 ]; then
+      test -h "$localFileName" && rm "$localFileName";
+      gerritHooksFileNameWithDate="${gerritHooksFileName}.`getDateStampOfFile ${gerritHooksFileName}`";
+      mv "$gerritHooksFileName" "$gerritHooksFileNameWithDate" &&
+        chmod +x "${gerritHooksFileNameWithDate}" &&
+        ln -s "${gerritHooksFileNameWithDate}" "$localFileName";
+    else
+      rm "$gerritHooksFileName";
+    fi
   fi;
-  return ${scpCode:-0};
+  return 0;
 }
 
 getGerritUrl() {
@@ -209,17 +279,18 @@ test_remote_access() {
   if [ -n "${sshoutput}" ]; then
     echo "ssh output:\n[${sshoutput}\n]";
   fi;
-  cat <<- EOF
-Please check your ssh access to gerrit, maybe you need to use a different username.
-Either the name you specified when setting up gerrit host was not correct or
-the name configured in ~/.ssh/config or your current login name is not accepted.
-The username must match your gerrit username and might be different to your current
-systems login/user name.
+cat <<- EOF
+  Please check your ssh access to gerrit, maybe you need to use a different username.
+  Either the name you specified when setting up gerrit host was not correct or
+  the name configured in ~/.ssh/config or your current login name is not accepted.
+  The username must match your gerrit username and might be different to your current
+  systems login/user name.
 
-You can use this function to test another gerrit url by specifying it as
-argument to the call.
+  You can use this function to test another gerrit url by specifying it as
+  argument to the call.
 
 EOF
+  return 1
 }
 
 findGerritRemoteName() {
@@ -244,13 +315,20 @@ setupEmail() {
   askAndSetConfigValue "user.email" "N" "Please verify or set your email" "${currentEmail}";
 }
 
+setupGerrit() {
+  while ! test_remote_access; do
+    setupGerritHost;
+  done;
+  dfltUrl=`getGerritUrl`;
+  test -n "${dfltUrl}" || die "Gerrit remote url is empty, set it up first";
+  ensureCommitMsgFile "`getHostFromUrl $dfltUrl`" "`getPortFromUrl $dfltUrl`";
+}
+
 setup() {
   setupReviewAlias;
   setupEmail;
-  setupGerritHost;
-  test_remote_access;
   setupRebaseForTrackingBranches;
-  ensureCommitMsgFile "`getConfigValue \"CONFIG_KEY_GHOST\" \"${CONFIG_KEY_GHOST_DEFAULT}\"`" "`getConfigValue \"CONFIG_KEY_GPORT\" \"${CONFIG_KEY_GPORT_DEFAULT}\"`";
+  setupGerrit;
 }
 
 show_config() {
@@ -313,8 +391,11 @@ upload() {
   git log --graph --stat ${remoteRef}..;
   remotePrefix="refs/for";
   remoteName=`echo ${remoteRef} | cut -d'/' -f1`;
-  uploadRef=${remotePrefix}/`echo ${remoteRef} | cut -d'/' -f2`/${localBranch};
-#  askUserInputWithDefault "${uploadRef}" "askedValue" "Specify a short tag to append to \"${uploadRef}\" if needed (like ${localBranch})";
+  remoteBranchName=`echo ${remoteRef} | cut -d'/' -f2`;
+  uploadRef=${remotePrefix}/${remoteBranchName}
+  test "${localBranch}" = "master" || uploadRef=${uploadRef}/${localBranch};
+  askUserInputWithDefault "${uploadRef}" "askedValue" "Append upload topic";
+  test -n "${askedValue}" && uploadRef=${uploadRef}/${askedValue}
   uploadcommand="git push ${remoteName} HEAD:${uploadRef}";
   askYesNoWithDefault "Y" "Proceed uploading changes [\"${uploadcommand}\"]" || die "Aborting upload as requested";
   eval "${uploadcommand}";
@@ -322,24 +403,24 @@ upload() {
 
 setupRebaseForTrackingBranches() {
   msg="Setting up rebase for (remote) tracking branches is recommended as it does not
-create unnecessary merge commits when you are behind the (remote) tracking branch.
+  create unnecessary merge commits when you are behind the (remote) tracking branch.
 
-Shall we set";
+  Shall we set";
   key="branch.autosetuprebase"; askedValue="always"; preferGlobal="Y";
   askYesNoWithDefault "Y" "${msg} \"${key}\"=\"${askedValue}\"?" && setGitConfig "${key}" "${askedValue}" "${preferGlobal}";
   msg="To reduce the risk of pushing unwanted changes it is recommended to limit pushing
-the current branch only.
+  the current branch only.
 
-Shall we set";
+  Shall we set";
   key="push.default"; askedValue="tracking"; preferGlobal="Y";
   askYesNoWithDefault "Y" "${msg} \"${key}\"=\"${askedValue}\"?" && setGitConfig "${key}" "${askedValue}" "${preferGlobal}";
-#  msg="make \`git pull\` on $local_branch always use rebase";
-#  key="branch.$local_branch.rebase"; askedValue="true"; preferGlobal="N";
-#  askYesNoWithDefault "Y" "${msg} \"${key}\"=\"${askedValue}\"?" && setGitConfig "${key}" "${askedValue}" "${preferGlobal}";
+  #  msg="make \`git pull\` on $local_branch always use rebase";
+  #  key="branch.$local_branch.rebase"; askedValue="true"; preferGlobal="N";
+  #  askYesNoWithDefault "Y" "${msg} \"${key}\"=\"${askedValue}\"?" && setGitConfig "${key}" "${askedValue}" "${preferGlobal}";
 }
 
 usage() {
-  cat <<EOF
+cat <<EOF
 
 usage: $SHORTNAME [options] [[command] [command-options]]
 
@@ -357,15 +438,15 @@ EOF
 while getopts :nh opt; do
   case $opt in
     n) DRY_RUN='echo DRY_RUN: would execute:\n\t';
-       echo "\n<<< DRY_RUN MODE >>>\n";
-    ;;
+      echo "\n<<< DRY_RUN MODE >>>\n";
+      ;;
     h) # regular help asked
-       usage;
-    ;;
+      usage;
+      ;;
     \?) # catch all rule, introduced by leading ':' in option list
-       test "$OPTARG" = "?" || echo "Invalid option [$OPTARG] specified, aborting";
-       usage;
-    ;;
+      test "$OPTARG" = "?" || echo "Invalid option [$OPTARG] specified, aborting";
+      usage;
+      ;;
   esac;
 done
 shift `expr $OPTIND - 1`
