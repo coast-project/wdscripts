@@ -113,6 +113,7 @@ askUserInputWithDefault() {
   read answer;
   test -n "${answer}" || answer="${dflt}";
   eval ${varToSetBack}="'"${answer}"'";
+  export ${varToSetBack}
 }
 
 getKeyDefaultValue() {
@@ -380,6 +381,23 @@ away before continueing.";
   isLocalBranchBehindRemote && rebaseToRemote;
 }
 
+# param 1: variable to fill
+# param 1: text asked
+askForEmails() {
+  afeVarToSetBack="$1";
+  textToAsk="${2}";
+  emailAddr="";
+  addressesSoFar="";
+  while true; do
+    askUserInputWithDefault "${addressesSoFar}" "emailAddr" "${textToAsk}";
+    test "${emailAddr}" = "X" -o "${emailAddr}" = "x" && break;
+    addressesSoFar="${addressesSoFar} ${emailAddr}";
+    emailAddr="";
+  done
+  eval ${afeVarToSetBack}="'"${addressesSoFar}"'";
+  export ${afeVarToSetBack}
+}
+
 upload() {
   # test preconditions we need for uploading
   rebase;
@@ -394,9 +412,11 @@ upload() {
   remoteBranchName=`echo ${remoteRef} | cut -d'/' -f2`;
   uploadRef=${remotePrefix}/${remoteBranchName}
   test "${localBranch}" = "master" || uploadRef=${uploadRef}/${localBranch};
-  askUserInputWithDefault "${uploadRef}" "askedValue" "Append upload topic";
-  test -n "${askedValue}" && uploadRef=${uploadRef}/${askedValue}
-  uploadcommand="git push ${remoteName} HEAD:${uploadRef}";
+  askUserInputWithDefault "${uploadRef}" "uploadRefInput" "Append upload topic";
+  test "${uploadRefInput}" != "${uploadRef}" && uploadRef=${uploadRef}/${uploadRefInput}
+  askForEmails "receivepackOptions" "Optionally specify --reviewer= or --cc= email addresses, x to exit";
+  test -n "${receivepackOptions}" && receivepackOptions="--receive-pack='git receive-pack ${receivepackOptions}'";
+  uploadcommand="git push ${receivepackOptions} ${remoteName} HEAD:${uploadRef}";
   askYesNoWithDefault "Y" "Proceed uploading changes [\"${uploadcommand}\"]" || die "Aborting upload as requested";
   eval "${uploadcommand}";
 }
