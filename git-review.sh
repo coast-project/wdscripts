@@ -390,7 +390,7 @@ askForEmails() {
   addressesSoFar="";
   while true; do
     askUserInputWithDefault "${addressesSoFar}" "emailAddr" "${textToAsk}";
-    test "${emailAddr}" = "X" -o "${emailAddr}" = "x" && break;
+    test "${emailAddr}" = "${addressesSoFar}" && break;
     addressesSoFar="${addressesSoFar} ${emailAddr}";
     emailAddr="";
   done
@@ -414,7 +414,7 @@ upload() {
   test "${localBranch}" = "master" || uploadRef=${uploadRef}/${localBranch};
   askUserInputWithDefault "${uploadRef}" "uploadRefInput" "Append upload topic";
   test "${uploadRefInput}" != "${uploadRef}" && uploadRef=${uploadRef}/${uploadRefInput}
-  askForEmails "receivepackOptions" "Optionally specify --reviewer= or --cc= email addresses, x to exit";
+  askForEmails "receivepackOptions" "Optionally specify --reviewer= or --cc= email addresses";
   test -n "${receivepackOptions}" && receivepackOptions="--receive-pack='git receive-pack ${receivepackOptions}'";
   uploadcommand="git push ${receivepackOptions} ${remoteName} HEAD:${uploadRef}";
   askYesNoWithDefault "Y" "Proceed uploading changes [\"${uploadcommand}\"]" || die "Aborting upload as requested";
