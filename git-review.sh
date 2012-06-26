@@ -357,6 +357,13 @@ isLocalBranchBehindRemote() {
   test -n "`hasBranchDiverged ${localBranch} ${remoteRef}`";
 }
 
+isLocalBranchAheadOfRemote() {
+  # check if there are changes to be uploaded
+  remoteRef=`getRemoteRef`;
+  localBranch=`getLocalBranch`;
+  test -n "`hasBranchDiverged ${remoteRef} ${localBranch}`"
+}
+
 hasBranchDiverged() {
   base="${1}";
   current="${2}";
@@ -402,9 +409,7 @@ upload() {
   # test preconditions we need for uploading
   rebase;
   # check if there are changes to be uploaded
-  remoteRef=`getRemoteRef`;
-  localBranch=`getLocalBranch`;
-  test -n "`hasBranchDiverged ${remoteRef} ${localBranch}`" || die "No changes against ${remoteRef} detected, nothing to upload, aborting";
+  isLocalBranchAheadOfRemote || die "No changes against ${remoteRef} detected, nothing to upload, aborting";
   # show what will be uploaded
   git log --graph --stat ${remoteRef}..;
   remotePrefix="refs/for";
