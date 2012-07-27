@@ -415,8 +415,9 @@ upload() {
   remotePrefix="refs/for";
   remoteName=`echo ${remoteRef} | cut -d'/' -f1`;
   remoteBranchName=`echo ${remoteRef} | cut -d'/' -f2`;
+  localBranch=`getLocalBranch`;
   uploadRef=${remotePrefix}/${remoteBranchName}
-  test "${localBranch}" = "master" || uploadRef=${uploadRef}/${localBranch};
+  test "${localBranch}" = "${remoteBranchName}" || uploadRef=${uploadRef}/${localBranch};
   askUserInputWithDefault "${uploadRef}" "uploadRefInput" "Append upload topic";
   test "${uploadRefInput}" != "${uploadRef}" && uploadRef=${uploadRef}/${uploadRefInput}
   askForEmails "receivepackOptions" "Optionally specify --reviewer= or --cc= email addresses";
