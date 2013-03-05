@@ -43,7 +43,7 @@ sed_expression=""
 while [ $# -ge 2 ]; do
   srch="${1}"
   repl="${2}"
-  sed_expression="${sed_expression} -e \"s-\t${srch}-\t${repl}-\""
+  sed_expression="${sed_expression} -e \"s|\t${srch}|\t${repl}|\""
   shift 2
   testeven $#
 done
