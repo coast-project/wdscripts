@@ -105,15 +105,15 @@ getGLIBCVersion()
 {
 	versep=${1:-.};
 	ggvLsBinary=`unalias ls 2>/dev/null; which ls`;
-	glibcstr=`strings \`find /lib32 /lib /lib64 -name 'libc.so*' 2>/dev/null | head -1\` | grep GLIBC_[0-9]\.`;
+	glibcstr=`strings \`find /lib* -follow -name 'libc.so*' 2>/dev/null | head -1\` | grep GLIBC_[0-9]\.`;
 	if [ $? -eq 0 ]; then
 		# versions found, the highest number should be the first string because of the reverse sort
-		verbase=`strings \`find /lib32 /lib /lib64 -name 'libc.so*' 2>/dev/null | head -1\` | sed -n 's|.*GLIBC_\([0-9]\)\.\([0-9][0-9]*\)\.*\([0-9][0-9]*\)*|\1.\2.\3|p' | sort -t. -n -k1,1 -k2,2 -k3,3 | tail -1`;
+		verbase=`strings \`find /lib* -follow -name 'libc.so*' 2>/dev/null | head -1\` | sed -n 's|.*GLIBC_\([0-9]\)\.\([0-9][0-9]*\)\.*\([0-9][0-9]*\)*|\1.\2.\3|p' | sort -t. -n -k1,1 -k2,2 -k3,3 | tail -1`;
 	else
 		# no version in libc - seems to be quite old and we have to use another method
 		# we know that ld-linux.so.2 is linked to ld-V.V.V.so where V stands for a version number
 		# we simply take this number and use it as the glibc version
-		ldfilename=`${ggvLsBinary} -l \`find /lib32 /lib /lib64 -name 'ld-[0-9]*.so*' 2>/dev/null | head -1\``;
+		ldfilename=`${ggvLsBinary} -l \`find /lib* -follow -name 'ld-[0-9]*.so*' 2>/dev/null | head -1\``;
 		# just need the real file name of the link and cut away ld- part
 		verbase=`echo ${ldfilename} | sed -e 's|.*ld-||' -e 's|.so||'`;
 	fi;
