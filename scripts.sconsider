@@ -1,28 +1,30 @@
-import os, pdb
+from pkg_resources import require as pkg_require
+pkg_require(["SConsider<0.5"])
 import SConsider
+import os
 from stat import *
 
 Import('*')
 
 buildSettings = {
-    packagename : {
-        'targetType'       : 'CopyFiles',
-        'copyFiles' : [
+    packagename: {
+        'targetType': 'CopyFiles',
+        'copyFiles': [
             (SConsider.listFiles(['bootScript.sh',
-                                 'config.sh',
-                                 'keepwds.sh',
-                                 'pstackwrapper.sh',
-                                 'serverfuncs.sh',
-                                 'SoftRestart.sh',
-                                 'startprf.sh',
-                                 'startwda.sh',
-                                 'startwds.sh',
-                                 'stopwds.sh',
-                                 'sysfuncs.sh',
-                                 'trapsignalfuncs.sh',
-                                 ]), S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR),
+                                  'config.sh',
+                                  'keepwds.sh',
+                                  'pstackwrapper.sh',
+                                  'serverfuncs.sh',
+                                  'SoftRestart.sh',
+                                  'startprf.sh',
+                                  'startwda.sh',
+                                  'startwds.sh',
+                                  'stopwds.sh',
+                                  'sysfuncs.sh',
+                                  'trapsignalfuncs.sh',
+                                  ]), S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR),
         ],
-        'appendUnique'     : { 'RELTARGETDIR' : os.path.join('globals', packagename, 'scripts') },
+        'appendUnique': {'RELTARGETDIR': os.path.join('globals', packagename, 'scripts')},
     },
 }
 
