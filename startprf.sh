@@ -32,21 +32,24 @@ showhelp()
 	echo ' -C <cfgdir>   : config directory to use within ['$PROJECTDIR'] directory'
 	echo ' -F            : force starting service even it was disabled by setting RUN_SERVICE=0'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
+	echo ' -P            : print full path to wdapp binary (helps with ps -ef command)'
 	echo ''
 	exit 4;
 }
 
+locProcPid=0;
 cfg_dbgopt="";
 cfg_cfgdir="";
-cfg_handles="-n 1024";
+cfg_handles="1024";
 cfg_dbg=0;
 cfg_errorlog=0;
 cfg_syslog=0;
-cfg_coresize="-c 20000";	# default to 10MB
+cfg_coresize="20000";
 cfg_forceStart=0;
+cfg_fullPath=0;
 
 # process config switching options first
-myPrgOptions=":c:C:e:s:h:F-D"
+myPrgOptions=":c:C:e:s:h:FP-D"
 OPTIND=1;
 
 # process other command line options
@@ -70,13 +73,13 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			fi
 		;;
 		c)
-			cfg_coresize="-c "${OPTARG};
+			cfg_coresize="${OPTARG}";
 		;;
 		C)
 			cfg_cfgdir=${OPTARG};
 		;;
 		h)
-			cfg_handles="-n "${OPTARG};
+			cfg_handles="${OPTARG}";
 		;;
 		F)
 			cfg_forceStart=1;
@@ -85,6 +88,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			# propagating this option to config.sh
 			cfg_dbgopt="-D";
 			cfg_dbg=1;
+		;;
+		P)
+			cfg_fullPath=1;
 		;;
 		-)
 			break;
@@ -126,15 +132,51 @@ MYNAME=$startprfScriptName	# used within trapsignalfuncs/serverfuncs for logging
 # source server handling funcs
 . $mypath/serverfuncs.sh
 
+nologExit()
+{
+	locRetCode=${1:-4};
+	printf "%s\n" "${2}";
+	exit ${locRetCode};
+}
+
+myExit()
+{
+	locRetCode=${1:-4};
+	LogLeaveScript ${locRetCode}
+	exit ${locRetCode};
+}
+
+sigToSend=15;
+sigToSendName="TERM";
+
+if [ $cfg_fullPath -eq 1 ]; then
+	WDA_BIN=$WDA_BINABS;
+fi
+
+if [ -z "${WDA_BIN}" ]; then
+	LogScriptMessage "ERROR: application binary not defined, cannot start!";
+	myExit 1;
+fi;
+test -x "${WDA_BIN}" || myExit 1 "application [${WDA_BIN}] not executable"
+
 # add SERVERNAME to application options as default
 if [ -z "$cfg_srvopts" ]; then
 	cfg_srvopts=${SERVERNAME};
 fi;
 
+test -w `dirname ${ServerMsgLog}` || nologExit 1 "Cannot create/write into ${ServerMsgLog}, please ensure correct settings before continuing!";
+test -w `dirname ${ServerErrLog}` || nologExit 1 "Cannot create/write into ${ServerErrLog}, please ensure correct settings before continuing!";
+
 # install signal handlers
 . $mypath/trapsignalfuncs.sh
 
-outmsg="COAST perftest [${SERVERNAME}] with config [${COAST_PATH}]";
+exitproc()
+{
+	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`"
+	myExit $?;
+}
+
+outmsg="Starting perftest [${SERVERNAME}] with config [${COAST_PATH}]";
 
 # check if we have to execute anything depending on RUN_SERVICE setting
 # -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
@@ -147,32 +189,20 @@ echo ''
 
 LogEnterScript
 
-myExit()
-{
-	locRetCode=${1:-4};
-	locMessage="${2}";
-	test -n "${locMessage}" && LogScriptMessage "${locMessage}";
-	LogLeaveScript ${locRetCode}
-	exit ${locRetCode};
-}
-
-sigToSend=15;
-sigToSendName="TERM";
-
-exitproc()
-{
-	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`"
-	myExit $?;
-}
-
 # set some limits
-ulimit $cfg_handles
-ulimit $cfg_coresize
+ulimit -n ${cfg_handles:=1024}
+ulimit -c ${cfg_coresize:=20000}
 
-test -n "${WDA_BIN}" || myExit 1 "application WDA_BIN not defined"
-test -x "${WDA_BIN}" || myExit 1 "application [${WDA_BIN}] not executable"
-
+LogScriptMessage "setting handles to $cfg_handles and coresize to $cfg_coresize blocks"
 LogScriptMessage "starting ${SERVERNAME} [$WDA_BIN] with options [$cfg_srvopts] on [${HOSTNAME}]";
-$WDA_BIN $cfg_srvopts
-
-myExit 0;
+$WDA_BIN $cfg_srvopts &
+locProcPid=$!
+test $locProcPid -ne 0 && test -n "${PID_FILE}" && echo $locProcPid > $PID_FILE;
+if [ $? -ne 0 ]; then
+	LogScriptMessage "failed to start process!";
+	exit 3
+fi
+LogScriptMessage "started process with pid $locProcPid";
+wait
+sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`" 10
+myExit $?;

@@ -36,12 +36,12 @@ showhelp()
 
 cfg_dbgopt="";
 cfg_cfgdir="";
-cfg_handles="-h 1024";
+cfg_handles="1024";
 cfg_dbg=0;
 cfg_errorlog="";
 cfg_syslog="";
 cfg_fullPath="";
-cfg_coresize="-c 20000";	# default to 10MB
+cfg_coresize="20000";
 
 # process config switching options first
 myPrgOptions=":c:e:s:h:C:PD"
@@ -51,7 +51,7 @@ OPTIND=1;
 while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 	case $opt in
 		c)
-			cfg_coresize="-c "${OPTARG};
+			cfg_coresize="${OPTARG}";
 		;;
 		:)
 			echo "ERROR: -$OPTARG parameter missing, exiting!";
@@ -74,7 +74,7 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			fi
 		;;
 		h)
-			cfg_handles="-h "${OPTARG};
+			cfg_handles="${OPTARG}";
 		;;
 		C)
 			cfg_cfgdir=${OPTARG};
@@ -117,7 +117,10 @@ _stopRetCode=0;
 
 startIt()
 {
-	${START_SCRIPT} $cfg_dbgopt $cfg_cfgdir $cfg_fullPath $cfg_errorlog $cfg_handles $cfg_syslog $cfg_coresize $cfg_srvopts
+	${START_SCRIPT} $cfg_dbgopt $cfg_cfgdir $cfg_fullPath \
+		-h ${cfg_handles:-1024} -c ${cfg_coresize:-20000} \
+		$cfg_errorlog $cfg_syslog \
+		$cfg_srvopts
 	return $?;
 }
 

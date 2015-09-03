@@ -11,7 +11,7 @@
 
 ############################################################################
 #
-# In this ection you should only adjust but NOT remove any of the given variables
+# In this section you should only adjust but NOT remove any of the given variables
 # because these are used from within other scripts
 #
 
@@ -48,7 +48,7 @@ PRJ_DESCRIPTION="Coast scripts"
 #  you will probably not get what you expect. tail can not handle the reserved - and still unused - space.
 #COAST_USE_MMAP_STREAMS=0
 
-# The flag TRACE_STORAGE defines the logging level of memory statistics
+# The flag COAST_TRACE_STORAGE defines the logging level of memory statistics
 #  0: No pool statistic tracing, except when excess memory was used
 #  1: Trace overall statistics
 #  2: Trace detailed statistics

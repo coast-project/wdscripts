@@ -39,13 +39,13 @@ showhelp()
 locProcPid=0;
 cfg_dbgopt="";
 cfg_cfgdir="";
-cfg_handles="-n 1024";
+cfg_handles="1024";
 cfg_dbg=0;
 cfg_errorlog=0;
 cfg_syslog=0;
 swdsGdbBatchfile="";
 cfg_dbgctl=0;
-cfg_coresize="-c 20000";	# default to 10MB
+cfg_coresize="20000";
 cfg_forceStart=0;
 cfg_fullPath=0;
 
@@ -77,13 +77,13 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			fi
 		;;
 		c)
-			cfg_coresize="-c "${OPTARG};
+			cfg_coresize="${OPTARG}";
 		;;
 		C)
 			cfg_cfgdir=${OPTARG};
 		;;
 		h)
-			cfg_handles="-n "${OPTARG};
+			cfg_handles="${OPTARG}";
 		;;
 		F)
 			cfg_forceStart=1;
@@ -195,8 +195,8 @@ echo ''
 LogEnterScript
 
 # set some limits
-ulimit $cfg_handles
-ulimit $cfg_coresize
+ulimit -n ${cfg_handles:=1024}
+ulimit -c ${cfg_coresize:=20000}
 
 preStartScript=${PROJECTDIRABS}/prjprestart.sh
 test -x $preStartScript || preStartScript=${PROJECTDIRABS}/prjprerun.sh	# deprecated name
@@ -205,7 +205,7 @@ if [ -x "$preStartScript" ]; then
 	. $preStartScript
 fi
 
-LogScriptMessage "setting handles to `echo ${cfg_handles}| cut -d ' ' -f 2` and coresize to `echo ${cfg_coresize} | cut -d ' ' -f 2` blocks"
+LogScriptMessage "setting handles to $cfg_handles and coresize to $cfg_coresize blocks"
 if [ $cfg_dbgctl -eq 1 ]; then
 	if [ $cfg_dbg -ge 1 ]; then
 		echo "Generated gdb command file:";
