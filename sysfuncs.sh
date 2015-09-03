@@ -15,6 +15,7 @@ PRINT_DBG=${PRINT_DBG:-0};
 # generated using $> cat sysfuncs.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
 unset -f getConfigVar
 unset -f getEnvVarFromFile
+unset -f getGLIBCVersionFallback
 unset -f getGLIBCVersion
 unset -f makeAbsPath
 unset -f ensureTrailingSlash
@@ -101,31 +102,52 @@ getEnvVarFromFile()
 # param 1: is the versionnumber separator
 #
 # output exporting version into given name ($1)
-getGLIBCVersion()
+getGLIBCVersionFallback()
 {
 	versep=${1:-.};
 	ggvLsBinary=`unalias ls 2>/dev/null; which ls`;
-	glibcstr=`strings \`find /lib* -follow -name 'libc.so*' 2>/dev/null | head -1\` | grep GLIBC_[0-9]\.`;
+	glibcstr=`strings \`find /lib* -follow -mount -name 'libc.so*' 2>/dev/null | head -1\` | grep GLIBC_[0-9]\.`;
+	verbase=""
 	if [ $? -eq 0 ]; then
 		# versions found, the highest number should be the first string because of the reverse sort
-		verbase=`strings \`find /lib* -follow -name 'libc.so*' 2>/dev/null | head -1\` | sed -n 's|.*GLIBC_\([0-9]\)\.\([0-9][0-9]*\)\.*\([0-9][0-9]*\)*|\1.\2.\3|p' | sort -t. -n -k1,1 -k2,2 -k3,3 | tail -1`;
+		verbase=`strings \`find /lib* -follow -mount -name 'libc.so*' 2>/dev/null | head -1\` | sed -n 's|.*GLIBC_\([0-9]\)\.\([0-9][0-9]*\)\.*\([0-9][0-9]*\)*|\1.\2.\3|p' | sort -t. -n -k1,1 -k2,2 -k3,3 | tail -1`;
 	else
 		# no version in libc - seems to be quite old and we have to use another method
 		# we know that ld-linux.so.2 is linked to ld-V.V.V.so where V stands for a version number
 		# we simply take this number and use it as the glibc version
-		ldfilename=`${ggvLsBinary} -l \`find /lib* -follow -name 'ld-[0-9]*.so*' 2>/dev/null | head -1\``;
+		ldfilename=`${ggvLsBinary} -l \`find /lib* -follow -mount -name 'ld-[0-9]*.so*' 2>/dev/null | head -1\``;
 		# just need the real file name of the link and cut away ld- part
 		verbase=`echo ${ldfilename} | sed -e 's|.*ld-||' -e 's|.so||'`;
 	fi;
 	# lets get the numbers
-	V1=`echo $verbase | cut -d'.' -f 1`;
-	V2=`echo $verbase | cut -d'.' -f 2`;
-	V3=`echo $verbase | cut -d'.' -f 3`;
+	V1=$(cut -d'.' -f1 <<<$verbase);
+	V2=$(cut -d'.' -f2 <<<$verbase);
+	V3=$(cut -d'.' -f3 <<<$verbase);
 	ptmp=$V1$versep$V2;
 	if [ -n "$V3" ]; then
 		ptmp=$ptmp$versep$V3;
 	fi;
 	echo "${ptmp}";
+}
+
+getGLIBCVersion()
+{
+	versep=${1:-.};
+	glibcstr="$(ldd --version 2>/dev/null | sed -rn '/libc/I { s|^[^0-9.]*([0-9]+\.[0-9]+[0-9.]*).*$|\1|p }' 2>/dev/null)"
+	ptmp="";
+	if [ -n "$glibcstr" ]; then
+		# lets get the numbers
+		V1=$(cut -d'.' -f1 <<<$glibcstr);
+		V2=$(cut -d'.' -f2 <<<$glibcstr);
+		V3=$(cut -d'.' -f3 <<<$glibcstr);
+		ptmp=$V1$versep$V2;
+		if [ -n "$V3" ]; then
+			ptmp=$ptmp$versep$V3;
+		fi;
+		echo "$ptmp";
+	else
+		getGLIBCVersionFallback
+	fi;
 }
 
 # extend given directory name into absolute path
