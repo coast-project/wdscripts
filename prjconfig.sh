@@ -54,3 +54,18 @@ PRJ_DESCRIPTION="Coast scripts"
 #  2: Trace detailed statistics
 #  3: Trace unfreed blocks
 #COAST_TRACE_STORAGE=0
+
+# COAST_DOLOG controls the level of severities shown in the syslog. See below for possible values.
+# 1: DEBUG
+# 2: INFO
+# 3: WARNING
+# 4: ERROR
+# 5: ALERT
+# All messages with a severity above or equal the specified value will log onto the appropriate channel.
+#COAST_DOLOG=5
+
+# COAST_LOGONCERR controls the level of severities shown on the console. See above for possible values.
+#COAST_LOGONCERR=4
+
+#Enabling COAST_LOGONCERR_WITH_TIMESTAMP will prepend a timestamp to all messages logged to the console.
+#COAST_LOGONCERR_WITH_TIMESTAMP=1
