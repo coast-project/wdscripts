@@ -68,7 +68,7 @@ do
 	echo "------------------------------------------------------------" >> $outfile
 	/usr/proc/bin/pfiles $proc >> $outfile
 	echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" >> $outfile
-	which c++filt >/dev/null 2>&1;
+	type -fP c++filt >/dev/null 2>&1;
 	if [ $? -eq 0 ]; then
 		/usr/proc/bin/pstack $proc | c++filt >> $outfile
 	else

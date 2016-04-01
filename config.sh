@@ -46,7 +46,7 @@ done
 
 if [ -z "${scdir}" -o "${scdir}" = "." ]; then
 	scdir=`find . -follow -name $configScriptName 2>/dev/null | head -1 | tr -d '\n'`
-	test -z "${scdir}" && scdir="`which $configScriptName`"
+	test -z "${scdir}" && scdir="`type -fP $configScriptName`"
 	test -n "${scdir}" && scdir="`cd \`dirname $scdir\` && pwd`";
 fi
 SCRIPTDIR=`cd $scdir && pwd`

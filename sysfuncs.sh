@@ -105,7 +105,7 @@ getEnvVarFromFile()
 getGLIBCVersionFallback()
 {
 	versep=${1:-.};
-	ggvLsBinary=`unalias ls 2>/dev/null; which ls`;
+	ggvLsBinary=`unalias ls 2>/dev/null; type -fP ls`;
 	glibcstr=`strings \`find /lib* -follow -mount -name 'libc.so*' 2>/dev/null | head -1\` | grep GLIBC_[0-9]\.`;
 	verbase=""
 	if [ $? -eq 0 ]; then
@@ -1155,7 +1155,7 @@ deref_links()
 	loc_name=${1};
 	is_link=1;
 	cur_path=`pwd`
-	dlLsBinary=`unalias ls 2>/dev/null; which ls`;
+	dlLsBinary=`unalias ls 2>/dev/null; type -fP ls`;
 	while [ -h "$loc_name" ]; do
 		if [ $PRINT_DBG -ge 2 ]; then printf $loc_name >&2; fi
 		loc_name=`${dlLsBinary} -l $loc_name | cut -d'>' -f2- | cut -d' ' -f2- | sed 's|/$||'`;

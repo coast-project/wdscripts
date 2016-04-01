@@ -84,7 +84,7 @@ checkProcessWithName()
 	else
 		cpwnCompareUserRE="${cpwnRunUser}";
 	fi
-	cpwnLsBinary=`unalias ls 2>/dev/null; which ls`;
+	cpwnLsBinary=`unalias ls 2>/dev/null; type -fP ls`;
 	cpwnDirCandidates="`${cpwnLsBinary} ${cpwnLsUserArgument} /proc 2>/dev/null | sed -n -e \"s|^[^ ]* *[^ ]* *${cpwnCompareUserRE} .* \([^ ]*\)\$|/proc/\1|p\"`";
 	for processBaseDir in ${cpwnDirCandidates}; do
 		for cwdCand in $processBaseDir/path/cwd $processBaseDir/cwd; do
