@@ -88,13 +88,13 @@ getConfigVar()
 # output retrieved value or default echoed
 getEnvVarFromFile()
 {
-  toEval="echo \$"$1;
-  configFile=$2;
-  varvalue=$3;
-  if [ -n "${configFile}" -a -r ${configFile} ]; then
-	varvalue=`/bin/sh -c ". ${configFile} >/dev/null 2>&1; eval $toEval"`
-  fi
-  echo "$varvalue"
+	toEval="echo \$"$1;
+	configFile=$2;
+	varvalue=$3;
+	if [ -n "${configFile}" -a -r ${configFile} ]; then
+		varvalue=`/bin/sh -c ". ${configFile} >/dev/null 2>&1; eval $toEval"`
+	fi
+	echo "$varvalue"
 }
 
 # retrieve the glibc version number from /lib/libc.so.6 or /lib/ld-linux.so.2
@@ -1104,16 +1104,29 @@ cat > ${ggcfBatchFile} <<-EOF
 EOF
 	if [ $ggcfRunInBackground -eq 1 ]; then
 cat >> ${ggcfBatchFile} <<-EOF
-    set pagination 0
+	set pagination 0
 	run
-	! echo "\`date +'%Y%m%d%H%M%S'\`: ========== GDB backtrace =========="
-    backtrace full
-    info registers
-    x/16i \$pc
-    thread apply all backtrace
-	continue
-	shell rm ${ggcfBatchFile}
-	quit
+	if \$_isvoid(\$_siginfo)
+		shell rm ${ggcfBatchFile}
+		if \$_isvoid(\$_exitcode)
+			set \$_exitcode=0
+		end
+		quit \$_exitcode
+	else
+		! echo "\`date +'%Y%m%d%H%M%S'\`: ========== GDB backtrace =========="
+		backtrace full
+		info registers
+		x/16i \$pc
+		thread apply all backtrace
+		if !\$_isvoid(\$_siginfo)
+			set \$_exitcode=\$_siginfo.si_signo
+		end
+		if \$_isvoid(\$_exitcode)
+			set \$_exitcode=55
+		end
+		shell rm ${ggcfBatchFile}
+		quit \$_exitcode
+	end
 EOF
 	fi;
 }
