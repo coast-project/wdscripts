@@ -1,0 +1,41 @@
+image: marcelhuberfoo/arch-build-coast:latest
+
+variables:
+  MY_SCONSTRUCT_LOCATION: $CI_PROJECT_DIR/../SConstruct
+  MY_PACKAGE_DIR: /tmp/package
+  MY_SCONS_DEBUGLOG_YML: $CI_PROJECT_DIR/debuglog.yml
+
+before_script:
+- sudo pacman -Syy --noconfirm bash-bats
+- echo -e "from pkg_resources import require as pkg_require\\npkg_require([\"SConsider<0.5\"])\\nimport SConsider\\n" >$MY_SCONSTRUCT_LOCATION
+- 'echo -e "version: 1\\nformatters:\\n  simple:\\n    format: \"%(asctime)s - %(name)s - %(levelname)s - %(message)s\"\\nhandlers:\\n  console:\\n    class: logging.StreamHandler\\n    level: DEBUG\\n    formatter: simple\\n    stream: ext://sys.stdout\\nloggers:\\n  simpleExample:\\n    level: DEBUG\\n    handlers: [console]\\n    propagate: no\\nroot:\\n  level: DEBUG\\n  handlers: [console]\\n" >$MY_SCONS_DEBUGLOG_YML'
+
+#build:
+#  stage: build
+#  tags:
+#  - docker
+#  script:
+#  - tox2 -l
+
+test:
+  stage: test
+  tags:
+  - docker
+  variables:
+  artifacts:
+    paths:
+  script:
+  - tox2
+
+deploy:
+  stage: deploy
+  tags:
+  - docker
+  variables:
+    MY_PACKAGE_DIR: $CI_PROJECT_DIR/package
+  only:
+  - tags
+  - triggers
+  dependencies:
+  script:
+  - tox2 -e deploy
