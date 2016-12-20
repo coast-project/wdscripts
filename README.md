@@ -1,4 +1,4 @@
-## [COAST](ifs/coast) supporting scripts
+## [COAST](https:/ifs/coast/) supporting scripts
 
 * starting/stopping servers
 * repository tools
