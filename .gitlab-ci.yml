@@ -14,6 +14,8 @@ default:
     entrypoint: ["/entrypoint.sh", "gosu", "docky"]
   before_script:
   - echo "Running as user [$(id -u)] on hostname [$(hostname)]"
+  - python -V               # Print out python version for debugging
+  - type -fP tox || pip install tox
   - sudo apt update
   - sudo apt install --no-install-recommends --yes --quiet bats
   - echo -e "from pkg_resources import require as pkg_require\\npkg_require([\"SConsider<0.5\"])\\nimport SConsider\\n" >$MY_SCONSTRUCT_LOCATION
@@ -24,7 +26,7 @@ default:
 #  tags:
 #  - docker
 #  script:
-#  - tox2 -l
+#  - tox -l
 
 test:
   stage: test
