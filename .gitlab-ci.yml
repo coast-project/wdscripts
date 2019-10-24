@@ -1,5 +1,5 @@
 variables:
-  MY_SCONSTRUCT_LOCATION: $CI_PROJECT_DIR/../SConstruct
+  MY_SCONSTRUCT_LOCATION: $CI_PROJECT_DIR/SConstruct
   MY_PACKAGE_DIR: /tmp/package
   MY_SCONS_DEBUGLOG_YML: $CI_PROJECT_DIR/debuglog.yml
 
