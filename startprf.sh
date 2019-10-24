@@ -28,6 +28,7 @@ showhelp()
 	echo ' -s <level>    : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
 	echo '                  possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5'
 	echo '                  the logger will log all levels above or equal the specified value'
+	echo ' -t            : prepend console logs with a timestamp'
 	echo ' -h <num>      : number of file handles to set for the process, default 1024'
 	echo ' -C <cfgdir>   : config directory to use within ['$PROJECTDIR'] directory'
 	echo ' -F            : force starting service even it was disabled by setting RUN_SERVICE=0'
@@ -44,12 +45,13 @@ cfg_handles="1024";
 cfg_dbg=0;
 cfg_errorlog=0;
 cfg_syslog=0;
+cfg_logtimestamp=0;
 cfg_coresize="20000";
 cfg_forceStart=0;
 cfg_fullPath=0;
 
 # process config switching options first
-myPrgOptions=":c:C:e:s:h:FP-D"
+myPrgOptions=":c:C:e:s:th:FP-D"
 OPTIND=1;
 
 # process other command line options
@@ -71,6 +73,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 			else
 				showhelp "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
 			fi
+		;;
+		t)
+			cfg_logtimestamp=1;
 		;;
 		c)
 			cfg_coresize="${OPTARG}";
@@ -106,6 +111,7 @@ cfg_srvopts="$@";
 if [ $cfg_dbg -ge 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;
 
 test $cfg_errorlog -gt 0 && COAST_LOGONCERR=$cfg_errorlog;
+test $cfg_logtimestamp -gt 0 && COAST_LOGONCERR_WITH_TIMESTAMP=1;
 test $cfg_syslog -gt 0 && COAST_DOLOG=$cfg_syslog;
 
 if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;

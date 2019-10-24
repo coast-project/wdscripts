@@ -1,31 +1,65 @@
-from pkg_resources import require as pkg_require
-pkg_require(["SConsider<0.5"])
-import SConsider
+# vim: set et ai ts=4 sw=4:
+# -------------------------------------------------------------------------
+# Copyright (c) 2010, Peter Sommerlad and IFS Institute for Software
+# at HSR Rapperswil, Switzerland
+# All rights reserved.
+#
+# This library/application is free software; you can redistribute and/or
+# modify it under the terms of the license that is included with this
+# library/application in the file license.txt.
+# -------------------------------------------------------------------------
+
+import pkg_resources
+pkg_resources.require(["SConsider"])
+from SomeUtils import listFiles
 import os
 from stat import *
-
 Import('*')
 
-buildSettings = {
-    packagename: {
-        'targetType': 'CopyFiles',
-        'copyFiles': [
-            (SConsider.listFiles(['bootScript.sh',
-                                  'config.sh',
-                                  'keepwds.sh',
-                                  'pstackwrapper.sh',
-                                  'serverfuncs.sh',
-                                  'SoftRestart.sh',
-                                  'startprf.sh',
-                                  'startwda.sh',
-                                  'startwds.sh',
-                                  'stopwds.sh',
-                                  'sysfuncs.sh',
-                                  'trapsignalfuncs.sh',
-                                  ]), S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR),
-        ],
-        'appendUnique': {'RELTARGETDIR': os.path.join('globals', packagename, 'scripts')},
-    },
-}
+sources = ['bootScript.sh',
+           'config.sh',
+           'keepwds.sh',
+           'pstackwrapper.sh',
+           'serverfuncs.sh',
+           'SoftRestart.sh',
+           'startprf.sh',
+           'startwda.sh',
+           'startwds.sh',
+           'stopwds.sh',
+           'sysfuncs.sh',
+           'trapsignalfuncs.sh', ]
 
-SConsider.createTargets(packagename, buildSettings)
+_sconsider_dist = pkg_resources.get_distribution("SConsider").parsed_version
+if _sconsider_dist < pkg_resources.parse_version("0.5"):
+    from SConsider import createTargets
+    buildSettings = {
+        packagename: {
+            'targetType': 'CopyFiles',
+            'copyFiles': [
+                (listFiles(sources), S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR),
+            ],
+            'appendUnique':
+            {'RELTARGETDIR': os.path.join('globals', packagename, 'scripts')},
+        },
+    }
+
+    createTargets(packagename, buildSettings)
+elif _sconsider_dist >= pkg_resources.parse_version("0.5"):
+    import os
+    from TargetMaker import EnvBuilder
+    from TargetHelpers import createCopyFilesTarget
+    reltargetdir = os.path.join('globals', packagename, 'scripts')
+
+    def setRelTargetDir(env):
+        env.setRelativeTargetDirectory(reltargetdir)
+
+    copyFiles = [(listFiles(sources), S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR), ]
+    copyTarget = createCopyFilesTarget(
+        packagename,
+        'configfiles',
+        lambda env: env.getTargetBaseInstallDir(),
+        copyFiles,
+        pkg_local=[setRelTargetDir])
+
+    EnvBuilder().depend(copyTarget).build().RegisterPackageTarget(packagename,
+                                                                  packagename)
