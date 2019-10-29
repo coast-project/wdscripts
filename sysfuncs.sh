@@ -1180,7 +1180,7 @@ if [ ${SYSFUNCSLOADED} -eq 0 ]; then
 
 	# it seems that some shells do not set the USER variable but the variable LOGNAME
 	if [ -z "${USER}" ]; then
-		echo 'setting USER variable to ['$LOGNAME']'
+		if [ $PRINT_DBG -ge 1 ]; then echo 'setting USER variable to ['$LOGNAME']'; fi
 		USER=${LOGNAME}
 		sysfuncsExportvars="$sysfuncsExportvars USER"
 	fi
