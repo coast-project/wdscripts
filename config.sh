@@ -396,7 +396,7 @@ export $variablesToExport
 
 # for debugging only
 if [ $PRINT_DBG -ge 1 ]; then
-	variablesToPrint="$sysfuncsExportvars $variablesToExport ServerMsgLog ServerErrLog PATH LD_LIBRARY_PATH RUN_ATTACHED_TO_GDB RUN_USER RUN_SERVICE APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS"
+	variablesToPrint="$sysfuncsExportvars $variablesToExport ServerMsgLog ServerErrLog PATH LD_LIBRARY_PATH RUN_ATTACHED_TO_GDB RUN_USER RUN_SERVICE RUN_SERVICE_CFGFILE APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS"
 	variablesToPrint="`echo $variablesToPrint | tr ' ' '\n' | sort | uniq | tr '\n' ' '`"
 	for varname in $variablesToPrint; do
 		printEnvVar ${varname};

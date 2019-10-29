@@ -24,7 +24,7 @@ showhelp()
 	echo ' -C <cfgdir> : config directory to use within ['$PROJECTDIR'] directory'
 	echo ' -N <process>: name of process to stop/kill, default is (WDS_BIN)'
 	echo ' -U <user>   : name of user the process runs as, default RUN_USER with fallback of USER'
-	echo ' -F          : force stopping service even it was disabled by setting RUN_SERVICE=0'
+	echo ' -F          : force stopping service even it was disabled by setting RUN_SERVICE=0, deprecated!'
 	echo ' -D          : print debugging information of scripts, sets PRINT_DBG variable to 1'
 	echo ' -w <count>  : seconds to wait on server termination, default count=60'
 	echo ' -K          : force kill server, ignoring server instance token'
@@ -112,10 +112,6 @@ exitproc()
 }
 
 outmsg="Stopping ${SERVERNAME} server";
-
-# check if we have to execute anything depending on RUN_SERVICE setting
-# -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
-test ${cfg_forceStop} -eq 1 || exitIfDisabledService "${outmsg}"
 
 LogEnterScript
 
