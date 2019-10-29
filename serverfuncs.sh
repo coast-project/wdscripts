@@ -112,7 +112,7 @@ checkProcessWithName()
 				for cpwnCmdLineTry in "$processBaseDir/psinfo" "$processBaseDir/cmdline"; do
 					test -r "${cpwnCmdLineTry}" || continue;
 					# only use the last part (basename) of the command
-					cpwnCmdArgsMatched="`cat ${cpwnCmdLineTry} 2>/dev/null| tr '\0' ' ' | tr -d '[:cntrl:]' | grep -c \"\`basename ${cpwnBinName}\` ${cpwnProcessArguments}\"`";
+					cpwnCmdArgsMatched="`cat ${cpwnCmdLineTry} 2>/dev/null| tr '\0' ' ' | tr -d '[:cntrl:]' | grep -c \"\`basename ${cpwnBinName:-/}\` ${cpwnProcessArguments}\"`";
 					# test if the command argument matched
 					test -n "${cpwnCmdArgsMatched}" || continue;
 				done
@@ -125,7 +125,7 @@ checkProcessWithName()
 				# linux: fd entries link to files directly, mode can not be used to distinguish between files and special devices
 				# solaris: fd entries are used to lookup within /proc/*/path/, mode (not link and executable) can be used
 				for fdCand in ${processBaseDir}/fd/*; do
-					test ! -h "${fdCand}" && test -x "${fdCand}" && fdCand="${workingDir}/`basename ${fdCand}`";
+					test ! -h "${fdCand}" && test -x "${fdCand}" && fdCand="${workingDir}/`basename ${fdCand:-/}`";
 					cpwnProcessPath=`${cpwnLsBinary} -l $fdCand 2>/dev/null| cut -d'>' -f2- | cut -d' ' -f2-`;
 					cpwnProcessPath="`echo $cpwnProcessPath | sed -n \"\|.*${cpwnBinName}.*|p\"`";
 					# check if script matched
@@ -140,7 +140,7 @@ checkProcessWithName()
 			test -n "${cpwnProcessPath}" || continue;
 			# almost done, is an argument match mandatory or not?
 			if [ ${cpwnArgumentMatchMandatory} -eq 0 -o -n "${cpwnCmdArgsMatched}" ]; then
-				echo "`basename ${processBaseDir}`";
+				echo "`basename ${processBaseDir:-/}`";
 				return $cpwnSuccess;
 			fi
 		done; # cwdCand
