@@ -16,10 +16,9 @@ default:
   - echo "Running as user [$(id -u)] on hostname [$(hostname)]"
   - python -V               # Print out python version for debugging
   - type -fP tox || pip install tox
+  - tox --version
   - sudo apt update
   - sudo apt install --no-install-recommends --yes --quiet bats
-  - echo -e "from pkg_resources import require as pkg_require\\npkg_require([\"SConsider<0.5\"])\\nimport SConsider\\n" >$MY_SCONSTRUCT_LOCATION
-  - 'echo -e "version: 1\\nformatters:\\n  simple:\\n    format: \"%(asctime)s - %(name)s - %(levelname)s - %(message)s\"\\nhandlers:\\n  console:\\n    class: logging.StreamHandler\\n    level: DEBUG\\n    formatter: simple\\n    stream: ext://sys.stdout\\nloggers:\\n  simpleExample:\\n    level: DEBUG\\n    handlers: [console]\\n    propagate: no\\nroot:\\n  level: DEBUG\\n  handlers: [console]\\n" >$MY_SCONS_DEBUGLOG_YML'
 
 #build:
 #  stage: build
