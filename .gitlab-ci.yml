@@ -16,6 +16,7 @@ default:
   - echo "Running as user [$(id -u)] on hostname [$(hostname)]"
   - python -V               # Print out python version for debugging
   - type -fP tox || pip install tox
+  - tox --version
   - sudo apt update
   - sudo apt install --no-install-recommends --yes --quiet bats
 
