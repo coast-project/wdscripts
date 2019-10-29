@@ -83,8 +83,8 @@ fi
 
 SetupLogDir()
 {
-	LOGDIR=`relpath "${LOGDIR}" "${PROJECTDIRABS}"`;
-	LOGDIRABS=`makeAbsPath "${LOGDIR}"`
+	LOGDIR=`relpath "${LOGDIR:-.}" "${PROJECTDIRABS}"`;
+	LOGDIRABS=`makeAbsPath "${LOGDIR:-.}"`
 }
 
 SetCOAST_PATH()
@@ -184,7 +184,7 @@ SetupLDPath()
 	fi
 	valueOfLdVar="echo $"${locLdPathVar};
 	valueOfLdVar="`eval $valueOfLdVar`";
-	valueOfLdVar="`deleteFromPathEx \"${valueOfLdVar}\" \":\" \"${COAST_LIBDIR:-${WD_LIBDIR}}\"`"
+	valueOfLdVar="`deleteFromPathEx \"${valueOfLdVar}\" \":\" \"${COAST_LIBDIR:-${WD_LIBDIR:-.}}\"`"
 	locBinPath="";
 	locLastBinPath="";
 	sldpProcessedBins="";
@@ -206,7 +206,7 @@ SetupLDPath()
 		fi;
 	done;
 	valueOfLdVar="`cleanPathEx \"${valueOfLdVar}\" \":\"`"
-	valueOfLdVar="`prependPathEx \"${valueOfLdVar}\" \":\" \"${COAST_LIBDIR:-${WD_LIBDIR}}\"`"
+	valueOfLdVar="`prependPathEx \"${valueOfLdVar}\" \":\" \"${COAST_LIBDIR:-${WD_LIBDIR:-.}}\"`"
 	if [ $PRINT_DBG -ge 2 ]; then
 		echo "${locLdPathVar} is now [${valueOfLdVar}]"
 	fi;
@@ -370,13 +370,13 @@ else
 fi
 WD_ROOT=$COAST_ROOT
 
-KEEP_SCRIPT=${SCRIPTDIR}/keepwds.sh;
-START_SCRIPT=${SCRIPTDIR}/startwds.sh;
-STOP_SCRIPT=${SCRIPTDIR}/stopwds.sh;
-KEEPPIDFILE=${LOGDIRABS}/.$SERVERNAME.keepwds.pid
-RUNUSERFILE=${LOGDIRABS}/.RunUser
+KEEP_SCRIPT=${SCRIPTDIR:-.}/keepwds.sh;
+START_SCRIPT=${SCRIPTDIR:-.}/startwds.sh;
+STOP_SCRIPT=${SCRIPTDIR:-.}/stopwds.sh;
+KEEPPIDFILE=${LOGDIRABS:-.}/.$SERVERNAME.keepwds.pid
+RUNUSERFILE=${LOGDIRABS:-.}/.RunUser
 
-versionFile=$CONFIGDIRABS/Version.any
+versionFile=${CONFIGDIRABS:-.}/Version.any
 PROJECTVERSION=""
 if [ -f $versionFile ]; then
 	VERSIONFILE=$versionFile;
