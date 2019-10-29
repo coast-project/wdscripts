@@ -376,11 +376,15 @@ STOP_SCRIPT=${SCRIPTDIR:-.}/stopwds.sh;
 KEEPPIDFILE=${LOGDIRABS:-.}/.$SERVERNAME.keepwds.pid
 RUNUSERFILE=${LOGDIRABS:-.}/.RunUser
 
-versionFile=${CONFIGDIRABS:-.}/Version.any
+versionFileAny=${CONFIGDIRABS:-.}/Version.any
+versionFile=${CONFIGDIRABS:-.}/VERSION
 PROJECTVERSION=""
-if [ -f $versionFile ]; then
+if [ -f $versionFileAny ]; then
+	VERSIONFILE=$versionFileAny;
+	PROJECTVERSION="`sed -n 's/^.*Release[ \t]*//p' $versionFileAny | tr -d '\"\t '`.`sed -n 's/^.*Build[ \t]*//p' $versionFileAny | tr -d '\"\t '`"
+elif [ -f $versionFile ]; then
 	VERSIONFILE=$versionFile;
-	PROJECTVERSION="`sed -n 's/^.*Release[ \t]*//p' $versionFile | tr -d '\"\t '`.`sed -n 's/^.*Build[ \t]*//p' $versionFile | tr -d '\"\t '`"
+	PROJECTVERSION="`cat $versionFile`"
 fi
 
 test -n "COAST_DOLOG" && WD_DOLOG=${COAST_DOLOG}
