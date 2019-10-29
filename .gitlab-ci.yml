@@ -1,21 +1,31 @@
-image: marcelhuberfoo/arch-build-coast:latest
-
 variables:
-  MY_SCONSTRUCT_LOCATION: $CI_PROJECT_DIR/../SConstruct
+  MY_SCONSTRUCT_LOCATION: $CI_PROJECT_DIR/SConstruct
   MY_PACKAGE_DIR: /tmp/package
   MY_SCONS_DEBUGLOG_YML: $CI_PROJECT_DIR/debuglog.yml
 
-before_script:
-- sudo pacman -Syy --noconfirm bash-bats
-- echo -e "from pkg_resources import require as pkg_require\\npkg_require([\"SConsider<0.5\"])\\nimport SConsider\\n" >$MY_SCONSTRUCT_LOCATION
-- 'echo -e "version: 1\\nformatters:\\n  simple:\\n    format: \"%(asctime)s - %(name)s - %(levelname)s - %(message)s\"\\nhandlers:\\n  console:\\n    class: logging.StreamHandler\\n    level: DEBUG\\n    formatter: simple\\n    stream: ext://sys.stdout\\nloggers:\\n  simpleExample:\\n    level: DEBUG\\n    handlers: [console]\\n    propagate: no\\nroot:\\n  level: DEBUG\\n  handlers: [console]\\n" >$MY_SCONS_DEBUGLOG_YML'
+# Pip's cache doesn't store the python packages
+# https://pip.pypa.io/en/stable/reference/pip_install/#caching
+#
+# If you want to also cache the installed packages, you have to install
+# them in a virtualenv and cache it as well.
+default:
+  image:
+    name: instituteforsoftware/coast-build:latest
+    entrypoint: ["/entrypoint.sh", "gosu", "docky"]
+  before_script:
+  - echo "Running as user [$(id -u)] on hostname [$(hostname)]"
+  - python -V               # Print out python version for debugging
+  - type -fP tox || pip install tox
+  - tox --version
+  - sudo apt update
+  - sudo apt install --no-install-recommends --yes --quiet bats
 
 #build:
 #  stage: build
 #  tags:
 #  - docker
 #  script:
-#  - tox2 -l
+#  - tox -l
 
 test:
   stage: test
@@ -25,7 +35,7 @@ test:
   artifacts:
     paths:
   script:
-  - tox2
+  - tox
 
 deploy:
   stage: deploy
@@ -38,4 +48,4 @@ deploy:
   - triggers
   dependencies:
   script:
-  - tox2 -e deploy
+  - tox -e deploy

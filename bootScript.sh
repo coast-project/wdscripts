@@ -217,7 +217,13 @@ serverString="$SERVERNAME server";
 outmsg="${CommandText} ${serverString}";
 
 printf "%s" "${outmsg}";
-exitIfDisabledService "${outmsg}"
+case "$Command" in
+	status | stop)
+	;;
+	*)
+		exitIfDisabledService "${outmsg}"
+	;;
+esac
 
 case "$Command" in
 	start)

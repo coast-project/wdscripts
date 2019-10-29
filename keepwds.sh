@@ -26,6 +26,7 @@ showhelp()
 	echo ' -s <level>    : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
 	echo '                  possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5'
 	echo '                  the logger will log all levels above or equal the specified value'
+	echo ' -t            : prepend console logs with a timestamp'
 	echo ' -h <num>      : number of file handles to set for the process, default 1024'
 	echo ' -C <cfgdir>   : config directory to use within ['$locPrjDir'] directory'
 	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
@@ -40,11 +41,12 @@ cfg_handles="1024";
 cfg_dbg=0;
 cfg_errorlog="";
 cfg_syslog="";
+cfg_logtimestamp="";
 cfg_fullPath="";
 cfg_coresize="20000";
 
 # process config switching options first
-myPrgOptions=":c:e:s:h:C:PD"
+myPrgOptions=":c:e:s:th:C:PD"
 OPTIND=1;
 
 # process other command line options
@@ -72,6 +74,9 @@ while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
 				echo "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
 				showhelp;
 			fi
+		;;
+		t)
+			cfg_logtimestamp="-t";
 		;;
 		h)
 			cfg_handles="${OPTARG}";
@@ -119,7 +124,7 @@ startIt()
 {
 	${START_SCRIPT} $cfg_dbgopt $cfg_cfgdir $cfg_fullPath \
 		-h ${cfg_handles:-1024} -c ${cfg_coresize:-20000} \
-		$cfg_errorlog $cfg_syslog \
+		$cfg_errorlog $cfg_syslog $cfg_logtimestamp \
 		$cfg_srvopts
 	return $?;
 }

@@ -83,8 +83,8 @@ fi
 
 SetupLogDir()
 {
-	LOGDIR=`relpath "${LOGDIR}" "${PROJECTDIRABS}"`;
-	LOGDIRABS=`makeAbsPath "${LOGDIR}"`
+	LOGDIR=`relpath "${LOGDIR:-.}" "${PROJECTDIRABS}"`;
+	LOGDIRABS=`makeAbsPath "${LOGDIR:-.}"`
 }
 
 SetCOAST_PATH()
@@ -184,7 +184,7 @@ SetupLDPath()
 	fi
 	valueOfLdVar="echo $"${locLdPathVar};
 	valueOfLdVar="`eval $valueOfLdVar`";
-	valueOfLdVar="`deleteFromPathEx \"${valueOfLdVar}\" \":\" \"${COAST_LIBDIR:-${WD_LIBDIR}}\"`"
+	valueOfLdVar="`deleteFromPathEx \"${valueOfLdVar}\" \":\" \"${COAST_LIBDIR:-${WD_LIBDIR:-.}}\"`"
 	locBinPath="";
 	locLastBinPath="";
 	sldpProcessedBins="";
@@ -206,7 +206,7 @@ SetupLDPath()
 		fi;
 	done;
 	valueOfLdVar="`cleanPathEx \"${valueOfLdVar}\" \":\"`"
-	valueOfLdVar="`prependPathEx \"${valueOfLdVar}\" \":\" \"${COAST_LIBDIR:-${WD_LIBDIR}}\"`"
+	valueOfLdVar="`prependPathEx \"${valueOfLdVar}\" \":\" \"${COAST_LIBDIR:-${WD_LIBDIR:-.}}\"`"
 	if [ $PRINT_DBG -ge 2 ]; then
 		echo "${locLdPathVar} is now [${valueOfLdVar}]"
 	fi;
@@ -370,17 +370,21 @@ else
 fi
 WD_ROOT=$COAST_ROOT
 
-KEEP_SCRIPT=${SCRIPTDIR}/keepwds.sh;
-START_SCRIPT=${SCRIPTDIR}/startwds.sh;
-STOP_SCRIPT=${SCRIPTDIR}/stopwds.sh;
-KEEPPIDFILE=${LOGDIRABS}/.$SERVERNAME.keepwds.pid
-RUNUSERFILE=${LOGDIRABS}/.RunUser
+KEEP_SCRIPT=${SCRIPTDIR:-.}/keepwds.sh;
+START_SCRIPT=${SCRIPTDIR:-.}/startwds.sh;
+STOP_SCRIPT=${SCRIPTDIR:-.}/stopwds.sh;
+KEEPPIDFILE=${LOGDIRABS:-.}/.$SERVERNAME.keepwds.pid
+RUNUSERFILE=${LOGDIRABS:-.}/.RunUser
 
-versionFile=$CONFIGDIRABS/Version.any
+versionFileAny=${CONFIGDIRABS:-.}/Version.any
+versionFile=${CONFIGDIRABS:-.}/VERSION
 PROJECTVERSION=""
-if [ -f $versionFile ]; then
+if [ -f $versionFileAny ]; then
+	VERSIONFILE=$versionFileAny;
+	PROJECTVERSION="`sed -n 's/^.*Release[ \t]*//p' $versionFileAny | tr -d '\"\t '`.`sed -n 's/^.*Build[ \t]*//p' $versionFileAny | tr -d '\"\t '`"
+elif [ -f $versionFile ]; then
 	VERSIONFILE=$versionFile;
-	PROJECTVERSION="`sed -n 's/^.*Release[ \t]*//p' $versionFile | tr -d '\"\t '`.`sed -n 's/^.*Build[ \t]*//p' $versionFile | tr -d '\"\t '`"
+	PROJECTVERSION="`cat $versionFile`"
 fi
 
 test -n "COAST_DOLOG" && WD_DOLOG=${COAST_DOLOG}
@@ -390,13 +394,13 @@ variablesToExport="BINDIR BINDIRABS CONFIGDIR CONFIGDIRABS LOGDIR LOGDIRABS PERF
 variablesToExport="$variablesToExport HOSTNAME DOMAIN PRJ_DESCRIPTION SERVERNAME"
 variablesToExport="$variablesToExport INSTALLFILES PROJECTVERSION VERSIONFILE KEEP_SCRIPT START_SCRIPT STOP_SCRIPT KEEPPIDFILE RUNUSERFILE PID_FILE"
 variablesToExport="$variablesToExport COAST_LIBDIR COAST_ROOT COAST_PATH"
-variablesToExport="$variablesToExport COAST_DOLOG COAST_LOGONCERR COAST_USE_MMAP_STREAMS COAST_TRACE_INITFINIS COAST_TRACE_STATICALLOC COAST_TRACE_STORAGE"
+variablesToExport="$variablesToExport COAST_DOLOG COAST_LOGONCERR COAST_LOGONCERR_WITH_TIMESTAMP COAST_USE_MMAP_STREAMS COAST_TRACE_INITFINIS COAST_TRACE_STATICALLOC COAST_TRACE_STORAGE"
 
 export $variablesToExport
 
 # for debugging only
 if [ $PRINT_DBG -ge 1 ]; then
-	variablesToPrint="$sysfuncsExportvars $variablesToExport ServerMsgLog ServerErrLog PATH LD_LIBRARY_PATH RUN_ATTACHED_TO_GDB RUN_USER RUN_SERVICE APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS"
+	variablesToPrint="$sysfuncsExportvars $variablesToExport ServerMsgLog ServerErrLog PATH LD_LIBRARY_PATH RUN_ATTACHED_TO_GDB RUN_USER RUN_SERVICE RUN_SERVICE_CFGFILE APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS"
 	variablesToPrint="`echo $variablesToPrint | tr ' ' '\n' | sort | uniq | tr '\n' ' '`"
 	for varname in $variablesToPrint; do
 		printEnvVar ${varname};
