@@ -1,7 +1,19 @@
 = Changelog
 :ci_commit_link: link:/../commit/
 
+== tag: 1.17.1
+* got rid of unused deploy stage ({ci_commit_link}03f0caf[03f0caf])
+
+
+* Bumped version to 1.17.1 ({ci_commit_link}34899a0[34899a0])
+
 == tag: 1.17.0
+* This release fixes several smaller issues and adds bats tests ({ci_commit_link}417e58a[417e58a])
+
+
+* changed from markdown to asciidoc in changelog ({ci_commit_link}848c0c0[848c0c0])
+
+
 * Bumped version to 1.17.0 ({ci_commit_link}0de16c8[0de16c8])
 
 

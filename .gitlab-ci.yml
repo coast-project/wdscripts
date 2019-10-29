@@ -1,8 +1,3 @@
-variables:
-  MY_SCONSTRUCT_LOCATION: $CI_PROJECT_DIR/SConstruct
-  MY_PACKAGE_DIR: /tmp/package
-  MY_SCONS_DEBUGLOG_YML: $CI_PROJECT_DIR/debuglog.yml
-
 # Pip's cache doesn't store the python packages
 # https://pip.pypa.io/en/stable/reference/pip_install/#caching
 #
@@ -36,16 +31,3 @@ test:
     paths:
   script:
   - tox
-
-deploy:
-  stage: deploy
-  tags:
-  - docker
-  variables:
-    MY_PACKAGE_DIR: $CI_PROJECT_DIR/package
-  only:
-  - tags
-  - triggers
-  dependencies:
-  script:
-  - tox -e deploy
