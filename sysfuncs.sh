@@ -13,14 +13,13 @@ PRINT_DBG=${PRINT_DBG:-0};
 
 # unset all functions to remove potential definitions
 # generated using $> cat sysfuncs.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
-unset -f getConfigVar
-unset -f getEnvVarFromFile
 unset -f getGLIBCVersionFallback
 unset -f getGLIBCVersion
 unset -f makeAbsPath
 unset -f ensureTrailingSlash
 unset -f removeTrailingSlash
 unset -f removeFromHead
+unset -f myWhich
 unset -f getFirstValidTool
 unset -f getHead
 unset -f getTail
@@ -30,6 +29,7 @@ unset -f printEnvVar
 unset -f isAbsPath
 unset -f getCSVValue
 unset -f isFunction
+unset -f getUid
 unset -f getPIDFromFile
 unset -f checkProcessId
 unset -f removeFiles
@@ -61,41 +61,6 @@ unset -f resolvePath
 unset -f deref_links
 
 ########## non-function-dependency functions ##########
-# retrieve value of variable by sourcing a file and checking for its value
-#
-# param $1 path to start from
-# param $2 directory from where to source the file containing variables, either relative to $1 or absolute
-# param $3 name of the file containing variables
-# param $4 name of variable to get value from
-# param $5 name of output variable getting the retrieved value
-#
-# output exporting value into given variable name ($5)
-getConfigVar()
-{
-	loc_prjPath=${1};
-	loc_scDir=${2:-.}; # set appropriate default
-	loc_scName=${3:-config.sh};
-	loc_name=${4};
-	ret_var=${5};
-	loc_name=`/bin/sh -c "cd ${loc_prjPath}; SCRIPTDIR=${loc_scDir}; . ${loc_scDir}/${loc_scName} >/dev/null 2>&1; eval \"echo $\"$loc_name"`
-	eval ${ret_var}="$loc_name";
-}
-
-# param 1: variable name
-# param 2: name of config file
-# param 3: default value to return if file is not readable, empty string if left off
-#
-# output retrieved value or default echoed
-getEnvVarFromFile()
-{
-	toEval="echo \$"$1;
-	configFile=$2;
-	varvalue=$3;
-	if [ -n "${configFile}" -a -r ${configFile} ]; then
-		varvalue=`/bin/sh -c ". ${configFile} >/dev/null 2>&1; eval $toEval"`
-	fi
-	echo "$varvalue"
-}
 
 # retrieve the glibc version number from /lib/libc.so.6 or /lib/ld-linux.so.2
 #
