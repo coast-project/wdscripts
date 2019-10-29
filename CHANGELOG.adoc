@@ -1,0 +1,569 @@
+= Changelog
+:ci_commit_link: link:/../commit/
+
+== tag: 1.17.0
+* Bumped version to 1.17.0 ({ci_commit_link}0de16c8[0de16c8])
+
+
+* changed from markdown to asciidoc ({ci_commit_link}ce356c8[ce356c8])
+
+
+* inhibit echoing that we are setting the USER variable ({ci_commit_link}7de1bf9[7de1bf9])
+
+
+* got rid of unused functions getConfigVar and getEnvVarFromFile ({ci_commit_link}f5b9ab6[f5b9ab6])
+
+
+* provide dummy path for basename if variable is empty ({ci_commit_link}c24d428[c24d428])
+
+
+* extended version retrieval to also look into VERSION file ({ci_commit_link}7e58c95[7e58c95])
+
+
+* improved path related variable composition ({ci_commit_link}9846954[9846954])
+
+
+* execute status and stop commands on disabled services ({ci_commit_link}a015806[a015806])
+
+
+* Merge branch 'feature_NewBuild' into develop ({ci_commit_link}59f1bfc[59f1bfc])
+
+
+* moved tox tests to bats ({ci_commit_link}925b51d[925b51d])
+
+
+* environment variable handling adjusted because of gitlab ci failures ({ci_commit_link}3c4bc16[3c4bc16])
+
+
+* corrected env handling in tox environments ({ci_commit_link}b76ce19[b76ce19])
+
+
+* pylint config for coast and pythontidy functionality for pydev ({ci_commit_link}4d9d4d5[4d9d4d5])
+
+
+* added tox formatting env and reformatted sconsider ({ci_commit_link}18cc8c2[18cc8c2])
+
+
+* fixes curious location of SConstruct file ({ci_commit_link}5fa9cf8[5fa9cf8])
+
+
+* increased verbosity and fixed tox setup ({ci_commit_link}12c141c[12c141c])
+
+
+* changed docker image used for testing ({ci_commit_link}c1a98d5[c1a98d5])
+
+
+* removed gitreview configuration ({ci_commit_link}1fd815b[1fd815b])
+
+
+* added command line switch and proper variable propagation for logging with timestamps ({ci_commit_link}91ab31b[91ab31b])
+
+
+* Merge branch '1-setup-gitlab-build' into 'master' ({ci_commit_link}6e53027[6e53027])
+
+
+* basic building enabled ({ci_commit_link}f280977[f280977])
+
+
+* Link to COAST now points to the correct location ({ci_commit_link}ec8dfda[ec8dfda])
+
+
+* Merge branch '0-readme-md' into 'master' ({ci_commit_link}8ea5f30[8ea5f30])
+
+
+* corrected referencing error ({ci_commit_link}002b6a4[002b6a4])
+
+
+* minimal readme contents ({ci_commit_link}3a238c3[3a238c3])
+
+
+* file extension shows content type ({ci_commit_link}fb01785[fb01785])
+
+
+* use type instead of which should be more portable ({ci_commit_link}88a4622[88a4622])
+
+
+* gdb batch: pass program abort code back to caller ({ci_commit_link}afbba67[afbba67])
+
+== tag: coast_20150909
+* ChangeLog: added CHANGES.txt describing what changed ({ci_commit_link}d6a1d00[d6a1d00])
+
+
+* SystemLog: added env var template for timestamped logging ({ci_commit_link}4392dd5[4392dd5])
+
+
+* getGLIBCVersion: faster implementation using ldd --version ({ci_commit_link}9acaa0e[9acaa0e])
+
+
+* ulimit: simplified/corrected handles and coresize handling ({ci_commit_link}6e94b95[6e94b95])
+
+== tag: coast_20141003
+* sconsider: require sconsider tooling <0.5 ({ci_commit_link}2befc36[2befc36])
+
+
+* gerrit: removed old git-review script, use git-review from PYPI instead ({ci_commit_link}d691d17[d691d17])
+
+
+* sysfuncs: do not fail find call ({ci_commit_link}bb03e00[bb03e00])
+
+
+* build: using listFiles instead of findFiles to not recurse dirs ({ci_commit_link}1bcc93c[1bcc93c])
+
+
+* project: gitreview config file added ({ci_commit_link}dd8cc26[dd8cc26])
+
+
+* changed sed search separator from - to | ({ci_commit_link}9d2dcf4[9d2dcf4])
+
+
+* asking for upload topic was wrong for non master branches ({ci_commit_link}810f534[810f534])
+
+
+* added isLocalBranchAheadOfRemote ({ci_commit_link}3daa8f6[3daa8f6])
+
+
+* simplified push options handling ({ci_commit_link}41e1df5[41e1df5])
+
+
+* asking for additional gerrit push options like --reviewer= or --cc= ({ci_commit_link}3315205[3315205])
+
+
+* better handling of return code when using temporary directory for filter-branch ({ci_commit_link}7c96a8f[7c96a8f])
+
+
+* removed comments within inline shell script ({ci_commit_link}6214784[6214784])
+
+
+* changed to using temporary directory when calling filter-branch ({ci_commit_link}6c3f64a[6c3f64a])
+
+
+* major script refactoring to use /bin/sh interpreter only ({ci_commit_link}ecd770a[ecd770a])
+
+
+* extract and supply product version from Version.any ({ci_commit_link}4133ba5[4133ba5])
+
+
+* pure sh'ified shell code ({ci_commit_link}a353ac7[a353ac7])
+
+
+* git/gerrit helper to simplify gerrit usage ({ci_commit_link}1387a34[1387a34])
+
+
+* corrected option default and removed obsoleted token ({ci_commit_link}707d018[707d018])
+
+
+* improved detection of available libc on the system by adding more default locations to check ({ci_commit_link}6b34102[6b34102])
+
+
+* these files are not needed anymore as we do not use EXPORTDECL tokens anymore ({ci_commit_link}95694f4[95694f4])
+
+
+* finally removed config switching code ({ci_commit_link}b831bc2[b831bc2])
+
+
+* changed from /bin/ksh to /bin/sh to ensure compatibility with other systems ({ci_commit_link}09eec55[09eec55])
+
+== tag: coast_2010_1.2
+* changed to coast ({ci_commit_link}2cafb2d[2cafb2d])
+
+
+* more prefix WD_ to COAST_ changes ({ci_commit_link}6039dee[6039dee])
+
+
+* replaced WD_ prefixes with COAST_ ({ci_commit_link}8776506[8776506])
+
+
+* merged git-submodule tag create and update scripts ({ci_commit_link}f1d77f8[f1d77f8])
+
+
+* adjusted cross ref hash list by filtering duplicate entries and using the 'newer' hash ({ci_commit_link}00ac055[00ac055])
+
+
+* added useful post-rewrite template ({ci_commit_link}53aa05e[53aa05e])
+
+
+* added dry-run option to test before doing ({ci_commit_link}1836b8f[1836b8f])
+
+
+* script to create cross referencing tags in a submodule and its referencing repository -> these tags can later - after history rewriting - be used to correct commit hashes in referencing repository ({ci_commit_link}0fb5876[0fb5876])
+
+
+* removed scripts not needed for building and creating packages ({ci_commit_link}fbe0dab[fbe0dab])
+
+
+* added dtrace analyer script small changes to reduce verbosity in case of failures ({ci_commit_link}3b6f09b[3b6f09b])
+
+
+* added sconsider build file with a minimal set of server control scripts moved _cfgSwitch relevant parts into if checked blocks this allows delivery of a minimal package of scripts not relying on config switching stuff ({ci_commit_link}f709a1c[f709a1c])
+
+== tag: coast_2010_1.1
+* added revision option to limit range of replacement ({ci_commit_link}82e2fd4[82e2fd4])
+
+
+* adjusted help message and revision param ({ci_commit_link}8f132e3[8f132e3])
+
+
+* helper script to remove a commit added ({ci_commit_link}f4e4502[f4e4502])
+
+
+* small adjustments/corrections ({ci_commit_link}76327ae[76327ae])
+
+
+* using git-sh-setup delivered with git ({ci_commit_link}0dc5c53[0dc5c53])
+
+
+* improved usability of git helper scripts ({ci_commit_link}36aebd0[36aebd0])
+
+
+* updated filter-branch options to rewrite tags ({ci_commit_link}50de29f[50de29f])
+
+
+* renamed helper script ({ci_commit_link}047b1dd[047b1dd])
+
+
+* added script to move directories ({ci_commit_link}e0fb004[e0fb004])
+
+
+* improved filter-branch command to only commit non-empty commits ({ci_commit_link}0b172b0[0b172b0])
+
+
+* corrected expire flag ({ci_commit_link}63bf901[63bf901])
+
+
+* added helper script to remove directories from a repository ({ci_commit_link}9b973b4[9b973b4])
+
+
+* export native LD_LIBRARY_PATH to shield from differences between 3rdparty libs and OS installed libs made evaluation of path to script that will be sourced more reliable ({ci_commit_link}0461609[0461609])
+
+
+* added reasonable default value for MYNAME variable to eliminate dirname error message under certain circumstances ({ci_commit_link}878f5c7[878f5c7])
+
+
+* Added -P option (long path to executable) ({ci_commit_link}0f39c8d[0f39c8d])
+
+
+* Added comments. ({ci_commit_link}2746247[2746247])
+
+
+* Changes to enable 2 instances of the same server to run in the same machine. ({ci_commit_link}9a7f139[9a7f139])
+
+
+* filtering pstack output using c++filt if available ({ci_commit_link}c64bd72[c64bd72])
+
+
+* added shell script to create submodule from repo path ({ci_commit_link}550c7aa[550c7aa])
+
+
+* * added -P option which shows full path of started application   when doing a ps -ef ({ci_commit_link}392df4d[392df4d])
+
+
+* corrected adding .ld-search-path to currently tested binary directory ({ci_commit_link}7224393[7224393])
+
+
+* introduced OSREL_MAJOR and OSREL_MINOR variables ({ci_commit_link}f89b037[f89b037])
+
+== tag: wd_scripts_1_12
+* * passing waitcount to stopscript when it is not controlled by keepwds.sh ({ci_commit_link}d2bc727[d2bc727])
+
+
+* * passing waitcount to stopscript when using restart ({ci_commit_link}4c4b7e0[4c4b7e0])
+
+
+* * corrected handling of space separated strings  - changed due to new bash behavior ({ci_commit_link}bcf03f8[bcf03f8])
+
+
+* * removed dos-like line break ({ci_commit_link}43dadb8[43dadb8])
+
+
+* * removed echo ({ci_commit_link}b625223[b625223])
+
+
+* * added option to unset vars if needed ({ci_commit_link}7c8ffb0[7c8ffb0])
+
+
+* creating WD_LIBDIR if it was not existing already ({ci_commit_link}621b389[621b389])
+
+
+* * evaluation of runtest arguments postponed ({ci_commit_link}559ec48[559ec48])
+
+
+* * corrected prependPath flipping order of segments ({ci_commit_link}b8dd6cb[b8dd6cb])
+
+
+* * not all options were correctly passed to subscript ({ci_commit_link}92c2ff2[92c2ff2])
+
+
+* * append/prependPath allow adding multiple segments at once ({ci_commit_link}23b22fe[23b22fe])
+
+
+* * changed from using param 1 as DEV-Env to specifying it as -E option * factored out variable cleaning into sysfuncs.sh ({ci_commit_link}1f74dda[1f74dda])
+
+
+* ignoring output of cd ({ci_commit_link}6061763[6061763])
+
+
+* * corrected extending LD_LIBRARY_PATH when running test executable ({ci_commit_link}99220c5[99220c5])
+
+
+* * corrected MYNAME setting ({ci_commit_link}4899d2f[4899d2f])
+
+
+* * corrected settings when using wdenv.sh ({ci_commit_link}ca16c33[ca16c33])
+
+
+* * re-enabled global var ({ci_commit_link}0482eaf[0482eaf])
+
+
+* * made some variables local, not to fill env with temporaries ({ci_commit_link}428493e[428493e])
+
+
+* * added new function to select gnu compiler to use prior to selecting working environment * added function to insert segments into path like variables sorted by string ({ci_commit_link}b5fc0e0[b5fc0e0])
+
+
+* added shell funtion to make a given path absolute ({ci_commit_link}b2d234f[b2d234f])
+
+
+* * not aborting script when RUN_USER or USER env var is empty ({ci_commit_link}429f49a[429f49a])
+
+
+* * added function to extend LD_LIBRARY_PATH using .ld-search-path if available  - this is needed when using non standard locations of libraries supplied by compiler ({ci_commit_link}d216347[d216347])
+
+
+* * corrected server stopping by adding some printf lines... ({ci_commit_link}b7391a8[b7391a8])
+
+== tag: wd_scripts_1_9
+* * changed back to using relative application name when starting server/application  - reduces risk of not finding application in ps list due to string truncation after 80 characters ({ci_commit_link}903e1a2[903e1a2])
+
+
+* * corrected application string to check for  - added SERVERNAME after wdapp to find correct application ({ci_commit_link}34114bf[34114bf])
+
+== tag: wd_scripts_1_8
+* * changed to using absolute binary filename when starting wdserver ({ci_commit_link}9ef1e36[9ef1e36])
+
+
+* * increased wait count when stopping server ({ci_commit_link}735f378[735f378])
+
+
+* * added another param to SearchJoinedDir funtion ({ci_commit_link}ab9a4bb[ab9a4bb])
+
+
+* prepending content of .ld-search-path to LD_LIBRARY_PATH if available ensures taking correct libraries first ({ci_commit_link}cbce78b[cbce78b])
+
+
+* * quieting cd - ({ci_commit_link}75ab885[75ab885])
+
+
+* * added test if directory pattern to test is an existing one before selecting it ({ci_commit_link}56f2e33[56f2e33])
+
+
+* * changed way how to find config directory * removed FINDOPT vars * when testing for gnu tool, testing both names for being a gnu tool ({ci_commit_link}9483731[9483731])
+
+
+* * corrected code to find valid config directory  - find is not the best choice to search a local directory based on wildcards because it might descend and find a good match first ({ci_commit_link}9b104df[9b104df])
+
+== tag: wd_scripts_1_7
+* * added option to let application run in foreground within gdb  - run needs to be typed manually though ({ci_commit_link}ecb10a8[ecb10a8])
+
+
+* * extended generation of gdb command file to allow use by startwda.sh * corrected run command to not supply app and args as already defined ({ci_commit_link}ddb9f07[ddb9f07])
+
+== tag: wd_scripts_1_6
+* initializing replace string to emptyness ({ci_commit_link}00581fa[00581fa])
+
+
+* * WD_OUTDIR path changed  - a unique path for every user will now being generated at a level where it should not interfer with other users base level directory permissions ({ci_commit_link}8dec9b5[8dec9b5])
+
+
+* * added missing TRACE_STORAGE description for level 3 ({ci_commit_link}c4b5eca[c4b5eca])
+
+
+* * corrected passing of server arguments to generating gdb commands file ({ci_commit_link}0c58cf9[0c58cf9])
+
+
+* corrected gdb parameters ({ci_commit_link}3062124[3062124])
+
+== tag: wd_scripts_1_4
+* * added another default entry to be used when a server should be run under control of gdb  - this is useful if the server crashes unexpectedly and can not be started using startwds.sh -d ({ci_commit_link}55eda7d[55eda7d])
+
+
+* * added evalutation of RUN_ATTACHED_TO_GDB variable  - this flag can be specified within prjconfig.sh instead of specifying the -d option ({ci_commit_link}39db0a6[39db0a6])
+
+== tag: wd_scripts_1_3
+* * added default flag entries for MMAP stream control and Storage tracing ({ci_commit_link}eec860b[eec860b])
+
+== tag: wd_scripts_1_2
+* * improved output messages when not executing script due to RUN_SERVICE=0 setting ({ci_commit_link}d7e5056[d7e5056])
+
+
+* added shell function to get out the value of an environment variable being set from within a script file ({ci_commit_link}f952173[f952173])
+
+
+* removed setting of LD_RUN_PATH to reduce 'hardcoded' references to directories ({ci_commit_link}9c65cec[9c65cec])
+
+
+* * removed LD_ASSUME_KERNEL because it does not solve the GLIBC problem on all Linux systems  - instead, you need a set of 'old' glibc libraries to use for starting these non-conforming applications  -> see sniff_wrapper script to see how it is done ({ci_commit_link}620992b[620992b])
+
+
+* changed to using InitFinisManager functions optical improvement ({ci_commit_link}a52a9ee[a52a9ee])
+
+
+* * added setting of LD_RUN_PATH  - prevents libraries to get loaded from the wrong path ({ci_commit_link}4d04aaa[4d04aaa])
+
+== tag: wd_scripts_1_1
+* * improved relative start handling again ({ci_commit_link}e4fd03e[e4fd03e])
+
+
+* * adjusted setting of relative pathname ({ci_commit_link}ac76d64[ac76d64])
+
+
+* * corrected project path setting when we start relative ({ci_commit_link}0fc90ca[0fc90ca])
+
+
+* * made creation of log/rotate directory dependant on cfg_doLog flag ({ci_commit_link}d844941[d844941])
+
+
+* apply path cleaning on config directory ({ci_commit_link}727f2af[727f2af])
+
+
+* * only calling preare/run/cleanup test functions if checkTestExe returned 1 ({ci_commit_link}b4b13f4[b4b13f4])
+
+
+* * changed -e and -s options to take logging level parameter  - see help or SysLog.h ({ci_commit_link}7ced95e[7ced95e])
+
+
+* * removed WD_LOGONCERR setting ({ci_commit_link}6bcbb45[6bcbb45])
+
+
+* * arithmetic expressions using $(( )) does not work in regular shell  - replaced using expr program ({ci_commit_link}44a9bef[44a9bef])
+
+
+* * corrected test expression * added function to wait on server termination ({ci_commit_link}b7d1442[b7d1442])
+
+
+* changed from find to shell expansion to find directories matching a pattern ({ci_commit_link}5c3fc93[5c3fc93])
+
+== tag: wd_scripts_1_0
+* modified and added files ({ci_commit_link}7668acc[7668acc])
+
+
+* Initial hsr commit ({ci_commit_link}a9410ec[a9410ec])
+
+
+* * added setting of mypath variable ({ci_commit_link}ad79fd3[ad79fd3])
+
+
+* * corrected find using scripts ({ci_commit_link}4dfe0fa[4dfe0fa])
+
+
+* * new way of using 'correct' find ({ci_commit_link}7b928a4[7b928a4])
+
+
+* * using predefined mypath variable ({ci_commit_link}6afb6cc[6afb6cc])
+
+
+* * template for preDoallFunc added ({ci_commit_link}44f62ba[44f62ba])
+
+
+* * added support for external preDoallFunc  - function can be used to increment a build number for example ({ci_commit_link}226acd0[226acd0])
+
+
+* * sourcing bugfix  - when script was sourced from within another script the path was not set correctly ({ci_commit_link}a5d7c54[a5d7c54])
+
+
+* * removed misplaced local definitions ({ci_commit_link}a29b154[a29b154])
+
+
+* * adjusted directory and filename creation ({ci_commit_link}04c8baa[04c8baa])
+
+
+* * corrected base path for directory creation ({ci_commit_link}c821fee[c821fee])
+
+
+* * correction for CvsLog.sh ({ci_commit_link}2ccd8ef[2ccd8ef])
+
+
+* * bugfix: file-loading error  - sourced scripts was not able to load /home/scripts/sysfuncs.sh because    it was located in /home/webdisplay/scripts  - now it checks the value of the SCRIPTS_DIR variable for the directory    and uses /home/scripts only as fallback ({ci_commit_link}1b6f2ef[1b6f2ef])
+
+
+* * bugfix: due to some renaming in install.sh the   variables INSTALLDIRABS/REL were not defined anymore ({ci_commit_link}a506d97[a506d97])
+
+
+* * trailing whitespace cleanup ({ci_commit_link}6946a39[6946a39])
+
+
+* * bugfix: pattern for matching config token corrected ({ci_commit_link}3c8dbea[3c8dbea])
+
+
+* * added switch to define config directory to work with  - results in setting WD_PATH internally ({ci_commit_link}315f099[315f099])
+
+
+* * move setting of mypath before showhelp function * not switching scripts directory anymore ({ci_commit_link}51d5167[51d5167])
+
+
+* * corrected creation of log/rotate, using LOGDIR value now ({ci_commit_link}0e97085[0e97085])
+
+
+* * move setting of mypath before showhelp function ({ci_commit_link}d702917[d702917])
+
+
+* * corrected setting of WD_PATH when it was empty ({ci_commit_link}b8acd80[b8acd80])
+
+
+* * latest itopia changes ({ci_commit_link}77af113[77af113])
+
+
+* * corrected DOS line endings... ({ci_commit_link}c547476[c547476])
+
+
+* * latest changes from itopia merged in ({ci_commit_link}d9b1802[d9b1802])
+
+
+* * Switch zwischen den Instanzen mit Authentisierung ({ci_commit_link}d77a868[d77a868])
+
+
+* *** empty log message *** ({ci_commit_link}1c2df4a[1c2df4a])
+
+
+* * corrected recursive loop when PERFTESTDIR is empty ({ci_commit_link}30ecfde[30ecfde])
+
+
+* * newest script files ({ci_commit_link}4b420a1[4b420a1])
+
+
+* * sorry kurt ({ci_commit_link}9f0361e[9f0361e])
+
+
+* *** empty log message *** ({ci_commit_link}dd5c7de[dd5c7de])
+
+
+* - kleine hilfe für Tomi ({ci_commit_link}5461140[5461140])
+
+
+* script um zwischen den Konfigs zu wechseln ({ci_commit_link}1fb9e2d[1fb9e2d])
+
+
+* * 3.9 zeugs entfernt ({ci_commit_link}f756b86[f756b86])
+
+
+* * lot of optimizing project and file structures ({ci_commit_link}dd15cf0[dd15cf0])
+
+
+* removed creation of log directory ({ci_commit_link}297dadb[297dadb])
+
+
+* added text on which files we act ({ci_commit_link}dd04a5f[dd04a5f])
+
+
+* added text to which configuration we switch to ({ci_commit_link}564be67[564be67])
+
+
+* added more signal handlers ({ci_commit_link}6d2a0fd[6d2a0fd])
+
+
+* added support for WD_LIBDIR ({ci_commit_link}e21b950[e21b950])
+
+
+* added DEV_HOME variant to automatically build a project ({ci_commit_link}e6c0b45[e6c0b45])
+
+
+* Initial revision ({ci_commit_link}fab212b[fab212b])
