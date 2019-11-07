@@ -22,7 +22,6 @@
 #    $> cd /etc/rc0.d
 #    $> ln -s /export/apps/helloworld/scripts/bootScript.sh K20helloworld
 #
-
 if [ "$1" = "-D" ]; then
 	PRINT_DBG=1
 	cfg_dbgopt="-D";
@@ -41,6 +40,7 @@ unset -f echoExit
 unset -f exitWithStatus
 
 # dereference a file - usually a link - and find its real origin as absolute path
+#  minimalistic version
 #
 # param $1 is the file/path to dereference
 #
@@ -68,46 +68,20 @@ bootScriptPath=`dirname $derefd_name`;
 derefd_name=`basename $derefd_name`;
 bootScriptName=${derefd_name};
 
-. $bootScriptPath/sysfuncs.sh
+# load global config
+. $bootScriptPath/config.sh $cfg_dbgopt
 
 my_uid=`getUid`
-# getting the projectpath and -name is not simple because we have at least three ways
-#  to get executed:
-#  1. relative, or path expanded by shell using PATH variable
-#  2. through a link to the real script
-#  3. absolute path; use with caution as disambiguities might occur
-#
-# In case the scripts fullname is an absolute path, we implicitly assume that a 'cd ..' leads to the correct project directory.
-#
-prj_path=`PATH=/usr/bin:/bin:$PATH; pwd`
-callCmdIsRelativeToProjectDir=0;
-isAbsPath "${callCmd}" && isAbsPath "`relpath \"${callCmd}\" \"${prj_path}\"`" || callCmdIsRelativeToProjectDir=1;
-prj_name=`basename $prj_path`
-if [ $bootScriptIsALinkReturn -eq 0 ]; then
-	prj_path=`dirname $bootScriptPath`;
-	bootScriptPath=`cd ${bootScriptPath} && pwd`;
-	cd $prj_path;
-	prj_path=`pwd`;
-	prj_name=`basename ${prj_path}`;
-elif [ $callCmdIsRelativeToProjectDir -eq 1 ]; then
-	prj_path=`dirname \`dirname ${callCmd}\``;
-	cd $prj_path;
-	prj_path=`pwd`;
-	prj_name=`basename ${prj_path}`;
-fi
-isAbsPath "${prj_path}" || prj_pathabs=`makeAbsPath "$prj_path"`;
 
-# Ensure being on th ecorrect project path by checking for an existing config* directory.
-tmp_CfgDir="`SearchJoinedDir \"$prj_path\" \"$prj_name\" \"config\"`"
+# Ensure being on the correct project path by checking for an existing config* directory.
+tmp_CfgDir="`SearchJoinedDir \"$PROJECTDIR\" \"$PROJECTNAME\" \"config\"`"
 if [ -z "${tmp_CfgDir}" ]; then
-	echo "ERROR: Unable to locate required *config* directory within potential project path [$prj_path], aborting!"
+	echo "ERROR: Unable to locate required *config* directory within potential project path [$PROJECTDIR], aborting!"
 	exit 11
 fi;
 
-# load global config
-. $bootScriptPath/config.sh
 MYNAME=$bootScriptName	# used within trapsignalfuncs/serverfuncs for logging
-. $bootScriptPath/serverfuncs.sh
+. $SCRIPTDIR/serverfuncs.sh
 
 # param 1: status entry in csv format
 # param 2: status separator, default ':'

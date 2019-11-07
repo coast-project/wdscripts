@@ -60,7 +60,6 @@ unset -f appendTokens
 unset -f generateGdbCommandFile
 unset -f resolvePath
 unset -f deref_links
-unset -f minimal_deref_link
 
 ########## non-function-dependency functions ##########
 
@@ -1157,25 +1156,6 @@ deref_links()
 	done
 	echo "$loc_name";
 	return $is_link;
-}
-
-# dereference a file - usually a link - and find its real origin as absolute path
-#  minimalistic version
-#
-# param $1 is the file/path to dereference
-#
-# output echo dereferenced file/path
-# returning 0 in case the given name was linked, 1 otherwise
-minimal_deref_link()
-{
-	mdfFilename=${1};
-	mdfIsLink=1;
-	if [ -h "$mdfFilename" ]; then
-		mdfFilename=`ls -l $mdfFilename | sed -e 's|^[^>]*> ||' -e 's|/$||'`;
-		mdfIsLink=0;
-	fi
-	echo "$mdfFilename";
-	return $mdfIsLink;
 }
 
 ########## setup some values ##########
