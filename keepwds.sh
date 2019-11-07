@@ -13,7 +13,7 @@
 keepScriptName=`basename $0`
 
 mypath=`dirname $0`
-test "/" = "`echo ${mypath} | cut -c1`" || mypath=`pwd`/${mypath}
+test "/" = "`echo ${mypath} | cut -c1`" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
 
 showhelp()
 {
