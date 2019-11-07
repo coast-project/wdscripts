@@ -832,7 +832,7 @@ findExecutableWithPath()
 	while sgidSeg="`getHead \"${sgidPath}\" \"${sgidPathsep}\"`"; [ -n "${sgidPath}" ]; do
 		sgidPath="`getTail \"${sgidPath}\" \"${sgidPathsep}\"`";
 		printf "." >&2;
-		for f in `find ${sgidSeg} -follow -type f "(" -name "${sgidCompname}" -o -name "${sgidCompname}${sgidVersuffix}" ")" 2>/dev/null`; do
+		for f in `find ${sgidSeg} -maxdepth 2 -follow -type f "(" -name "${sgidCompname}" -o -name "${sgidCompname}${sgidVersuffix}" ")" 2>/dev/null`; do
 			test -x "${f}" && sgidCollectedExecutables="`appendPathEx \"${sgidCollectedExecutables}\" \"${sgidSegsep}\" \"${f}\"`";
 		done
 	done

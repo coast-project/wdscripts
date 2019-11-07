@@ -138,7 +138,7 @@ GetBindir()
 	test -z "${binarytosearch}" && return
 	test $# -gt 1 || return 0;
 	shift 1
-	candidates=`find $@ -type f -name ${binarytosearch} 2>/dev/null | head -1`;
+	candidates=`find $@ -maxdepth 2 -type f -name ${binarytosearch} 2>/dev/null | head -1`;
 	test -z "${candidates}" && return
 	echo "`dirname ${candidates}`";
 }
