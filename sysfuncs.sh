@@ -348,7 +348,7 @@ SearchJoinedDir()
 	# check if we got a searchable directory first
 	if [ -d "$testpath" -a -r "$testpath" -a -x "$testpath" ]; then
 		# search for a 'compound' directory name in the given directory
-		tmppath=`cd $testpath &&
+		tmppath=`cd $testpath 2>/dev/null &&
 		if [ ${doStarEnding} -eq 1 ]; then
 			for dname in ${firstseg}*${lastseg}* *${lastseg}*; do
 				if [ -d "${dname}" ]; then
@@ -772,7 +772,7 @@ getUnixDir()
 # output setting variable $2 to value of last path-segment
 selectDevelopDir()
 {
-	myDirs="`cd ${HOME} && for name in DEV*; do if [ -d $name -o -h $name ]; then echo $name; fi; done`";
+	myDirs="`cd ${HOME} 2>/dev/null && for name in DEV*; do if [ -d $name -o -h $name ]; then echo $name; fi; done`";
 	if [ -n "$3" ]; then
 		for myenv in $myDirs; do
 			relSeg="`basename ${myenv}`";
@@ -780,7 +780,7 @@ selectDevelopDir()
 				#echo 'we have a match at ['$relSeg']';
 				# use pwd -P to follow links and get 'real' directory
 				# especially needed for windows! but shouldn't matter for Unix
-				devpath=`cd && cd $myenv >/dev/null 2>&1 && pwd -P`;
+				devpath=`cd 2>/dev/null && cd $myenv >/dev/null 2>&1 && pwd -P`;
 				if [ $isWindows -eq 1 ]; then
 					getDosDir "$devpath" "${1}_NT";
 				fi
@@ -800,7 +800,7 @@ selectDevelopDir()
 		if [ -n "${myenv}" ]; then
 			# use pwd -P to follow links and get 'real' directory
 			# especially needed for windows! but shouldn't matter for Unix
-			devpath=`cd && cd $myenv >/dev/null 2>&1 && pwd -P`;
+			devpath=`cd 2>/dev/null && cd $myenv >/dev/null 2>&1 && pwd -P`;
 			if [ $isWindows -eq 1 ]; then
 				getDosDir "$devpath" "${1}_NT";
 			fi
@@ -1101,7 +1101,7 @@ resolvePath()
 	rpThePath="${1}";
 	rpFile="`basename \"${rpThePath}\"`";
 	test -d "${rpThePath}" || rpThePath="`dirname \"${rpThePath}\"`";
-	rpThePath="`cd ${rpThePath} && pwd`";
+	rpThePath="`cd ${rpThePath} 2>/dev/null && pwd`";
 	if [ -n "${rpFile}" ]; then
 		test -n "${rpThePath}" && rpThePath="${rpThePath}/";
 		rpThePath="${rpThePath}${rpFile}";
