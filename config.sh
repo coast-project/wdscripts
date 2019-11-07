@@ -23,6 +23,16 @@ fi
 PRINT_DBG=${PRINT_DBG:=0}
 export PRINT_DBG
 
+# unset all functions to remove potential definitions
+# generated using $> cat config.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
+unset -f SetupLogDir
+unset -f SetCOAST_PATH
+unset -f GetBindir
+unset -f SetBinary
+unset -f TestExecWdBinaries
+unset -f SetupLDPath
+unset -f appendToLogdirAbsolute
+
 do_quantify=0;
 do_purify=0;
 if [ "$1" = "quantify" ]; then do_quantify=1; fi
@@ -31,38 +41,45 @@ if [ "$1" = "purify" ]; then do_purify=1; fi
 set -h	# remember functions
 hash -r
 hash basename dirname sed cut tr echo printf
+startpath="`pwd`"
 
-if [ ! `basename $0` = "config.sh" ]; then
+configScriptName=config.sh
+if [ ! "`basename $0`" = "$configScriptName" ]; then
 	test $PRINT_DBG -ge 1 && echo "I got sourced from within [$0]"
 fi
 
-configScriptName=config.sh
-# try to select first valid script directory
-for myd in `dirname $0` ${SCRIPTDIR} $mypath; do
-	test $PRINT_DBG -ge 2 && echo "testing directory [$myd]"
-	test ! -f $myd/$configScriptName && continue
-	scdir=$myd; break;
+for myd in $startpath `dirname $0` ${SCRIPTDIR} $mypath; do
+	scdir="`cd $myd 2>/dev/null && pwd`"
+	while : ; do
+		sfloc="`ls -c1 $scdir/*scripts*/$configScriptName $scdir/$configScriptName 2>/dev/null | head -1`"
+    	if [ -f "$sfloc" ]; then
+    		scdir="$(dirname $sfloc)"
+    		break;
+    	fi
+    	if [ "$scdir" = "/" ]; then
+    		scdir="";
+    		break;
+    	fi
+		scdir="`cd $scdir/.. 2>/dev/null && pwd`"
+    done;
+	test -n "$scdir" && break;
 done
 
-if [ -z "${scdir}" -o "${scdir}" = "." ]; then
-	scdir=`find . -follow -name $configScriptName 2>/dev/null | head -1 | tr -d '\n'`
-	test -z "${scdir}" && scdir="`type -fP $configScriptName`"
-	test -n "${scdir}" && scdir="`cd \`dirname $scdir\` && pwd`";
-fi
-SCRIPTDIR=`cd $scdir && pwd`
+SCRIPTDIR="`cd ${scdir:-.} 2>/dev/null && pwd`"
 
+# fail in case of sourcing errors
+set -e
 # load os-specific settings and functions
 . ${SCRIPTDIR}/sysfuncs.sh
+set +e
+
+scriptdir_name="`basename $SCRIPTDIR`"
+PROJECTDIR="`searchBaseDirUp $SCRIPTDIR ${scriptdir_name}`"
+# searchBaseDirUp already returns an absolute path
+PROJECTDIRABS=${PROJECTDIR}
 
 # points to the directory where the scripts reside
-SCRIPTDIR=`deref_links "${SCRIPTDIR}"`
-SCRIPTDIRABS=`makeAbsPath "${SCRIPTDIR}"`
-
-# the directory where all starts is where we call the script from
-# here we can find project specific directories, eg. config, Docs etc.
-PROJECTDIR=`PATH=/usr/bin:/bin:$PATH; pwd`
-PROJECTDIRABS=${PROJECTDIR}
-isAbsPath ${PROJECTDIRABS} || PROJECTDIRABS=`makeAbsPath "${PROJECTDIR}"`
+SCRIPTDIRABS=`makeAbsPath "${SCRIPTDIR}" "" "$PROJECTDIRABS"`
 
 if [ ${isWindows} -eq 1 ]; then
 	# get projectdir in native NT drive:path notation
@@ -84,7 +101,7 @@ fi
 SetupLogDir()
 {
 	LOGDIR=`relpath "${LOGDIR:-.}" "${PROJECTDIRABS}"`;
-	LOGDIRABS=`makeAbsPath "${LOGDIR:-.}"`
+	LOGDIRABS=`makeAbsPath "${LOGDIR:-.}" "" "$PROJECTDIRABS"`
 }
 
 SetCOAST_PATH()
@@ -99,20 +116,23 @@ SetCOAST_PATH()
 		tmpCOAST_PATH=${COAST_PATH:-${WD_PATH}};
 		CONFIGDIR="";
 		COAST_PATH="";
-		oldifs="${IFS}";
-		IFS=":";
-		for segname in ${tmpCOAST_PATH}; do
-			IFS=$oldifs;
-			if [ $PRINT_DBG -ge 2 ]; then echo "segment is ["$segname"]"; fi
-			if [ -d "${segname}" ]; then
-				if [ $PRINT_DBG -ge 2 ]; then echo "found valid config path ["${segname}"]"; fi
-				if [ $PRINT_DBG -ge 2 ]; then echo "coast_path before ["$COAST_PATH"]"; fi
-				COAST_PATH="`appendPathEx \"$COAST_PATH\" \":\" \"${segname}\"`";
-				if [ -z "$CONFIGDIR" ]; then
-					CONFIGDIR=${segname};
+		{
+			cd $PROJECTDIRABS;
+			oldifs="${IFS}";
+			IFS=":";
+			for segname in ${tmpCOAST_PATH}; do
+				IFS=$oldifs;
+				if [ $PRINT_DBG -ge 2 ]; then echo "segment is ["$segname"]"; fi
+				if [ -d "${segname}" ]; then
+					if [ $PRINT_DBG -ge 2 ]; then echo "found valid config path ["${segname}"]"; fi
+					if [ $PRINT_DBG -ge 2 ]; then echo "coast_path before ["$COAST_PATH"]"; fi
+					COAST_PATH="`appendPathEx \"$COAST_PATH\" \":\" \"${segname}\"`";
+					if [ -z "$CONFIGDIR" ]; then
+						CONFIGDIR=${segname};
+					fi
 				fi
-			fi
-		done;
+			done;
+		}
 		if [ -z "$CONFIGDIR" ]; then
 			CONFIGDIR=".";
 		fi
@@ -125,7 +145,7 @@ SetCOAST_PATH()
 		fi
 	fi
 	WD_PATH=$COAST_PATH
-	CONFIGDIRABS=`makeAbsPath "${PROJECTDIR}/${CONFIGDIR}"`
+	CONFIGDIRABS=`makeAbsPath "${PROJECTDIR}/${CONFIGDIR}" "" "$PROJECTDIRABS"`
 }
 
 # param 1: use specific binary to search/test for, default ${APP_NAME}
@@ -188,23 +208,26 @@ SetupLDPath()
 	locBinPath="";
 	locLastBinPath="";
 	sldpProcessedBins="";
-	for binname in $@; do
-		if [ -n "${binname}" ]; then
-			existInPath "${sldpProcessedBins}" ":" "${binname}" && continue;
-			sldpProcessedBins="`appendPathEx \"${sldpProcessedBins}\" \":\" \"${binname}\"`";
-			dname="`dirname ${binname}`";
-			locBinPath="`echo ${dname} | sed \"s|[_.]*${OSREL}\$||\"`";
-			locBinPath=${locBinPath:=./};
-			if [ -n "${locBinPath}" -a "${locBinPath}" != "${locLastBinPath}" -a -d "${locBinPath}" ]; then
-				locLastBinPath=${locBinPath};
-				locLdSearchFile=${locBinPath}/.ld-search-path
-				if [ $PRINT_DBG -ge 2 ]; then echo "testing in dir [${locBinPath}], file [${locLdSearchFile}]"; fi;
-				if [ -r ${locLdSearchFile} ]; then
-					valueOfLdVar="`prependPathEx \"${valueOfLdVar}\" \":\" \"\`cat ${locLdSearchFile}\`\"`"
+	{
+		cd $PROJECTDIR;
+		for binname in $@; do
+			if [ -n "${binname}" ]; then
+				existInPath "${sldpProcessedBins}" ":" "${binname}" && continue;
+				sldpProcessedBins="`appendPathEx \"${sldpProcessedBins}\" \":\" \"${binname}\"`";
+				dname="`dirname ${binname}`";
+				locBinPath="`echo ${dname} | sed \"s|[_.]*${OSREL}\$||\"`";
+				locBinPath=${locBinPath:=./};
+				if [ -n "${locBinPath}" -a "${locBinPath}" != "${locLastBinPath}" -a -d "${locBinPath}" ]; then
+					locLastBinPath=${locBinPath};
+					locLdSearchFile=${locBinPath}/.ld-search-path
+					if [ $PRINT_DBG -ge 2 ]; then echo "testing in dir [${locBinPath}], file [${locLdSearchFile}]"; fi;
+					if [ -r ${locLdSearchFile} ]; then
+						valueOfLdVar="`prependPathEx \"${valueOfLdVar}\" \":\" \"\`cat ${locLdSearchFile}\`\"`"
+					fi;
 				fi;
 			fi;
-		fi;
-	done;
+		done;
+	}
 	valueOfLdVar="`cleanPathEx \"${valueOfLdVar}\" \":\"`"
 	valueOfLdVar="`prependPathEx \"${valueOfLdVar}\" \":\" \"${COAST_LIBDIR:-${WD_LIBDIR:-.}}\"`"
 	if [ $PRINT_DBG -ge 2 ]; then
@@ -215,12 +238,11 @@ SetupLDPath()
 }
 
 # get projectname from projectdirectory, should be the last path segment
-PROJECTNAME=`echo ${PROJECTDIR} | sed 's|^.*/||'`
+PROJECTNAME=`basename ${PROJECTDIR}`
 
 # directory name of the log directory, may be overwritten in the project specific prjconfig.sh
 LOGDIR="`SearchJoinedDir \"$PROJECTDIR\" \"$PROJECTNAME\" \"log\"`"
-test -z "${LOGDIR}" && LOGDIR=.;
-LOGDIRABS="${LOGDIR}"
+test -z "${LOGDIR}" && LOGDIR=$PROJECTDIR;
 
 SetupLogDir
 
@@ -274,9 +296,12 @@ if [ -z "${myLIBDIR}" ]; then
 	fi
 fi
 if [ -n "${myLIBDIR}" ]; then
-	if [ -n "${myLIBDIR}" -a ! -d "${myLIBDIR}" ]; then
-		mkdir -p "${myLIBDIR}";
-	fi;
+	{
+		cd $PROJECTDIRABS;
+		if [ -n "${myLIBDIR}" -a ! -d "${myLIBDIR}" ]; then
+			mkdir -p "${myLIBDIR}";
+		fi;
+	}
 	COAST_LIBDIR="`makeAbsPath \"${myLIBDIR}\"`"
 fi
 WD_LIBDIR="$COAST_LIBDIR"
@@ -297,8 +322,8 @@ fi;
 if [ ! -f "$CONFIGDIRABS/prjconfig.sh" -a ! -f "$SCRIPTDIR/prjconfig.sh" ]; then
 	echo ''
 	echo 'WARNING: project specific config file not found'
-	echo ' looked in ['$CONFIGDIRABS/prjconfig.sh']'
-	echo ' looked in ['$SCRIPTDIR/prjconfig.sh']'
+	echo ' looked in ['${CONFIGDIRABS:-<CONFIGDIRABS>}/prjconfig.sh']'
+	echo ' looked in ['${SCRIPTDIR:-.<SCRIPTDIR>}/prjconfig.sh']'
 	echo ''
 fi
 
@@ -329,7 +354,7 @@ fi
 
 PRJ_DESCRIPTION="${PRJ_DESCRIPTION:-$SERVERNAME}"
 test -z "${BINDIR}" && BINDIR=`GetBindir ${APP_NAME} ${PROJECTDIR}*bin* ${PROJECTDIR}`
-test -n "${BINDIR}" && BINDIRABS=`makeAbsPath "${BINDIR}"`
+test -n "${BINDIR}" && BINDIRABS=`makeAbsPath "${BINDIR}" "" "$PROJECTDIRABS"`
 SetBinary
 TestExecWdBinaries
 SetupLDPath ${WDA_BINABS} ${WDS_BINABS}

@@ -121,16 +121,21 @@ getGLIBCVersion()
 #
 # param $1 is the path to make absolute
 # param $2 optional argument to pwd command, eg. '-P' to follow links
+# param $3 path to start from
 #
 # output: echo absolute path if ${1} is a directory
 makeAbsPath()
 {
 	relativeDir=${1};
 	pwdOption=${2};
+	basePath=${3:-.};
 	lRetVal="";
-	if [ -d "${relativeDir}" ]; then
-		lRetVal=`cd ${relativeDir} >/dev/null 2>&1 && pwd ${pwdOption} 2>/dev/null`;
-	fi;
+	{
+		cd $basePath;
+		if [ -d "${relativeDir}" ]; then
+			lRetVal=`cd ${relativeDir} >/dev/null 2>&1 && pwd ${pwdOption} 2>/dev/null`;
+		fi;
+	}
 	echo "${lRetVal}";
 }
 
