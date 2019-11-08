@@ -38,7 +38,6 @@ do_purify=0;
 if [ "$1" = "quantify" ]; then do_quantify=1; fi
 if [ "$1" = "purify" ]; then do_purify=1; fi
 
-set -h	# remember functions
 hash -r
 hash basename dirname sed cut tr echo printf
 startpath="`pwd`"
