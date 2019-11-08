@@ -8,12 +8,12 @@ teardown() {
   true
 }
 
-@test "isAbsPath / is absolute" {
+@test "sysfuncs.sh: isAbsPath / is absolute" {
   run isAbsPath /
   [ "$status" -eq 0 ]
 }
 
-@test "isAbsPath . is not absolute" {
+@test "sysfuncs.sh: isAbsPath . is not absolute" {
   run isAbsPath .
   [ "$status" -ne 0 ]
 }
