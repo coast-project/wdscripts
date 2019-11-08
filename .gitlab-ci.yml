@@ -16,6 +16,7 @@ default:
   - bats --version
   - which shellcheck || curl -sSL https://storage.googleapis.com/shellcheck/shellcheck-stable.linux.x86_64.tar.xz | sudo tar xJf - -C /usr/local/bin --strip-components=1
   - shellcheck --version
+  - which tree || { sudo apt update && sudo apt install --yes --no-install-recommends --quiet tree }
 
 #build:
 #  stage: build
