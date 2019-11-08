@@ -68,10 +68,12 @@ bootScriptPath=`dirname $derefd_name`;
 derefd_name=`basename $derefd_name`;
 bootScriptName=${derefd_name};
 
+[ ! "$bootScriptName" = "bootScript.sh" ] && { echo "This script cannot be sourced, aborting!"; exit 2; }
+
 # load global config
 . $bootScriptPath/config.sh $cfg_dbgopt
 
-my_uid=`getUid`
+my_uid=$(getUid)
 
 # Ensure being on the correct project path by checking for an existing config* directory.
 tmp_CfgDir="`SearchJoinedDir \"$PROJECTDIR\" \"$PROJECTNAME\" \"config\"`"
