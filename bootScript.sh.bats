@@ -1,5 +1,6 @@
 #!/usr/bin/env bats
 
+_put=bootScript.sh
 setup() {
   tdir=$(mktemp -d)
   tdir2=$(mktemp -d)
@@ -23,7 +24,7 @@ teardown() {
 # ├── config
 # ├── lnscripts -> /tmp/tmp.1/scripts
 # └── scripts
-@test "bootScript.sh: Abort when command is missing" {
+@test "${_put}: Abort when command is missing" {
   tree -d $tdir
   run eval "cd ${tdir}; PRINT_DBG=3 ./scripts/bootScript.sh;"
   echo $output
@@ -34,7 +35,7 @@ teardown() {
 # ├── config
 # ├── lnscripts -> /tmp/tmp.1/scripts
 # └── scripts
-@test "bootScript.sh: Abort when sourced" {
+@test "${_put}: Abort when sourced" {
   tree -d $tdir
   run eval "cd ${tdir};source scripts/bootScript.sh status"
   echo $output
@@ -45,7 +46,7 @@ teardown() {
 # ├── config
 # ├── lnscripts -> /tmp/tmp.1/scripts
 # └── scripts
-@test "bootScript.sh: Succeed with status command (relative call)" {
+@test "${_put}: Succeed with status command (relative call)" {
   tree -d $tdir
   run eval "cd ${tdir}; ./scripts/bootScript.sh status"
   echo $output
@@ -56,7 +57,7 @@ teardown() {
 # ├── config
 # ├── lnscripts -> /tmp/tmp.1/scripts
 # └── scripts
-@test "bootScript.sh: Succeed with status command (absolute call)" {
+@test "${_put}: Succeed with status command (absolute call)" {
   tree -d $tdir
   run eval "cd ${tdir}; ${tdir_scripts}/bootScript.sh status"
   echo $output
@@ -67,7 +68,7 @@ teardown() {
 # ├── config
 # ├── lnscripts -> /tmp/tmp.1/scripts
 # └── scripts
-@test "bootScript.sh: Succeed with status command (absolute call in linked dir)" {
+@test "${_put}: Succeed with status command (absolute call in linked dir)" {
   tree -d $tdir
   run eval "cd ${tdir}; ${tdir_lnscripts}/bootScript.sh status"
   echo $output
@@ -87,7 +88,7 @@ teardown() {
 # ├── config -> /tmp/tmp.1/config
 # ├── logs -> /tmp/tmp.2/logs
 # └── scripts -> /tmp/tmp.1/scripts
-@test "bootScript.sh: Succeed with status command (absolute call with init like linked script)" {
+@test "${_put}: Succeed with status command (absolute call with init like linked script)" {
   for d in config scripts; do ln -s ${tdir}/$d ${tdir3}/$d; done
   ln -s ${tdir2}/logs ${tdir3}/logs
   tree ${initdir}

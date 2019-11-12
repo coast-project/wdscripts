@@ -1,5 +1,6 @@
 #!/usr/bin/env bats
 
+_put=config.sh
 setup() {
   tdir=$(mktemp -d)
   tdir2=$(mktemp -d)
@@ -20,18 +21,18 @@ teardown() {
   rm -rf ${tdir} ${tdir2} ${tdir3} ${tdir_scripts} ${tdir_config}
 }
 
-@test "config.sh: wdapp is the default name of \$APP_NAME" {
+@test "${_put}: wdapp is the default name of \$APP_NAME" {
   run eval "source config.sh >&2; printf \"\$APP_NAME\""
   [ "${output}" = "wdapp" ]
 }
 
-@test "config.sh: version retrieval from anything \$PROJECTVERSION" {
+@test "${_put}: version retrieval from anything \$PROJECTVERSION" {
   run eval "cd ${tdir}; source scripts/config.sh >&2; printf \"\$PROJECTVERSION\\n\$VERSIONFILE\\n\""
   [ "${lines[0]}" = "4.0.1.1398" ]
   [ "${lines[1]}" = "${tdir_config}/Version.any" ]
 }
 
-@test "config.sh: version retrieval from VERSION" {
+@test "${_put}: version retrieval from VERSION" {
   # need to remove anything which has priority in retrieval
   rm -f ${tdir_config}/Version.any
   run eval "cd ${tdir}; source scripts/config.sh >&2; printf \"\$PROJECTVERSION\\n\$VERSIONFILE\\n\""
@@ -43,7 +44,7 @@ teardown() {
 # /tmp/tmp.cQEx0cZ7xR
 # ├── config
 # └── scripts
-@test "config.sh: PROJECTDIR setting from samedir" {
+@test "${_put}: PROJECTDIR setting from samedir" {
   run eval "cd ${tdir}; source scripts/config.sh >&2; printf \"\$PROJECTDIR\""
   tree -d $tdir
   echo $output
@@ -53,7 +54,7 @@ teardown() {
 # /tmp/tmp.cQEx0cZ7xR
 # ├── config
 # └── scripts
-@test "config.sh: PROJECTDIR setting from subdir" {
+@test "${_put}: PROJECTDIR setting from subdir" {
   run eval "cd ${tdir_scripts}; source config.sh >&2; printf \"\$PROJECTDIR\""
   tree -d $tdir
   echo $output
@@ -64,7 +65,7 @@ teardown() {
 # ├── config
 # ├── lnscripts -> /tmp/tmp.KQ6AdNvese/scripts
 # └── scripts
-@test "config.sh: PROJECTDIR setting from linked subdir" {
+@test "${_put}: PROJECTDIR setting from linked subdir" {
   ln -s ${tdir_scripts} ${tdir_lnscripts}
   run eval "cd ${tdir_lnscripts}; source config.sh >&2; printf \"\$PROJECTDIR\""
   tree -d $tdir
@@ -76,7 +77,7 @@ teardown() {
 # ├── config
 # ├── lnscripts -> /tmp/tmp.KQ6AdNvese/scripts
 # └── scripts
-@test "config.sh: PROJECTDIR setting from linked subdir absolute" {
+@test "${_put}: PROJECTDIR setting from linked subdir absolute" {
   ln -s ${tdir_scripts} ${tdir_lnscripts}
   tree -d $tdir
   run eval "cd ${tdir_config}; source ${tdir_lnscripts}/config.sh >&2; printf \"\$PROJECTDIR\""
@@ -92,7 +93,7 @@ teardown() {
 # ├── config -> /tmp/tmp.1/config
 # ├── logs -> /tmp/tmp.1/logs
 # └── scripts -> /tmp/tmp.1/scripts
-@test "config.sh: PROJECTDIR setting from within projectpath with linked subdirs" {
+@test "${_put}: PROJECTDIR setting from within projectpath with linked subdirs" {
   mkdir -p ${tdir}/logs
   for d in config logs scripts; do ln -s ${tdir}/$d ${tdir2}/$d; done
   tree -d $tdir $tdir2
@@ -109,7 +110,7 @@ teardown() {
 # ├── config -> /tmp/tmp.1/config
 # ├── logs -> /tmp/tmp.1/logs
 # └── scripts -> /tmp/tmp.1/scripts
-@test "config.sh: PROJECTDIR setting from within config subdir of projectpath with linked subdirs" {
+@test "${_put}: PROJECTDIR setting from within config subdir of projectpath with linked subdirs" {
   mkdir -p ${tdir}/logs
   for d in config logs scripts; do ln -s ${tdir}/$d ${tdir2}/$d; done
   tree -d $tdir $tdir2
@@ -126,7 +127,7 @@ teardown() {
 # ├── config -> /tmp/tmp.1/config
 # ├── logs -> /tmp/tmp.1/logs
 # └── scripts -> /tmp/tmp.1/scripts
-@test "config.sh: PROJECTDIR setting from within logs subdir of projectpath with linked subdirs" {
+@test "${_put}: PROJECTDIR setting from within logs subdir of projectpath with linked subdirs" {
   mkdir -p ${tdir}/logs
   for d in config logs scripts; do ln -s ${tdir}/$d ${tdir2}/$d; done
   tree -d $tdir $tdir2
@@ -145,7 +146,7 @@ teardown() {
 # ├── config -> /tmp/tmp.1/config
 # ├── logs -> /tmp/tmp.2/logs
 # └── scripts -> /tmp/tmp.1/scripts
-@test "config.sh: PROJECTDIR setting from within logs/rotate subdir of projectpath with linked subdirs" {
+@test "${_put}: PROJECTDIR setting from within logs/rotate subdir of projectpath with linked subdirs" {
   mkdir -p ${tdir2}/logs/rotate
   for d in config scripts; do ln -s ${tdir}/$d ${tdir3}/$d; done
   ln -s ${tdir2}/logs ${tdir3}/logs
