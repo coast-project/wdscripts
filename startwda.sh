@@ -18,22 +18,22 @@ test "/" = "`echo ${mypath} | cut -c1`" || mypath="$(cd ${mypath} 2>/dev/null &&
 showhelp()
 {
 	. $mypath/config.sh >/dev/null 2>&1;
-	echo ''
-	echo 'usage: '$startwdaScriptName' [options] -- [app-params]...'
-	echo 'where options are:'
-	echo ' -c <coresize> : maximum size of core file to produce, in 512Byte blocks!'
-	echo ' -e <level>    : specify level of error-logging to console, default:4, see below for possible values'
-	echo ' -s <level>    : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5'
-	echo '                  possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5'
-	echo '                  the logger will log all levels above or equal the specified value'
-	echo ' -t            : prepend console logs with a timestamp'
-	echo ' -h <num>      : number of file handles to set for the process, default 1024'
-	echo ' -C <cfgdir>   : config directory to use within ['$PROJECTDIR'] directory'
-	echo ' -F            : force starting service even it was disabled by setting RUN_SERVICE=0'
-	echo ' -D            : print debugging information of scripts, sets PRINT_DBG variable to 1'
-	echo ' -d            : run under debugger control, use a second -d to disable debugging even RUN_ATTACHED_TO_GDB was set to 1'
-	echo ' -P            : print full path to wdapp binary (helps with ps -ef command)'
-	echo ''
+	echo ""
+	echo "usage: $startwdaScriptName [options] -- [app-params]..."
+	echo "where options are:"
+	echo " -c <coresize> : maximum size of core file to produce, in 512Byte blocks!"
+	echo " -e <level>    : specify level of error-logging to console, default:4, see below for possible values"
+	echo " -s <level>    : specify level of error-logging into SysLog, eg. /var/[adm|log]/messages, default:5"
+	echo "                  possible values: Debug:1, Info:2, Warning:3, Error:4, Alert:5"
+	echo "                  the logger will log all levels above or equal the specified value"
+	echo " -t            : prepend console logs with a timestamp"
+	echo " -h <num>      : number of file handles to set for the process, default 1024"
+	echo " -C <cfgdir>   : config directory to use within [$PROJECTDIR] directory"
+	echo " -F            : force starting service even it was disabled by setting RUN_SERVICE=0"
+	echo " -D            : print debugging information of scripts, sets PRINT_DBG variable to 1"
+	echo " -d            : run under debugger control, use a second -d to disable debugging even RUN_ATTACHED_TO_GDB was set to 1"
+	echo " -P            : print full path to wdapp binary (helps with ps -ef command)"
+	echo ""
 	exit 4;
 }
 

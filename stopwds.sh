@@ -17,18 +17,19 @@ test "/" = "`echo ${mypath} | cut -c1`" || mypath="$(cd ${mypath} 2>/dev/null &&
 
 showhelp()
 {
-	. $mypath/config.sh >/dev/null 2>&1;
-	echo ''
-	echo 'usage: '$stopwdsScriptName' [options]'
-	echo 'where options are:'
-	echo ' -C <cfgdir> : config directory to use within ['$PROJECTDIR'] directory'
-	echo ' -N <process>: name of process to stop/kill, default is (WDS_BIN)'
-	echo ' -U <user>   : name of user the process runs as, default RUN_USER with fallback of USER'
-	echo ' -F          : force stopping service even it was disabled by setting RUN_SERVICE=0, deprecated!'
-	echo ' -D          : print debugging information of scripts, sets PRINT_DBG variable to 1'
-	echo ' -w <count>  : seconds to wait on server termination, default count=60'
-	echo ' -K          : force kill server, ignoring server instance token'
-	echo ''
+	# shellcheck source=./config.sh
+	. "$mypath"/config.sh >/dev/null 2>&1;
+	echo ""
+	echo "usage: $stopwdsScriptName [options]"
+	echo "where options are:"
+	echo " -C <cfgdir> : config directory to use within [$PROJECTDIR] directory"
+	echo " -N <process>: name of process to stop/kill, default is (WDS_BIN)"
+	echo " -U <user>   : name of user the process runs as, default RUN_USER with fallback of USER"
+	echo " -F          : force stopping service even it was disabled by setting RUN_SERVICE=0, deprecated!"
+	echo " -D          : print debugging information of scripts, sets PRINT_DBG variable to 1"
+	echo " -w <count>  : seconds to wait on server termination, default count=60"
+	echo " -K          : force kill server, ignoring server instance token"
+	echo ""
 	exit 4;
 }
 
