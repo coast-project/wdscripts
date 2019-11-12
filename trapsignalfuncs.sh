@@ -15,7 +15,6 @@
 unset -f exitprocINT
 unset -f exitprocHUP
 unset -f exitprocTERM
-unset -f exitprocKILL
 unset -f exitproc
 
 exitprocINT()
@@ -30,10 +29,6 @@ exitprocTERM()
 {
 	exitproc "TERM"
 }
-exitprocKILL()
-{
-	exitproc "KILL"
-}
 
 # default func
 exitproc()
@@ -46,4 +41,3 @@ exitproc()
 trap exitprocINT INT
 trap exitprocHUP HUP
 trap exitprocTERM TERM
-trap exitprocKILL KILL
