@@ -2,11 +2,14 @@
 
 _put=sysfuncs.sh
 setup() {
-  . ${_put} >&2
+	. ${_put} >&2
+	tdir=$(mktemp -d)
+	mkdir -p $tdir/testDir
+	ln -s $tdir/testDir $tdir/lnDir
 }
 
 teardown() {
-  true
+	rm -rf "$tdir"
 }
 
 @test "${_put}: isAbsPath / is absolute" {
@@ -17,6 +20,60 @@ teardown() {
 @test "${_put}: isAbsPath . is not absolute" {
   run isAbsPath .
   [ "$status" -ne 0 ]
+}
+
+@test "${_put}: makeAbsPath of current dir (.)" {
+  run makeAbsPath .
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(pwd)" ]
+}
+
+@test "${_put}: makeAbsPath current dir (.) in other directory" {
+  run makeAbsPath . "" "$tdir"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir" ]
+}
+
+@test "${_put}: makeAbsPath subdir (testDir) in other directory" {
+  run makeAbsPath testDir "" "$tdir"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir/testDir" ]
+}
+
+@test "${_put}: makeAbsPath inexistent dir (blub) in other directory" {
+  run makeAbsPath blub "" "$tdir"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "" ]
+}
+
+@test "${_put}: makeAbsPath softlink dir (lnDir) in other directory" {
+  run makeAbsPath lnDir "" "$tdir"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir/lnDir" ]
+}
+
+@test "${_put}: makeAbsPath resolved softlink dir (lnDir) in other directory" {
+  run makeAbsPath lnDir "-P" "$tdir"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir/testDir" ]
+}
+
+@test "${_put}: makeAbsPath of absolute directory" {
+  run makeAbsPath "$tdir"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir" ]
+}
+
+@test "${_put}: makeAbsPath of linked absolute directory" {
+  run makeAbsPath "$tdir/lnDir"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir/lnDir" ]
+}
+
+@test "${_put}: makeAbsPath resolved of linked absolute directory" {
+  run makeAbsPath "$tdir/lnDir" "-P"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir/testDir" ]
 }
 
 @test "${_put}: isFunction for function" {
@@ -70,5 +127,21 @@ teardown() {
 @test "${_put}: getCSVValue second of a b c d" {
   run getCSVValue "a b c d" 3 " "
   [ "$output" = "c" ]
+}
+
+@test "${_put}: printEnvVar with default formats" {
+  _varkey=HOSTNAME
+  _varvalue="$(eval echo \$"$_varkey")"
+  _varoutput="$(printf "%-16s: [%s]\n" "$_varkey" "$_varvalue")"
+  run printEnvVar "$_varkey"
+  [ "$output" = "$_varoutput" ]
+}
+
+@test "${_put}: printEnvVar with own format" {
+  _varkey=HOSTNAME
+  _varvalue="$(eval echo \$"$_varkey")"
+  _varoutput="$(printf "%s:%s\n" "$_varkey" "$_varvalue")"
+  run printEnvVar "$_varkey" "%s:" "%s"
+  [ "$output" = "$_varoutput" ]
 }
 
