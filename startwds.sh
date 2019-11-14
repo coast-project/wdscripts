@@ -115,14 +115,14 @@ done
 shift `expr $OPTIND - 1`
 
 cfg_srvopts="$@";
-if [ $cfg_dbg -ge 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo " - given Options [$cfg_srvopts]"; fi;
 
 test -n "$cfg_cfgdir" && COAST_PATH=${cfg_cfgdir};
 test $cfg_errorlog -gt 0 && COAST_LOGONCERR=$cfg_errorlog;
 test $cfg_logtimestamp -gt 0 && COAST_LOGONCERR_WITH_TIMESTAMP=1;
 test $cfg_syslog -gt 0 && COAST_DOLOG=$cfg_syslog;
 
-if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo " - sourcing config.sh"; fi;
 . $mypath/config.sh $cfg_dbgopt
 
 MYNAME=$startwdsScriptName	# used within trapsignalfuncs/serverfuncs for logging
@@ -160,8 +160,8 @@ if [ -z "$cfg_srvopts" ]; then
 	cfg_srvopts=${SERVERNAME};
 fi;
 
-test -w `dirname ${ServerMsgLog}` || nologExit 1 "Cannot create/write into ${ServerMsgLog}, please ensure correct settings before continuing!";
-test -w `dirname ${ServerErrLog}` || nologExit 1 "Cannot create/write into ${ServerErrLog}, please ensure correct settings before continuing!";
+test -w $(dirname ${ServerMsgLog}) || nologExit 1 "Cannot create/write into ${ServerMsgLog}, please ensure correct settings before continuing!";
+test -w $(dirname ${ServerErrLog}) || nologExit 1 "Cannot create/write into ${ServerErrLog}, please ensure correct settings before continuing!";
 
 # install signal handlers
 . $mypath/trapsignalfuncs.sh
@@ -193,10 +193,10 @@ if [ ${RUN_ATTACHED_TO_GDB:-0} -eq 1 -a $cfg_dbgctl -le 1 -o $cfg_dbgctl -eq 1 ]
 	fi
 fi
 
-echo ''
-echo '------------------------------------------------------------------------'
-echo $startwdsScriptName' - script to start server ['${SERVERNAME}'] on ['${HOSTNAME}']'
-echo ''
+echo ""
+echo "------------------------------------------------------------------------"
+echo "$startwdsScriptName - script to start server [${SERVERNAME}] on [${HOSTNAME}]"
+echo ""
 
 LogEnterScript
 

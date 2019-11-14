@@ -188,10 +188,10 @@ outmsg="Starting perftest [${SERVERNAME}] with config [${COAST_PATH}]";
 # -> this scripts execution will only be disabled when RUN_SERVICE is set to 0
 test ${cfg_forceStart} -eq 1 || exitIfDisabledService "${outmsg}"
 
-echo ''
-echo '------------------------------------------------------------------------'
-echo $startprfScriptName' - script to start perftest ['${SERVERNAME}'] with configdir ['${COAST_PATH}']'
-echo ''
+echo ""
+echo "------------------------------------------------------------------------"
+echo "$startprfScriptName - script to start perftest [${SERVERNAME}] with configdir [${COAST_PATH}]"
+echo ""
 
 LogEnterScript
 

@@ -91,9 +91,9 @@ if [ -n "$DEV_HOME" ]; then
 	relativeToProjectdir="`relpath \"${DEV_HOME}\" \"${PROJECTDIR}\"`"
 	if [ "${relativeToProjectdir}" = "${PROJECTDIR}" ]; then
 		# path is not related
-		echo ''
-		echo 'WARNING: DEV_HOME already set to ['$DEV_HOME'] but projectdir is ['$PROJECTDIR']'
-		echo ''
+		echo ""
+		echo "WARNING: DEV_HOME already set to [$DEV_HOME] but projectdir is [$PROJECTDIR]"
+		echo ""
 	fi
 fi
 
@@ -306,10 +306,10 @@ fi
 WD_LIBDIR="$COAST_LIBDIR"
 if [ -z "$COAST_LIBDIR" ]; then
 	if [ $PRINT_DBG -ge 2 ]; then
-		echo 'WARNING: could not find a library directory, looked in:'
-		echo 'PROJECTDIR/lib: ['${PROJECTDIR}/lib']'
-		echo 'COAST_LIBDIR  : ['${COAST_LIBDIR}']'
-		test -n "$DEV_HOME" && echo 'DEV_HOME/lib  : ['${DEV_HOME}/lib']'
+		echo "WARNING: could not find a library directory, looked in:"
+		echo "PROJECTDIR/lib: [${PROJECTDIR}/lib]"
+		echo "COAST_LIBDIR  : [${COAST_LIBDIR}]"
+		test -n "$DEV_HOME" && echo "DEV_HOME/lib  : [${DEV_HOME}/lib]"
 	fi;
 fi
 
@@ -318,12 +318,12 @@ if [ -z "${SERVERNAME}" ]; then
 fi;
 
 # in case where we are installing the prjconfig.sh has to be located in the install directory
-if [ ! -f "$CONFIGDIRABS/prjconfig.sh" -a ! -f "$SCRIPTDIR/prjconfig.sh" ]; then
-	echo ''
-	echo 'WARNING: project specific config file not found'
-	echo ' looked in ['${CONFIGDIRABS:-<CONFIGDIRABS>}/prjconfig.sh']'
-	echo ' looked in ['${SCRIPTDIR:-.<SCRIPTDIR>}/prjconfig.sh']'
-	echo ''
+if [ ! -f "$CONFIGDIRABS/prjconfig.sh" ] && [ ! -f "$SCRIPTDIR/prjconfig.sh" ]; then
+	echo ""
+	echo "WARNING: project specific config file not found"
+	echo " looked in [${CONFIGDIRABS:-<CONFIGDIRABS>}/prjconfig.sh]"
+	echo " looked in [${SCRIPTDIR:-.<SCRIPTDIR>}/prjconfig.sh]"
+	echo ""
 fi
 
 if [ -f "$CONFIGDIRABS/prjconfig.sh" ]; then

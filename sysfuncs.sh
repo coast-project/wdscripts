@@ -993,27 +993,27 @@ setDevelopmentEnv()
 	echo "following variables were set:"
 	echo ""
 	if [ -n "${CC}" ]; then
-		echo "CC                     : ["${CC:-gcc}"]"
+		echo "CC                     : [${CC:-gcc}]"
 	fi
 	if [ -n "${CXX}" ]; then
-		echo "CXX                    : ["${CXX:-g++}"]"
+		echo "CXX                    : [${CXX:-g++}]"
 	fi
-	echo "DEV_HOME               : ["${DEV_HOME}"]"
-	if [ $isWindows -eq 1 ]; then
-		echo "DEV_HOME_NT            : ["${DEV_HOME_NT}"]"
+	echo "DEV_HOME               : [${DEV_HOME}]"
+	if [ "${isWindows:-0}" -eq 1 ]; then
+		echo "DEV_HOME_NT            : [${DEV_HOME_NT}]"
 	fi
-	echo "WD_OUTDIR              : ["${WD_OUTDIR}"]"
-	if [ $isWindows -eq 1 ]; then
-		echo "WD_OUTDIR_NT      : ["${WD_OUTDIR_NT}"]"
+	echo "WD_OUTDIR              : [${WD_OUTDIR}]"
+	if [ "${isWindows:-0}" -eq 1 ]; then
+		echo "WD_OUTDIR_NT      : [${WD_OUTDIR_NT}]"
 	fi
-	echo "COAST_LIBDIR              : ["${COAST_LIBDIR}"]"
-	echo "PATH                   : ["${PATH}"]"
-	if [ $isWindows -eq 0 ]; then
-		echo "LD_LIBRARY_PATH        : ["${LD_LIBRARY_PATH}"]"
-		echo "LD_LIBRARY_PATH_NATIVE : ["${LD_LIBRARY_PATH_NATIVE}"]"
+	echo "COAST_LIBDIR              : [${COAST_LIBDIR}]"
+	echo "PATH                   : [${PATH}]"
+	if [ "${isWindows:-0}" -eq 0 ]; then
+		echo "LD_LIBRARY_PATH        : [${LD_LIBRARY_PATH}]"
+		echo "LD_LIBRARY_PATH_NATIVE : [${LD_LIBRARY_PATH_NATIVE}]"
 	fi
-	if [ $isWindows -eq 0 -a -n "${LD_RUN_PATH}" ]; then
-		echo "LD_RUN_PATH            : ["${LD_RUN_PATH}"]"
+	if [ "${isWindows:-0}" -eq 0 ] && [ -n "${LD_RUN_PATH}" ]; then
+		echo "LD_RUN_PATH            : [${LD_RUN_PATH}]"
 	fi
 	echo ""
 	return 1;
@@ -1047,12 +1047,12 @@ appendTokens()
 	locOutput="`eval $locPreOutname`";
 	locTokens="${2}";
 	locSep="${3}";
-	if [ $cfg_dbg -ge 2 ]; then echo 'current token separator is ['$locSep']'; fi
+	if [ "${PRINT_DBG:-0}" -ge 2 ]; then echo "current token separator is [$locSep]"; fi
 	for cfgtok in $locTokens; do
-		if [ $cfg_dbg -ge 2 ]; then echo 'current token is ['$cfgtok']'; fi
+		if [ "${PRINT_DBG:-0}" -ge 2 ]; then echo "current token is [$cfgtok]"; fi
 		locOutput="$locOutput${locSep}$cfgtok";
 	done;
-	if [ $cfg_dbg -ge 2 ]; then echo 'appended Output is ['$locOutput']'; fi
+	if [ "${PRINT_DBG:-0}" -ge 2 ]; then echo "appended Output is [$locOutput]"; fi
 	eval ${locOutname}='${locOutput}';
 	export ${locOutname};
 }
@@ -1206,7 +1206,7 @@ if [ ${SYSFUNCSLOADED} -eq 0 ]; then
 
 	# it seems that some shells do not set the USER variable but the variable LOGNAME
 	if [ -z "${USER}" ]; then
-		if [ $PRINT_DBG -ge 1 ]; then echo 'setting USER variable to ['$LOGNAME']'; fi
+		if [ "${PRINT_DBG:-0}" -ge 1 ]; then echo "setting USER variable to [$LOGNAME]"; fi
 		USER=${LOGNAME}
 		sysfuncsExportvars="$sysfuncsExportvars USER"
 	fi
