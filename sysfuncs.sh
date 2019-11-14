@@ -87,9 +87,9 @@ getGLIBCVersionFallback()
 		verbase=`echo ${ldfilename} | sed -e 's|.*ld-||' -e 's|.so||'`;
 	fi;
 	# lets get the numbers
-	V1=$(cut -d'.' -f1 <<<$verbase);
-	V2=$(cut -d'.' -f2 <<<$verbase);
-	V3=$(cut -d'.' -f3 <<<$verbase);
+	V1=$(echo "$verbase" | cut -d'.' -f1);
+	V2=$(echo "$verbase" | cut -d'.' -f2);
+	V3=$(echo "$verbase" | cut -d'.' -f3);
 	ptmp=$V1$versep$V2;
 	if [ -n "$V3" ]; then
 		ptmp=$ptmp$versep$V3;
@@ -104,9 +104,9 @@ getGLIBCVersion()
 	ptmp="";
 	if [ -n "$glibcstr" ]; then
 		# lets get the numbers
-		V1=$(cut -d'.' -f1 <<<$glibcstr);
-		V2=$(cut -d'.' -f2 <<<$glibcstr);
-		V3=$(cut -d'.' -f3 <<<$glibcstr);
+		V1=$(echo "$glibcstr" | cut -d'.' -f1);
+		V2=$(echo "$glibcstr" | cut -d'.' -f2);
+		V3=$(echo "$glibcstr" | cut -d'.' -f3);
 		ptmp=$V1$versep$V2;
 		if [ -n "$V3" ]; then
 			ptmp=$ptmp$versep$V3;
