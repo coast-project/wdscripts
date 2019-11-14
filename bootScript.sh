@@ -51,7 +51,7 @@ minimal_deref_link()
 	mdfFilename=${1};
 	mdfIsLink=1;
 	if [ -h "$mdfFilename" ]; then
-		mdfFilename=`ls -l $mdfFilename | sed -e 's|^[^>]*> ||' -e 's|/$||'`;
+		mdfFilename=$(ls -l $mdfFilename | sed -e 's|^[^>]*> ||' -e 's|/$||');
 		mdfIsLink=0;
 	fi
 	echo "$mdfFilename";
@@ -64,8 +64,8 @@ bootScriptIsALinkReturn=$?
 if [ $bootScriptIsALinkReturn -eq 0 ]; then
 	link_name=${callCmd};
 fi
-bootScriptPath=`dirname $derefd_name`;
-derefd_name=`basename $derefd_name`;
+bootScriptPath=$(dirname $derefd_name);
+derefd_name=$(basename $derefd_name);
 bootScriptName=${derefd_name};
 
 [ ! "$bootScriptName" = "bootScript.sh" ] && { echo "This script cannot be sourced, aborting!"; exit 2; }
@@ -142,7 +142,7 @@ if [ $PRINT_DBG -ge 1 ]; then
 	echo ""
 	for varname in link_name bootScriptName my_uid; do
 		locVar="echo $"$varname;
-		locVarVal=`eval $locVar`;
+		locVarVal=$(eval $locVar);
 		printf "%-16s: [%s]\n" $varname "$locVarVal"
 	done
 	echo ""
@@ -285,7 +285,7 @@ case "$Command" in
 	*)
 		outmsg="${CommandText}: ${bootScriptName} {start|stop|status|restart|reload} [(re-)start arguments...], given [$@]";
 		echo $outmsg;
-		printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${bootScriptName}" "${outmsg}" >> ${ServerMsgLog}
+		printf "%s %s: %s\n" "$(date +%Y%m%d%H%M%S)" "${bootScriptName}" "${outmsg}" >> ${ServerMsgLog}
 		exit 1
 	;;
 esac

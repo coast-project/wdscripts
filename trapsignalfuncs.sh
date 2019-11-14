@@ -34,7 +34,7 @@ exitprocTERM()
 exitproc()
 {
 	locSigName=${1:-4};
-	printf "%s %s: got SIG%s but exitproc not overridden!" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${locSigName}"
+	printf "%s %s: got SIG%s but exitproc not overridden!" "$(date +%Y%m%d%H%M%S)" "${MYNAME}" "${locSigName}"
 	exit 0;
 }
 

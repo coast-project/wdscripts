@@ -40,31 +40,31 @@ if [ "$1" = "purify" ]; then do_purify=1; fi
 
 hash -r
 hash basename dirname sed cut tr echo printf
-startpath="`pwd`"
+startpath="$(pwd)"
 
 configScriptName=config.sh
-if [ ! "`basename $0`" = "$configScriptName" ]; then
+if [ ! "$(basename "$0")" = "$configScriptName" ]; then
 	test $PRINT_DBG -ge 1 && echo "I got sourced from within [$0]"
 fi
 
-for myd in $startpath `dirname $0` ${SCRIPTDIR} $mypath; do
-	scdir="`cd $myd 2>/dev/null && pwd`"
+for myd in $startpath $(dirname "$0") ${SCRIPTDIR} ${mypath}; do
+	scdir="$(cd "${myd}" 2>/dev/null && pwd)"
 	while : ; do
 		sfloc="`ls -c1 $scdir/*scripts*/$configScriptName $scdir/$configScriptName 2>/dev/null | head -1`"
     	if [ -f "$sfloc" ]; then
-    		scdir="$(dirname $sfloc)"
+    		scdir="$(dirname "$sfloc")"
     		break;
     	fi
     	if [ "$scdir" = "/" ]; then
     		scdir="";
     		break;
     	fi
-		scdir="`cd $scdir/.. 2>/dev/null && pwd`"
+		scdir="$(cd $scdir/.. 2>/dev/null && pwd)"
     done;
 	test -n "$scdir" && break;
 done
 
-SCRIPTDIR="`cd ${scdir:-.} 2>/dev/null && pwd`"
+SCRIPTDIR="$(cd "${scdir:-.}" 2>/dev/null && pwd)"
 
 # fail in case of sourcing errors
 set -e
@@ -72,13 +72,14 @@ set -e
 . ${SCRIPTDIR}/sysfuncs.sh
 set +e
 
-scriptdir_name="`basename $SCRIPTDIR`"
-PROJECTDIR="`searchBaseDirUp $SCRIPTDIR ${scriptdir_name}`"
+scriptdir_name="$(basename "$SCRIPTDIR")"
+PROJECTDIR="$(searchBaseDirUp "$SCRIPTDIR" "${scriptdir_name}")"
 # searchBaseDirUp already returns an absolute path
 PROJECTDIRABS=${PROJECTDIR}
 
 # points to the directory where the scripts reside
-SCRIPTDIRABS=`makeAbsPath "${SCRIPTDIR}" "" "$PROJECTDIRABS"`
+# shellcheck disable=SC2034
+SCRIPTDIRABS=$(makeAbsPath "${SCRIPTDIR}" "" "$PROJECTDIRABS")
 
 if [ ${isWindows} -eq 1 ]; then
 	# get projectdir in native NT drive:path notation
@@ -99,8 +100,8 @@ fi
 
 SetupLogDir()
 {
-	LOGDIR=`relpath "${LOGDIR:-.}" "${PROJECTDIRABS}"`;
-	LOGDIRABS=`makeAbsPath "${LOGDIR:-.}" "" "$PROJECTDIRABS"`
+	LOGDIR=$(relpath "${LOGDIR:-.}" "${PROJECTDIRABS}");
+	LOGDIRABS=$(makeAbsPath "${LOGDIR:-.}" "" "$PROJECTDIRABS")
 }
 
 SetCOAST_PATH()
@@ -144,7 +145,7 @@ SetCOAST_PATH()
 		fi
 	fi
 	WD_PATH=$COAST_PATH
-	CONFIGDIRABS=`makeAbsPath "${PROJECTDIR}/${CONFIGDIR}" "" "$PROJECTDIRABS"`
+	CONFIGDIRABS=$(makeAbsPath "${PROJECTDIR}/${CONFIGDIR}" "" "$PROJECTDIRABS")
 }
 
 # param 1: use specific binary to search/test for, default ${APP_NAME}
@@ -157,7 +158,7 @@ GetBindir()
 	test -z "${binarytosearch}" && return
 	test $# -gt 1 || return 0;
 	shift 1
-	candidates=`find $@ -maxdepth 2 -type f -name ${binarytosearch} 2>/dev/null | head -1`;
+	candidates=$(find "$@" -maxdepth 2 -type f -name "${binarytosearch}" 2>/dev/null | head -1);
 	test -z "${candidates}" && return
 	echo "`dirname ${candidates}`";
 }
@@ -237,7 +238,7 @@ SetupLDPath()
 }
 
 # get projectname from projectdirectory, should be the last path segment
-PROJECTNAME=`basename ${PROJECTDIR}`
+PROJECTNAME=$(basename "${PROJECTDIR}")
 
 # directory name of the log directory, may be overwritten in the project specific prjconfig.sh
 LOGDIR="`SearchJoinedDir \"$PROJECTDIR\" \"$PROJECTNAME\" \"log\"`"
@@ -255,8 +256,9 @@ PROJECTSRCDIR="`SearchJoinedDir \"$PROJECTDIR\" \"$PROJECTNAME\" \"src\"`"
 IntCOAST_PATH="`SearchJoinedDir \"$PROJECTDIR\" \"$PROJECTNAME\" \"config\"`"
 
 # try to find out on which machine we are running
-HOSTNAME=`uname -n 2>/dev/null` || HOSTNAME="unkown"
-test -n "${HOSTNAME}" && DOMAIN=`getdomain "${HOSTNAME}"`
+HOSTNAME=$(uname -n 2>/dev/null) || HOSTNAME="unkown"
+# shellcheck disable=SC2034
+test -n "${HOSTNAME}" && DOMAIN=$(getdomain "${HOSTNAME}")
 
 # set the COAST_PATH
 SetCOAST_PATH
@@ -301,7 +303,7 @@ if [ -n "${myLIBDIR}" ]; then
 			mkdir -p "${myLIBDIR}";
 		fi;
 	}
-	COAST_LIBDIR="`makeAbsPath \"${myLIBDIR}\"`"
+	COAST_LIBDIR="$(makeAbsPath "${myLIBDIR}")"
 fi
 WD_LIBDIR="$COAST_LIBDIR"
 if [ -z "$COAST_LIBDIR" ]; then
@@ -352,8 +354,8 @@ else
 fi
 
 PRJ_DESCRIPTION="${PRJ_DESCRIPTION:-$SERVERNAME}"
-test -z "${BINDIR}" && BINDIR=`GetBindir ${APP_NAME} ${PROJECTDIR}*bin* ${PROJECTDIR}`
-test -n "${BINDIR}" && BINDIRABS=`makeAbsPath "${BINDIR}" "" "$PROJECTDIRABS"`
+test -z "${BINDIR}" && BINDIR=$(GetBindir "${APP_NAME}" "${PROJECTDIR}*bin*" "${PROJECTDIR}")
+test -n "${BINDIR}" && BINDIRABS=$(makeAbsPath "${BINDIR}" "" "$PROJECTDIRABS")
 SetBinary
 TestExecWdBinaries
 SetupLDPath ${WDA_BINABS} ${WDS_BINABS}
@@ -369,13 +371,13 @@ appendToLogdirAbsolute()
 }
 
 if [ -z "${PID_FILE}" ]; then
-	PID_FILE=`appendToLogdirAbsolute ${SERVERNAME}.PID`
+	PID_FILE=$(appendToLogdirAbsolute "${SERVERNAME}".PID)
 fi
 if [ -z "${ServerMsgLog}" ]; then
-	ServerMsgLog=`appendToLogdirAbsolute server.msg`
+	ServerMsgLog=$(appendToLogdirAbsolute server.msg)
 fi
 if [ -z "${ServerErrLog}" ]; then
-	ServerErrLog=`appendToLogdirAbsolute server.err`
+	ServerErrLog=$(appendToLogdirAbsolute server.err)
 fi
 
 # check if COAST_ROOT is already set and if so do not overwrite it but warn about
@@ -405,10 +407,13 @@ versionFile=${CONFIGDIRABS:-.}/VERSION
 PROJECTVERSION=""
 if [ -f $versionFileAny ]; then
 	VERSIONFILE=$versionFileAny;
-	PROJECTVERSION="`sed -n 's/^.*Release[ \t]*//p' $versionFileAny | tr -d '\"\t '`.`sed -n 's/^.*Build[ \t]*//p' $versionFileAny | tr -d '\"\t '`"
-elif [ -f $versionFile ]; then
+	# shellcheck disable=SC2034
+	PROJECTVERSION="$(sed -n 's/^.*Release[ \t]*//p' "$versionFileAny" | tr -d '\"\t ').$(sed -n 's/^.*Build[ \t]*//p' "$versionFileAny" | tr -d '\"\t ')"
+elif [ -f "$versionFile" ]; then
+	# shellcheck disable=SC2034
 	VERSIONFILE=$versionFile;
-	PROJECTVERSION="`cat $versionFile`"
+	# shellcheck disable=SC2034
+	PROJECTVERSION="$(cat "$versionFile")"
 fi
 
 test -n "COAST_DOLOG" && WD_DOLOG=${COAST_DOLOG}
@@ -425,7 +430,7 @@ export $variablesToExport
 # for debugging only
 if [ $PRINT_DBG -ge 1 ]; then
 	variablesToPrint="$sysfuncsExportvars $variablesToExport ServerMsgLog ServerErrLog PATH LD_LIBRARY_PATH RUN_ATTACHED_TO_GDB RUN_USER RUN_SERVICE RUN_SERVICE_CFGFILE APP_NAME WDA_BIN WDA_BINABS WDS_BIN WDS_BINABS"
-	variablesToPrint="`echo $variablesToPrint | tr ' ' '\n' | sort | uniq | tr '\n' ' '`"
+	variablesToPrint="$(echo "$variablesToPrint" | tr ' ' '\n' | sort | uniq | tr '\n' ' ')"
 	for varname in $variablesToPrint; do
 		printEnvVar ${varname};
 	done

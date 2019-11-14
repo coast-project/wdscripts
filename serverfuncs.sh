@@ -34,7 +34,8 @@ unset -f determineRunUser
 #
 LogScriptMessage()
 {
-	printf "%s %s: %s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${1}" | tee -a ${ServerMsgLog} ${ServerErrLog};
+	# shellcheck disable=SC2154
+	printf "%s %s: %s\n" "$(date +%Y%m%d%H%M%S)" "${MYNAME}" "${1}" | tee -a "${ServerMsgLog}" "${ServerErrLog}";
 }
 
 # log into server.msg and server.err that we are entering the script
@@ -91,20 +92,22 @@ checkProcessWithName()
 		for cwdCand in $processBaseDir/path/cwd $processBaseDir/cwd; do
 			test -h $cwdCand || continue;
 			# check if the project directory matches the servers working directory
-			cpwnProcessCWD=`${cpwnLsBinary} -l $cwdCand 2>/dev/null | cut -d'>' -f2- | cut -d' ' -f2-`;
+
+			cpwnProcessCWD=$(${cpwnLsBinary} -l "$cwdCand" 2>/dev/null | cut -d'>' -f2- | cut -d' ' -f2-);
 			test -n "${cpwnProcessCWD}" || continue;
 			test "${cpwnProcessCWD}" = "${cpwnProjectDir}" || continue;
-			workingDir=`dirname ${cwdCand}`;
+			proc_dir=$(dirname "${cwdCand}");
 			cpwnProcessPath="";
 			cpwnCmdArgsMatched="";
 			# find executable path
 			for exeCand in $workingDir/a.out $workingDir/exe; do
 				test -h ${exeCand} || continue;
 				# get link to binary
-				cpwnProcessPath=`${cpwnLsBinary} -l $exeCand 2>/dev/null| cut -d'>' -f2- | cut -d' ' -f2-`;
+				cpwnProcessPath=$(${cpwnLsBinary} -l "$exeCand" 2>/dev/null| cut -d'>' -f2- | cut -d' ' -f2-);
 				# sanity check if a link to the binary is available
 				test -n "${cpwnProcessPath}" || continue;
-				cpwnProcessPath="`echo $cpwnProcessPath | sed -n \"\|.*${cpwnBinName}.*|p\"`";
+
+				cpwnProcessPath="$(echo "$cpwnProcessPath" | sed -n "\|.*${cpwnBinName}.*|p")";
 				# check if binary matched, if it was only the surrounding shell we bail out
 				test -n "${cpwnProcessPath}" || continue;
 				# also check if parts of the command line match, shortcut if empty
@@ -194,8 +197,9 @@ WaitOnTermination()
 		printf "."
 		sleep 2
 	done
-	printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog};
-	printf "server %s on %s with pid(s) %s..." "${SERVERNAME}" "${HOSTNAME}" "${wotOrgPids}" >> ${ServerMsgLog};
+	printf "%s %s: " "$(date +%Y%m%d%H%M%S)" "${MYNAME}" >> "${ServerMsgLog}";
+	# shellcheck disable=SC2039
+	printf "server %s on %s with pid(s) %s..." "${SERVERNAME}" "${HOSTNAME}" "${wotOrgPids}" >> "${ServerMsgLog}";
 	if [ ${wotHasStopped} -ge 1 ]; then
 		printf "stopped\n" >> ${ServerMsgLog};
 		wotReturnCode=0;
@@ -234,8 +238,8 @@ SignalToServer()
 			checkProcessId "${stsPidToReturn}"
 			if [ $? -eq 0 ]; then
 				if [ $stsDoFirst -eq 1 ]; then
-					printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" | tee -a ${ServerMsgLog} ${ServerErrLog} >&2
-					printf "sending SIG%s (%s) to process (%s)" "${stsSigName}" "${stsSigNum}" "${stsBinName}" | tee -a ${ServerMsgLog} ${ServerErrLog} >&2
+					printf "%s %s: " "$(date +%Y%m%d%H%M%S)" "${MYNAME}" | tee -a "${ServerMsgLog}" "${ServerErrLog}" >&2
+					printf "sending SIG%s (%s) to process (%s)" "${stsSigName}" "${stsSigNum}" "${stsBinName}" | tee -a "${ServerMsgLog}" "${ServerErrLog}" >&2
 					stsDoFirst=0;
 				fi
 				if [ -n "${kErrMsg}" ]; then kErrMsg="${kErrMsg} ";fi
@@ -256,13 +260,13 @@ SignalToServer()
 		fi
 		printf "\n" | tee -a ${ServerMsgLog} ${ServerErrLog}
 		if [ $stsDoFirst -eq 1 ]; then
-			printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog}
-			printf "process (%s) is not running anymore\n" "${stsBinName}" | tee -a ${ServerMsgLog} >&2
+			printf "%s %s: " "$(date +%Y%m%d%H%M%S)" "${MYNAME}" >> "${ServerMsgLog}";
+			printf "process (%s) is not running anymore\n" "${stsBinName}" | tee -a "${ServerMsgLog}" >&2
 			stsReturnCode=1;
 		fi
 	else
-		printf "%s %s: " "`date +%Y%m%d%H%M%S`" "${MYNAME}" >> ${ServerMsgLog};
-		printf "WARNING: no PID(s) given for process (%s)\n" "${stsBinName}" | tee -a ${ServerMsgLog} >&2;
+		printf "%s %s: " "$(date +%Y%m%d%H%M%S)" "${MYNAME}" >> "${ServerMsgLog}";
+		printf "WARNING: no PID(s) given for process (%s)\n" "${stsBinName}" | tee -a "${ServerMsgLog}" >&2;
 		stsReturnCode=1;
 	fi
 	eval ${stsExpVar}="${stsPidKilled}";
@@ -279,7 +283,7 @@ logMessageToFile()
 	lmMessage="${1}";
 	lmMessageTail="${2}";
 	lmLogfileName="${3:-${ServerMsgLog}}";
-	printf "%s %s: %s%s\n" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${lmMessage}" "${lmMessageTail}" >> ${lmLogfileName};
+	printf "%s %s: %s%s\n" "$(date +%Y%m%d%H%M%S)" "${MYNAME}" "${lmMessage}" "${lmMessageTail}" >> "${lmLogfileName}";
 }
 
 # param 1: pidfilename
@@ -380,7 +384,8 @@ startWithKeep()
 	shift 4
 	test $PRINT_DBG -ge 1 && swkScriptDebug="-D"
 	swkAmIroot=0;
-	test `getUid` -eq 0 && swkAmIroot=1;
+	test "$(getUid)" -eq 0 && swkAmIroot=1;
+	#FIXME: SC2145, check if $* would also work
 	swkServerArguments="$@";
 	if [ $swkAmIroot -eq 1 -a -n "${swkRunUser}" ]; then
 		# must adjust the owner of the probably newly created server-log-files
@@ -395,7 +400,7 @@ startWithKeep()
 		swkPidOfKeepwds=$!;
 		echo $swkPidOfKeepwds > ${swkKeepPidFile};
 	fi;
-	swkPidOfKeepwds="`getPIDFromFile ${swkKeepPidFile}`";
+	swkPidOfKeepwds="$(getPIDFromFile "${swkKeepPidFile}")";
 	echo "${swkPidOfKeepwds}";
 }
 

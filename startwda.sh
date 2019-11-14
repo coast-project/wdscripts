@@ -10,10 +10,10 @@
 # starts a wdapp
 #
 
-startwdaScriptName=`basename $0`
+startwdaScriptName=$(basename $0)
 
-mypath=`dirname $0`
-test "/" = "`echo ${mypath} | cut -c1`" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
+mypath=$(dirname $0)
+test "/" = "$(echo ${mypath} | cut -c1)" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
 
 showhelp()
 {
@@ -168,7 +168,7 @@ test -w $(dirname ${ServerErrLog}) || nologExit 1 "Cannot create/write into ${Se
 
 exitproc()
 {
-	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`"
+	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "$(determineRunUser)"
 	myExit $?;
 }
 
@@ -182,10 +182,10 @@ test ${cfg_forceStart} -eq 1 || exitIfDisabledService "${outmsg}"
 # if you want to use either keepwds.sh or bootScript.sh to start the server, this flag can be set in prjconfig.sh
 gdbCommand="";
 if [ ${RUN_ATTACHED_TO_GDB:-0} -eq 1 -a $cfg_dbgctl -le 1 -o $cfg_dbgctl -eq 1 ]; then
-	gdbCommand="`findValidGnuToolCommand gdb`";
+	gdbCommand="$(findValidGnuToolCommand gdb)";
 	if [ $? -eq 0 ]; then
 		cfg_dbgctl=1
-		swdaGdbBatchfile=`unset TMPDIR ; mktemp -t`;
+		swdaGdbBatchfile=$(unset TMPDIR ; mktemp -t);
 		generateGdbCommandFile ${swdaGdbBatchfile} "${WDA_BIN}" 0 "${cfg_srvopts}"
 	else
 		LogScriptMessage "could not find valid gdb executable, starting without gdb!"
@@ -238,5 +238,5 @@ else
 	fi
 	wait
 fi
-sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`" 10
+sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "$(determineRunUser)" 10
 myExit $?;

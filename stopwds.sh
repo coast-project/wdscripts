@@ -10,10 +10,10 @@
 # stops a running wdserver process, specified by its PID which is stored in a file
 #
 
-stopwdsScriptName=`basename $0`
+stopwdsScriptName=$(basename "$0")
 
-mypath=`dirname $0`
-test "/" = "`echo ${mypath} | cut -c1`" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
+mypath=$(dirname "$0")
+test "/" = "$(echo "${mypath}" | cut -c1)" || mypath="$(cd "${mypath}" 2>/dev/null && pwd)"
 
 showhelp()
 {

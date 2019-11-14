@@ -10,10 +10,10 @@
 # starts a wdapp
 #
 
-startwdsScriptName=`basename $0`
+startwdsScriptName=$(basename $0)
 
-mypath=`dirname $0`
-test "/" = "`echo ${mypath} | cut -c1`" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
+mypath=$(dirname $0)
+test "/" = "$(echo ${mypath} | cut -c1)" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
 
 showhelp()
 {
@@ -168,7 +168,7 @@ test -w $(dirname ${ServerErrLog}) || nologExit 1 "Cannot create/write into ${Se
 
 exitproc()
 {
-	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`"
+	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "$(determineRunUser)"
 	myExit $?;
 }
 
@@ -182,10 +182,10 @@ test ${cfg_forceStart} -eq 1 || exitIfDisabledService "${outmsg}"
 # if you want to use either keepwds.sh or bootScript.sh to start the server, this flag can be set in prjconfig.sh
 gdbCommand="";
 if [ ${RUN_ATTACHED_TO_GDB:-0} -eq 1 -a $cfg_dbgctl -le 1 -o $cfg_dbgctl -eq 1 ]; then
-	gdbCommand="`findValidGnuToolCommand gdb`";
+	gdbCommand="$(findValidGnuToolCommand gdb)";
 	if [ $? -eq 0 ]; then
 		cfg_dbgctl=1
-		swdsGdbBatchfile=`unset TMPDIR ; mktemp -t`;
+		swdsGdbBatchfile=$(unset TMPDIR ; mktemp -t);
 		generateGdbCommandFile ${swdsGdbBatchfile} "${WDS_BIN}" 1 "${cfg_srvopts}"
 	else
 		LogScriptMessage "could not find valid gdb executable, starting without gdb!"
@@ -221,7 +221,7 @@ if [ $cfg_dbgctl -eq 1 ]; then
 	eval ${gdbCommand} --batch --command ${swdsGdbBatchfile} 2>> ${ServerErrLog} >> ${ServerMsgLog} &
 	# get server pid and store it in file
 	# -> we can not use $! here as it would either print the pid of gdb or some other script
-	locProcPid=`getServerStatus "dummy" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}"`;
+	locProcPid=$(getServerStatus "dummy" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}");
 else
 	LogScriptMessage "starting ${SERVERNAME} [$WDS_BIN] with options [$cfg_srvopts] on [${HOSTNAME}]";
 	$WDS_BIN $cfg_srvopts 2>> ${ServerErrLog} >> ${ServerMsgLog} &

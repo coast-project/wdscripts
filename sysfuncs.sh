@@ -133,7 +133,7 @@ makeAbsPath()
 	{
 		cd $basePath;
 		if [ -d "${relativeDir}" ]; then
-			lRetVal=`cd ${relativeDir} >/dev/null 2>&1 && pwd ${pwdOption} 2>/dev/null`;
+			lRetVal=$(cd "${relativeDir}" >/dev/null 2>&1 && pwd "${pwdOption}" 2>/dev/null);
 		fi;
 	}
 	echo "${lRetVal}";
@@ -175,7 +175,7 @@ getFirstValidTool()
 	shift 1;
 	gfvtListSep=":";
 	for name in "$@"; do
-		gfvtToolname="`myWhich $name 2>/dev/null`";
+		gfvtToolname="$(myWhich "$name" 2>/dev/null)";
 		test -n "${gfvtToolname}" && echo "${gfvtToolname}" && return 0;
 		gfvtToolname="`findExecutableWithPath \"${gfvtSearchPath}\" \"${name}\" \"-*\" \"${gfvtListSep}\" 2>/dev/null`";
 		gfvtToolname="`getHead \"${gfvtToolname}\" \"${gfvtListSep}\"`";
@@ -222,10 +222,10 @@ deleteFromPathEx()
 hasVersionReturn()
 {
 	hvrToolname=$1;
-	hvrVersionline="`eval ${1} --version 2>/dev/null </dev/null`";
+	hvrVersionline="$(eval "${hvrToolname}" --version 2>/dev/null </dev/null)";
 	hvrReturnCode=$?;
 	test $hvrReturnCode -eq 0 || return ${hvrReturnCode};
-	hvrVersionline="`echo \"${hvrVersionline}\" | sed -n \"1 s|.*GNU|&|p\"`"
+	hvrVersionline="$(echo "${hvrVersionline}" | sed -n '1 s|.*GNU|&|p' )"
 	echo "${hvrVersionline}"
 	test -n "$hvrVersionline"
 }
@@ -249,7 +249,7 @@ printEnvVar()
 # output return 0 in case it starts with /, 1 otherwise
 isAbsPath()
 {
-	test "/" = "`echo ${1} | cut -c1`"
+	test "/" = "$(echo "${1}" | cut -c1 )"
 }
 
 # param 1: csv-variable
@@ -265,7 +265,7 @@ getCSVValue()
 
 isFunction()
 {
-	test -n "`type $1 2>/dev/null | sed -n \"s|^\($1\).*function.*\$|\1|p\" 2>/dev/null`";
+	test -n "$(type "$1" 2>/dev/null | sed -n "s|^\($1\).*function.*\$|\1|p" 2>/dev/null)";
 }
 
 # param 1: optional username to get id for
@@ -382,9 +382,9 @@ SearchJoinedDir()
 						tmppath="${tmppath}${pathsep}";
 					fi;
 					# strip trailing slash
-					tmppath=\`removeTrailingSlash "${tmppath}${dname}"\`;
-					echo $tmppath;
-					if [ $showalldirs -eq 0 ]; then
+					tmppath=$(removeTrailingSlash "${tmppath}${dname}");
+					echo "$tmppath";
+					if [ "$showalldirs" -eq 0 ]; then
 						break;
 					fi;
 				fi;
@@ -396,9 +396,9 @@ SearchJoinedDir()
 						tmppath="${tmppath}${pathsep}";
 					fi;
 					# strip trailing slash
-					tmppath=\`removeTrailingSlash "${tmppath}${dname}"\`;
-					echo $tmppath;
-					if [ $showalldirs -eq 0 ]; then
+					tmppath=$(removeTrailingSlash "${tmppath}${dname}");
+					echo "$tmppath";
+					if [ "$showalldirs" -eq 0 ]; then
 						break;
 					fi;
 				fi;
@@ -414,13 +414,13 @@ SearchJoinedDir()
 # output the relative movement from $2 to $1 if $2 is below $1, $1 otherwise
 relpath()
 {
-	pathtoresolve="`removeTrailingSlash \"${1}\"`";
-	basepath="`removeTrailingSlash \"${2}\"`";
-	relmove="`echo $pathtoresolve | sed \"s|^${basepath}||\"`";
+	pathtoresolve="$(removeTrailingSlash "${1}" )";
+	basepath="$(removeTrailingSlash "${2}" )";
+	relmove="$(echo "$pathtoresolve" | sed "s|^${basepath}||" )";
 	moveToReturn=.;
 	if [ -n "${relmove}" ]; then
 		if [ "${relmove}" != "${pathtoresolve}" ]; then
-			moveToReturn="`echo $relmove | sed \"s|^/||\"`";
+			moveToReturn="$(echo "$relmove" | sed "s|^/||")";
 		else
 			moveToReturn="${pathtoresolve}";
 		fi;
@@ -432,14 +432,14 @@ relpath()
 # output: the passed in host's full quqlified domain name
 getdomain()
 {
-	hostLookupTool="`getFirstValidTool \"/usr/local/bin:/usr/bin:/bin\" host nslookup`";
-	if [ -n "${hostLookupTool}" -a -n "${1}" ]; then
-		fullqualified="`${hostLookupTool} $1`"
+	hostLookupTool="$(getFirstValidTool "/usr/local/bin:/usr/bin:/bin" host nslookup)";
+	if [ -n "${hostLookupTool}" ] && [ -n "${1}" ]; then
+		fullqualified="$("${hostLookupTool}" "$1")"
 		case ${hostLookupTool} in
-			host) fullqualified=`getHead "${fullqualified}" " "`;;
-			nslookup) fullqualified=`echo "${fullqualified}" | sed -n 's/^Name://p' | tr -d '\t'`;;
+			host) fullqualified=$(getHead "${fullqualified}" " ");;
+			nslookup) fullqualified=$(echo "${fullqualified}" | sed -n 's/^Name://p' | tr -d '\t');;
 		esac
-		domainSuffix=`getTail "${fullqualified}" "."`
+		domainSuffix=$(getTail "${fullqualified}" ".")
 		echo "${domainSuffix}"
 		return 0
 	fi
@@ -798,16 +798,16 @@ getUnixDir()
 # output setting variable $2 to value of last path-segment
 selectDevelopDir()
 {
-	myDirs="`cd ${HOME} 2>/dev/null && for name in DEV*; do if [ -d $name -o -h $name ]; then echo $name; fi; done`";
+	myDirs="$(cd "${HOME:-.}" 2>/dev/null && for name in DEV*; do if [ -d "$name" ] || [ -h "$name" ]; then echo "$name"; fi; done)";
 	if [ -n "$3" ]; then
 		for myenv in $myDirs; do
-			relSeg="`basename ${myenv}`";
+			relSeg="$(basename "${myenv}")";
 			if [ "$relSeg" = "$3" ]; then
 				#echo 'we have a match at ['$relSeg']';
 				# use pwd -P to follow links and get 'real' directory
 				# especially needed for windows! but shouldn't matter for Unix
-				devpath=`cd 2>/dev/null && cd $myenv >/dev/null 2>&1 && pwd -P`;
-				if [ $isWindows -eq 1 ]; then
+				devpath=$(cd 2>/dev/null && cd "$myenv" >/dev/null 2>&1 && pwd -P);
+				if [ "${isWindows:-0}" -eq 1 ]; then
 					getDosDir "$devpath" "${1}_NT";
 				fi
 				eval ${1}="$devpath";
@@ -826,8 +826,8 @@ selectDevelopDir()
 		if [ -n "${myenv}" ]; then
 			# use pwd -P to follow links and get 'real' directory
 			# especially needed for windows! but shouldn't matter for Unix
-			devpath=`cd 2>/dev/null && cd $myenv >/dev/null 2>&1 && pwd -P`;
-			if [ $isWindows -eq 1 ]; then
+			devpath=$(cd 2>/dev/null && cd "$myenv" >/dev/null 2>&1 && pwd -P);
+			if [ "${isWindows:-0}" -eq 1 ]; then
 				getDosDir "$devpath" "${1}_NT";
 			fi
 			eval ${1}="$devpath";
@@ -910,7 +910,7 @@ selectGnuCompilers()
 		IFS="${sgcCompilerSeparator}";
 		for myset in ${selectvar}; do
 			IFS=${oldifs};
-			curgcc=`echo ${myset} | cut -d':' -f2`;
+			curgcc=$(echo "${myset}" | cut -d':' -f2);
 			if [ "${curgcc}" = "${sgcDefaultSelector}" ]; then
 				linetouse="${myset}";
 				break
@@ -926,14 +926,14 @@ selectGnuCompilers()
 			selectInMenu myset "${sgcCompilerSeparator}" "${selectvar}"
 
 			if [ -n "${myset}" ]; then
-				if [ $PRINT_DBG -ge 1 ]; then echo "selected set is [${myset}]"; fi
+				if [ "${PRINT_DBG:-0}" -ge 1 ]; then echo "selected set is [${myset}]"; fi
 				linetouse="${myset}";
 			fi
 		fi;
 	fi;
 	if [ -n "${linetouse}" ]; then
-		eval ${sgcReturnName}="`echo ${linetouse} | cut -d':' -f2,3`";
-		export ${sgcReturnName};
+		eval "${sgcReturnName}=$(echo "${linetouse}" | cut -d':' -f2,3)";
+		export "${sgcReturnName?}";
 	fi
 }
 
@@ -953,8 +953,8 @@ setDevelopmentEnv()
 	selectGnuCompilers "GNU_COMPS" "${GCC_SEARCH_PATH}" ":" "${2}"
 	if [ $PRINT_DBG -ge 1 ]; then echo "selected compilerset [${GNU_COMPS}]"; fi;
 	if [ -n "${GNU_COMPS}" ]; then
-		CC="`echo ${GNU_COMPS} | cut -d':' -f1`";
-		CXX="`echo ${GNU_COMPS} | cut -d':' -f2`";
+		CC="$(echo ${GNU_COMPS} | cut -d':' -f1)";
+		CXX="$(echo ${GNU_COMPS} | cut -d':' -f2)";
 		export CC CXX
 	fi
 
@@ -1044,7 +1044,7 @@ appendTokens()
 {
 	locOutname=${1};
 	locPreOutname="echo $"${locOutname};
-	locOutput="`eval $locPreOutname`";
+	locOutput="$(eval "$locPreOutname")";
 	locTokens="${2}";
 	locSep="${3}";
 	if [ "${PRINT_DBG:-0}" -ge 2 ]; then echo "current token separator is [$locSep]"; fi
@@ -1145,8 +1145,8 @@ deref_links()
 {
 	loc_name=${1};
 	is_link=1;
-	cur_path=`pwd`
-	dlLsBinary=`unalias ls 2>/dev/null; type -fP ls`;
+	cur_path=$(pwd)
+	dlLsBinary=$(myWhich ls);
 	while [ -h "$loc_name" ]; do
 		if [ $PRINT_DBG -ge 2 ]; then printf $loc_name >&2; fi
 		loc_name=`${dlLsBinary} -l $loc_name | cut -d'>' -f2- | cut -d' ' -f2- | sed 's|/$||'`;
@@ -1166,7 +1166,7 @@ sysfuncsExportvars=""
 
 if [ ${SYSFUNCSLOADED} -eq 0 ]; then
 	# try to find out on which OS we are currently running, eg. SunOS, Linux or Windows
-	CURSYSTEM=`uname -s 2>/dev/null` || CURSYSTEM="unknown"
+	CURSYSTEM=$(uname -s 2>/dev/null) || CURSYSTEM="unknown"
 
 	if [ "${CURSYSTEM}" = "Windows" -o "`echo ${CURSYSTEM} | cut -d'-' -f1`" = "CYGWIN_NT" ]; then
 		CURSYSTEM="Windows"
@@ -1181,14 +1181,18 @@ if [ ${SYSFUNCSLOADED} -eq 0 ]; then
 		OSREL=${CURSYSTEM}_;
 		if [ "${CURSYSTEM}" = "Linux" ]; then
 			OSREL=${OSREL}glibc_;
-			foundVersion=`getGLIBCVersion "."`;
-			GLIBCVER=$foundVersion
+			foundVersion=$(getGLIBCVersion ".");
+			# shellcheck disable=SC2034
+			GLIBCVER="$foundVersion"
 		else
-			foundVersion=`uname -r`;
+			foundVersion="$(uname -r)";
 		fi;
+		# shellcheck disable=SC2034
 		OSREL=${OSREL}${foundVersion};
-		OSREL_MAJOR=`echo ${foundVersion} | cut -d'.' -f1`;
-		OSREL_MINOR=`echo ${foundVersion} | cut -d'.' -f2`;
+		# shellcheck disable=SC2034
+		OSREL_MAJOR=$(echo "${foundVersion}" | cut -d'.' -f1);
+		# shellcheck disable=SC2034
+		OSREL_MINOR=$(echo "${foundVersion}" | cut -d'.' -f2);
 		USR_TMP=${HOME}/tmp;
 		SYS_TMP=/tmp;
 	fi
@@ -1199,7 +1203,7 @@ if [ ${SYSFUNCSLOADED} -eq 0 ]; then
 	if [ -z "${OSTYPE}" ]; then
 		# use bash to get ostype, only bash defines it...
 		if [ -x "/bin/bash" ]; then
-			OSTYPE="`bash -c 'echo $OSTYPE'`";
+			OSTYPE="$(bash -c 'echo $OSTYPE')";
 			sysfuncsExportvars="$sysfuncsExportvars OSTYPE"
 		fi
 	fi

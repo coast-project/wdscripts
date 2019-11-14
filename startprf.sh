@@ -11,10 +11,10 @@
 #  in a *perftest* directory
 #
 
-startprfScriptName=`basename $0`
+startprfScriptName=$(basename $0)
 
-mypath=`dirname $0`
-test "/" = "`echo ${mypath} | cut -c1`" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
+mypath=$(dirname $0)
+test "/" = "$(echo ${mypath} | cut -c1)" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
 
 showhelp()
 {
@@ -121,7 +121,7 @@ test -n "${PERFTESTDIR}" || showhelp "ERROR: could not locate perftest directory
 test -d "${cfg_cfgdir}" || cfg_cfgdir="";
 if [ -z "$cfg_cfgdir" ]; then
 	# find all config directories and give a selection
-	pertfTestConfigdir=`SearchJoinedDir "${PROJECTDIR}/${PERFTESTDIR}" "a" "config" ":"`
+	pertfTestConfigdir=$(SearchJoinedDir "${PROJECTDIR}/${PERFTESTDIR}" "a" "config" ":")
 	selectInMenu segname ":" "${pertfTestConfigdir}"
 	if [ -n "${segname}" ]; then
 		cfg_cfgdir=$segname
@@ -170,15 +170,15 @@ if [ -z "$cfg_srvopts" ]; then
 	cfg_srvopts=${SERVERNAME};
 fi;
 
-test -w `dirname ${ServerMsgLog}` || nologExit 1 "Cannot create/write into ${ServerMsgLog}, please ensure correct settings before continuing!";
-test -w `dirname ${ServerErrLog}` || nologExit 1 "Cannot create/write into ${ServerErrLog}, please ensure correct settings before continuing!";
+test -w $(dirname ${ServerMsgLog}) || nologExit 1 "Cannot create/write into ${ServerMsgLog}, please ensure correct settings before continuing!";
+test -w $(dirname ${ServerErrLog}) || nologExit 1 "Cannot create/write into ${ServerErrLog}, please ensure correct settings before continuing!";
 
 # install signal handlers
 . $mypath/trapsignalfuncs.sh
 
 exitproc()
 {
-	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`"
+	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "$(determineRunUser)"
 	myExit $?;
 }
 
@@ -210,5 +210,5 @@ if [ $? -ne 0 ]; then
 fi
 LogScriptMessage "started process with pid $locProcPid";
 wait
-sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "`determineRunUser`" 10
+sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "$(determineRunUser)" 10
 myExit $?;

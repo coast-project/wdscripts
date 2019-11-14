@@ -10,10 +10,10 @@
 # starts the server and tries to keep it alive (in case of a crash)
 #
 
-keepScriptName=`basename $0`
+keepScriptName=$(basename $0)
 
-mypath=`dirname $0`
-test "/" = "`echo ${mypath} | cut -c1`" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
+mypath=$(dirname $0)
+test "/" = "$(echo ${mypath} | cut -c1)" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
 
 showhelp()
 {
@@ -131,7 +131,7 @@ startIt()
 
 getPid()
 {
-	echo "`cat $PID_FILE`";
+	echo "$(cat $PID_FILE)";
 }
 
 killIt()
@@ -141,7 +141,7 @@ killIt()
 	_stopRetCode=1;
 	if [ $_killActive -eq 0 ]; then
 		_killActive=1;
-		locPID=`getServerStatus "${PID_FILE}" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}"`;
+		locPID=$(getServerStatus "${PID_FILE}" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}");
 		ServerStatus=$?		# 0: server is alive, dead otherwise
 		if [ $ServerStatus -eq 0 ]; then
 			LogScriptMessage "INFO: stopping server with PID: ${locPID}";
@@ -203,12 +203,12 @@ if [ $? -eq 0 ]; then
 		# -> otherwise we potentially start the server more than once!
 		test $_killActive -eq 1 && continue;
 		# check if pid still exists
-		PID=`getServerStatus "${PID_FILE}" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}"`;
+		PID=$(getServerStatus "${PID_FILE}" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}");
 		ServerStatus=$?		# 0: server is alive, dead otherwise
 		if [ $ServerStatus -ne 0 ]; then
 			# double check, in case someone modified PID_FILE in between
 			sleep 1
-			PID=`getServerStatus "${PID_FILE}" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}"`;
+			PID=$(getServerStatus "${PID_FILE}" "${WDS_BINABS}" "${WDS_BIN}" "${SERVERNAME}" "${RUN_USER}");
 			ServerStatus=$?		# 0: server is alive, dead otherwise
 			if [ $ServerStatus -ne 0 ]; then
 				LogScriptMessage "WARNING: server ${SERVERNAME} [$WDS_BIN] (pid:${PID:-?}) has gone!";
