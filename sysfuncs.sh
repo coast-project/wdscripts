@@ -14,13 +14,13 @@ PRINT_DBG=${PRINT_DBG:-0};
 
 # unset all functions to remove potential definitions
 # generated using $> cat sysfuncs.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
+unset -f myWhich
 unset -f getGLIBCVersionFallback
 unset -f getGLIBCVersion
 unset -f makeAbsPath
 unset -f ensureTrailingSlash
 unset -f removeTrailingSlash
 unset -f removeFromHead
-unset -f myWhich
 unset -f getFirstValidTool
 unset -f getHead
 unset -f getTail
@@ -59,8 +59,6 @@ unset -f setDevelopmentEnv
 unset -f cleanDevelopmentEnv
 unset -f appendTokens
 unset -f generateGdbCommandFile
-unset -f resolvePath
-unset -f deref_links
 
 # this script should be sourced only
 [ "$(basename "$0")" = "sysfuncs.sh" ] && { echo "This script, $(basename "$0"), should be sourced only, aborting!"; exit 2; }
@@ -1126,43 +1124,6 @@ cat >> "${ggcfBatchFile}" <<-EOF
 	end
 EOF
 	fi;
-}
-
-resolvePath()
-{
-	rpThePath="${1}";
-	rpFile="$(basename "${rpThePath}")";
-	test -d "${rpThePath}" || rpThePath="$(dirname "${rpThePath}")";
-	rpThePath="$(cd "${rpThePath}" 2>/dev/null && pwd)";
-	if [ -n "${rpFile}" ]; then
-		test -n "${rpThePath}" && rpThePath="${rpThePath}/";
-		rpThePath="${rpThePath}${rpFile}";
-	fi
-	echo "${rpThePath}";
-}
-
-# dereference a file/path - usually a link - and find its real origin as absolute path
-#
-# param $1 is the file/path to dereference
-#
-# output echo dereferenced file/path
-# returning 0 in case the given name was linked, 1 otherwise
-deref_links()
-{
-	loc_name=${1};
-	is_link=1;
-	cur_path=$(pwd)
-	dlLsBinary=$(myWhich ls);
-	while [ -h "$loc_name" ]; do
-		if [ "${PRINT_DBG:-0}" -ge 2 ]; then printf "%s" "$loc_name" >&2; fi
-		loc_name=$(${dlLsBinary} -l "$loc_name" | cut -d'>' -f2- | cut -d' ' -f2- | sed 's|/$||');
-		isAbsPath "${loc_name}" || loc_name="$(resolvePath "${cur_path}/${loc_name}")";
-		if [ "${PRINT_DBG:-0}" -ge 2 ]; then echo " [${1}] was linked to [$loc_name]" >&2; fi
-		cur_path=$(dirname "${loc_name}")
-		is_link=0;
-	done
-	echo "$loc_name";
-	return $is_link;
 }
 
 ########## setup some values ##########
