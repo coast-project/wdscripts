@@ -55,7 +55,7 @@ myPrgOptions=":c:C:e:s:th:FP-D"
 OPTIND=1;
 
 # process other command line options
-while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
+while getopts "${myPrgOptions}" opt; do
 	case $opt in
 		:)
 			showhelp "ERROR: -$OPTARG parameter missing, exiting!";

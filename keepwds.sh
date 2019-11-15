@@ -50,7 +50,7 @@ myPrgOptions=":c:e:s:th:C:PD"
 OPTIND=1;
 
 # process other command line options
-while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
+while getopts "${myPrgOptions}" opt; do
 	case $opt in
 		c)
 			cfg_coresize="${OPTARG}";

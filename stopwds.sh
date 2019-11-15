@@ -47,7 +47,7 @@ myPrgOptions=":C:N:U:w:FDK"
 OPTIND=1;
 
 # process other command line options
-while getopts "${myPrgOptions}${cfg_setCfgOptions}" opt; do
+while getopts "${myPrgOptions}" opt; do
 	case $opt in
 		C)
 			cfg_cfgdir=${OPTARG};
