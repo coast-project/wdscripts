@@ -71,6 +71,7 @@ bootScriptName=${derefd_name};
 [ ! "$bootScriptName" = "bootScript.sh" ] && { echo "This script cannot be sourced, aborting!"; exit 2; }
 
 # load global config
+# shellcheck source=./config.sh
 . $mypath/config.sh $cfg_dbgopt
 
 my_uid=$(getUid)

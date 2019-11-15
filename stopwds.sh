@@ -33,14 +33,12 @@ showhelp()
 	exit 4;
 }
 
-cfg_dbgopt="";
 cfg_cfgdir="";
-cfg_dbg=0;
+PRINT_DBG=0;
 cfg_hardkill=0;
 cfg_waitcount=60;
 cfg_procname="";
 locRunUser="";
-cfg_forceStop=0;
 
 # process config switching options first
 myPrgOptions=":C:N:U:w:FDK"
@@ -59,12 +57,11 @@ while getopts "${myPrgOptions}" opt; do
 			locRunUser="${OPTARG}";
 		;;
 		F)
-			cfg_forceStop=1;
+			:
 		;;
 		D)
 			# propagating this option to config.sh
-			cfg_dbgopt="-D";
-			cfg_dbg=1;
+			PRINT_DBG=1;
 		;;
 		K)
 			cfg_hardkill=1;
@@ -85,20 +82,23 @@ if [ -n "$cfg_cfgdir" ]; then
 fi
 
 if [ "${PRINT_DBG:-0}" -ge 1 ]; then echo " - sourcing config.sh"; fi;
-. $mypath/config.sh $cfg_dbgopt
+# shellcheck source=./config.sh
+. "$mypath"/config.sh
 
 MYNAME=$stopwdsScriptName	# used within trapsignalfuncs/serverfuncs for logging
 # install signal handlers
-. $mypath/trapsignalfuncs.sh
+# shellcheck source=./trapsignalfuncs.sh
+. "$mypath"/trapsignalfuncs.sh
 
 # source server handling funcs
-. $mypath/serverfuncs.sh
+# shellcheck source=./serverfuncs.sh
+. "$mypath"/serverfuncs.sh
 
 myExit()
 {
 	locRetCode=${1:-4};
-	LogLeaveScript ${locRetCode}
-	exit ${locRetCode};
+	LogLeaveScript "${locRetCode}"
+	exit "${locRetCode}";
 }
 
 exitproc()
@@ -112,9 +112,10 @@ exitproc()
 	myExit 0;
 }
 
-outmsg="Stopping ${SERVERNAME} server";
-
 LogEnterScript
+
+outmsg="Stopping ${SERVERNAME} server";
+printf "%s" "${outmsg}";
 
 killStep=0;
 sigToSend=15;
