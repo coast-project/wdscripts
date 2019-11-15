@@ -11,7 +11,7 @@
 #
 
 # unset all functions to remove potential definitions
-# generated using $> cat serverfuncs.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
+# generated using $> sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p' serverfuncs.sh | grep -v "\$$"
 unset -f LogScriptMessage
 unset -f LogEnterScript
 unset -f LogLeaveScript
@@ -33,16 +33,6 @@ unset -f determineRunUser
 # this script should be sourced only and requires sysfuncs to be loaded
 [ "$(basename "$0")" = "serverfuncs.sh" ] && { echo "This script, $(basename "$0"), should be sourced only, aborting!"; exit 2; }
 [ "${SYSFUNCSLOADED:-0}" -eq 1 ] || { echo "This script, $(basename "$0"), requires sysfuncs.sh to be loaded first, aborting!"; exit 2; }
-
-_FUN_TRC=${_FUN_TRC:-0}
-
-# enable function level shell command tracing
-__trace_on() {
-	[ "${_FUN_TRC:-0}" -eq 1 ] && set -x || true
-}
-__trace_off() {
-	[ "${_FUN_TRC:-0}" -eq 1 ] && set +x || true
-}
 
 # log into server.msg and server.err some message
 # param 1: message
@@ -81,7 +71,8 @@ findProcPathAndWorkingDirs()
 	procSep="${2:-:}";
 	_startpath="${3:-/proc}";
 	[ "${procUid:-0}" = "0" ] && procUid= || procUid="-user $(getUid "$procUid")";
-	find -H "$_startpath" \( ! -path "${_startpath}/*/*" -o -prune \) $procUid -type l -path '*/cwd' -exec sh -c "$(myWhich ls) -n {} | sed -e 's/.*[0-9]*:[0-9]* //' -e 's/ -> /:/'" \; 2>/dev/null
+	# shellcheck disable=SC2156,SC2086
+	find -H "$_startpath" \( ! -path "${_startpath}/*/*" -o -prune \) $procUid -type l -path '*/cwd' -exec sh -c "$(myWhich ls) -n {} | sed -e 's/.*[0-9]*:[0-9]* //' -e \"s/ -> /$procSep/\"" \; 2>/dev/null
 	__trace_off
 }
 
@@ -108,92 +99,71 @@ checkProcessWithName()
 	cpwnSuccess=0;
 	cpwnFailure=1;
 	cpwnReturnCode=${cpwnFailure};
-	# only compare using numerical uids
-	cpwnLsUserArgument="-n";
-	cpwnProcUid="$cpwnRunUser"
-	# override user comparison for root (uid=0)
-	if [ "${cpwnRunUser}" = "0" ]; then
-		cpwnProcUid="";
-		cpwnCompareUserRE="[0-9][0-9]*";
-	else
-		cpwnCompareUserRE="$(getUid "$cpwnRunUser")";
-		cpwnProcUid="-uid $cpwnCompareUserRE";
-	fi
 	_col_proc_dir=1
 	_col_work_dir=2
 	cpwnDirCandidates="$(findProcPathAndWorkingDirs "$cpwnRunUser" ":")";
 	cpwnLsBinary=$(myWhich ls);
-	cpwnDirCandidates="$(${cpwnLsBinary} ${cpwnLsUserArgument} /proc 2>/dev/null | sed -n -e "s|^[^ ]* *[^ ]* *${cpwnCompareUserRE} .* \([^ ]*\)\$|/proc/\1|p")";
 	for processBaseDir in ${cpwnDirCandidates}; do
-		for cwdCand in $processBaseDir/path/cwd $processBaseDir/cwd; do
-			test -h "$cwdCand" || continue;
-
-			# check if the project directory matches the servers working directory
-
-			cpwnProcessCWD=$(${cpwnLsBinary} -l "$cwdCand" 2>/dev/null | cut -d'>' -f2- | cut -d' ' -f2-);
-			test -n "${cpwnProcessCWD}" || continue;
-			test "${cpwnProcessCWD}" = "${cpwnProjectDir}" || continue;
-			proc_dir=$(dirname "${cwdCand}");
-			cpwnProcessPath="";
-			cpwnCmdArgsMatched=0;
-
-			# find executable path
-			proc_exe="$(find -H $proc_dir \( ! -path "$proc_dir/*" -o -prune \) -type l \( -path '*/exe' -o -path '*/a.out' \) -printf "%l\n")";
-
-			for exeCand in $proc_dir/a.out $proc_dir/exe; do
-				test -h "${exeCand}" || continue;
-				# get link to binary
-				cpwnProcessPath=$(${cpwnLsBinary} -l "$exeCand" 2>/dev/null| cut -d'>' -f2- | cut -d' ' -f2-);
-				# sanity check if a link to the binary is available
-				test -n "${cpwnProcessPath}" || continue;
-
-				cpwnProcessPath="$(echo "$cpwnProcessPath" | sed -n "\|.*${cpwnBinName}.*|p")";
-				# check if binary matched, if it was only the surrounding shell we bail out
-				test -n "${cpwnProcessPath}" || continue;
-				# also check if parts of the command line match, shortcut if empty
-			### beg: check prog args
-				test -z "${cpwnProcessArguments}" && break;
-
-				proc_exe="$(find $proc_dir \( ! -path "$proc_dir/*/*" -o -prune \) -type f \( -path '*/psinfo' -o -path '*/cmdline' \) )";
-				# depending on target system only one item of the list is defined
-				for cpwnCmdLineTry in "$processBaseDir"/psinfo "$processBaseDir"/cmdline; do
-					test -r "${cpwnCmdLineTry}" || continue;
-					# only use the last part (basename) of the command, command line has \0 separators and might contain control characters
-					_grepBin=$(myWhich grep)
-					cpwnCmdArgsMatched=$(tr '\0' ' ' < "${cpwnCmdLineTry}" | tr -d '[:cntrl:]' | "$_grepBin" -c "$(basename "${cpwnBinName}") ${cpwnProcessArguments}");
-					# test if the command argument matched
-					[ ${cpwnCmdArgsMatched:-0} -eq 0 ] && continue;
-				done
-				[ ${cpwnCmdArgsMatched:-0} -gt 0 ] && break;
-			### end: check prog args
-			done
-			if [ -z "${cpwnProcessPath}" ]; then
-				# probably a script we are looking for, check the fd's
-				# in case a script was started from within a shell instance
-				#  we need to check for fd entries to find the real executable
-				# linux: fd entries link to files directly, mode can not be used to distinguish between files and special devices
-				# solaris: fd entries are used to lookup within /proc/*/path/, mode (not link and executable) can be used
-				for fdCand in "${processBaseDir}"/fd/*; do
-					test ! -h "${fdCand}" && test -x "${fdCand}" && fdCand="${proc_dir}/$(basename "${fdCand}")";
-					cpwnProcessPath=$(${cpwnLsBinary} -l "$fdCand" 2>/dev/null| cut -d'>' -f2- | cut -d' ' -f2-);
-					cpwnProcessPath="$(echo "$cpwnProcessPath" | sed -n "\|.*${cpwnBinName}.*|p")";
-					# check if script matched
-					test -n "${cpwnProcessPath}" || continue;
-					# disable argument matching as we can not do it with scripts running inside a shell
-					#  as the script is the first argument to the shell already
-					cpwnArgumentMatchMandatory=0;
-					break;
-				done
-			fi
-			# do it again if no matching executable found so far
+		proc_dir="$(dirname "$(getCSVValue "$processBaseDir" "$_col_proc_dir")")";
+		cpwnProcessCWD="$(getCSVValue "$processBaseDir" "$_col_work_dir")"
+		# check if the project directory matches the servers working directory
+		test "${cpwnProcessCWD}" = "${cpwnProjectDir}" || continue;
+		cpwnProcessPath="";
+		cpwnCmdArgsMatched=0;
+		# find executable path
+		for exeCand in $proc_dir/a.out $proc_dir/exe; do
+			test -L "${exeCand}" || continue;
+			# get link to binary
+			cpwnProcessPath=$(${cpwnLsBinary} -l "$exeCand" 2>/dev/null| cut -d'>' -f2- | cut -d' ' -f2-);
+			# sanity check if a link to the binary is available
 			test -n "${cpwnProcessPath}" || continue;
-			# almost done, is an argument match mandatory or not?
-			if [ "${cpwnArgumentMatchMandatory:-0}" -eq 0 ] || [ ${cpwnCmdArgsMatched:-0} -gt 0 ]; then
-				# basename of proc dir is the pid we are interested in
-				basename "$proc_dir";
-				return $cpwnSuccess;
-			fi
-		done; # cwdCand
+
+			cpwnProcessPath="$(echo "$cpwnProcessPath" | sed -n "\|.*${cpwnBinName}.*|p")";
+			# check if binary matched, if it was only the surrounding shell we bail out
+			test -n "${cpwnProcessPath}" || continue;
+			# also check if parts of the command line match, shortcut if empty
+			test -z "${cpwnProcessArguments}" && break;
+
+			# depending on target system only one item of the list is defined
+			for cpwnCmdLineTry in "$proc_dir"/psinfo "$proc_dir"/cmdline; do
+				test -r "${cpwnCmdLineTry}" || continue;
+				# only use the last part (basename) of the command, command line has \0 separators and might contain control characters
+				_grepBin=$(myWhich grep)
+				cpwnCmdArgsMatched=$(tr '\0' ' ' < "${cpwnCmdLineTry}" | tr -d '[:cntrl:]' | "$_grepBin" -c "$(basename "${cpwnBinName}") ${cpwnProcessArguments}");
+				# test if the command argument matched
+				# shellcheck disable=SC2086
+				[ ${cpwnCmdArgsMatched:-0} -eq 0 ] && continue;
+			done
+			# shellcheck disable=SC2086
+			[ ${cpwnCmdArgsMatched:-0} -gt 0 ] && break;
+		done
+		if [ -z "${cpwnProcessPath}" ]; then
+			# probably a script we are looking for, check the fd's
+			# in case a script was started from within a shell instance
+			#  we need to check for fd entries to find the real executable
+			# linux: fd entries link to files directly, mode can not be used to distinguish between files and special devices
+			# solaris: fd entries are used to lookup within /proc/*/path/, mode (not link and executable) can be used
+			for fdCand in "${proc_dir}"/fd/*; do
+				test ! -h "${fdCand}" && test -x "${fdCand}" && fdCand="${proc_dir}/$(basename "${fdCand}")";
+				cpwnProcessPath=$(${cpwnLsBinary} -l "$fdCand" 2>/dev/null| cut -d'>' -f2- | cut -d' ' -f2-);
+				cpwnProcessPath="$(echo "$cpwnProcessPath" | sed -n "\|.*${cpwnBinName}.*|p")";
+				# check if script matched
+				test -n "${cpwnProcessPath}" || continue;
+				# disable argument matching as we can not do it with scripts running inside a shell
+				#  as the script is the first argument to the shell already
+				cpwnArgumentMatchMandatory=0;
+				break;
+			done
+		fi
+		# do it again if no matching executable found so far
+		test -n "${cpwnProcessPath}" || continue;
+		# almost done, is an argument match mandatory or not?
+		# shellcheck disable=SC2086
+		if [ "${cpwnArgumentMatchMandatory:-0}" -eq 0 ] || [ ${cpwnCmdArgsMatched:-0} -gt 0 ]; then
+			# basename of proc dir is the pid we are interested in
+			basename "$proc_dir";
+			return $cpwnSuccess;
+		fi
 	done; # processBaseDir
 	__trace_off
 	return $cpwnReturnCode;

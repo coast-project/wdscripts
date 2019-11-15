@@ -13,7 +13,7 @@
 PRINT_DBG=${PRINT_DBG:-0};
 
 # unset all functions to remove potential definitions
-# generated using $> cat sysfuncs.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
+# generated using $> sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p' sysfuncs.sh | grep -v "\$$"
 unset -f myWhich
 unset -f getGLIBCVersionFallback
 unset -f getGLIBCVersion
@@ -64,6 +64,20 @@ unset -f generateGdbCommandFile
 [ "$(basename "$0")" = "sysfuncs.sh" ] && { echo "This script, $(basename "$0"), should be sourced only, aborting!"; exit 2; }
 
 ########## non-function-dependency functions ##########
+
+_FUN_TRC=${_FUN_TRC:-0}
+
+# enable function level shell command tracing
+__trace_on() {
+	if [ "${_FUN_TRC:-0}" -eq 1 ]; then
+		set -x
+	fi;
+}
+__trace_off() {
+	if [ "${_FUN_TRC:-0}" -eq 1 ]; then
+		set +x
+	fi
+}
 
 myWhich()
 {
@@ -136,7 +150,7 @@ makeAbsPath()
 	pwdOption=${2};
 	basePath=${3:-.};
 	(
-		cd "$basePath" || true;
+		cd "$basePath" >/dev/null || true;
 		# shellcheck disable=SC2086
 		cd "${relativeDir}" >/dev/null 2>&1 && pwd ${pwdOption} 2>/dev/null || echo "";
 	)
