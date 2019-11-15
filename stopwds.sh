@@ -84,7 +84,7 @@ if [ -n "$cfg_cfgdir" ]; then
 	export COAST_PATH
 fi
 
-if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;
+if [ "${PRINT_DBG:-0}" -ge 1 ]; then echo " - sourcing config.sh"; fi;
 . $mypath/config.sh $cfg_dbgopt
 
 MYNAME=$stopwdsScriptName	# used within trapsignalfuncs/serverfuncs for logging
@@ -105,9 +105,9 @@ exitproc()
 {
 	printf "%s %s: got SIG%s " "`date +%Y%m%d%H%M%S`" "${stopwdsScriptName}" "$1" | tee -a ${ServerMsgLog}
 	case $killStep in
-		0) printf "when I was initially checking the process!\n" | tee -a ${ServerMsgLog} ;;
-		1) printf "when I was trying to send a signal to the process!\n" | tee -a ${ServerMsgLog} ;;
-		2) printf "when I was waiting on process termination!\n" | tee -a ${ServerMsgLog} ;;
+		0) printf "when I was initially checking the process!\n" | tee -a "${ServerMsgLog}" ;;
+		1) printf "when I was trying to send a signal to the process!\n" | tee -a "${ServerMsgLog}" ;;
+		2) printf "when I was waiting on process termination!\n" | tee -a "${ServerMsgLog}" ;;
 	esac;
 	myExit 0;
 }

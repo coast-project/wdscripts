@@ -107,7 +107,7 @@ if [ -n "$cfg_cfgdir" ]; then
 	cfg_cfgdir="-C "${cfg_cfgdir};
 fi
 
-if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo " - sourcing config.sh"; fi;
 . $mypath/config.sh $cfg_dbgopt
 
 MYNAME=$keepScriptName	# used within trapsignalfuncs/serverfuncs for logging

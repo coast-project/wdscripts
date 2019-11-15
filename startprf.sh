@@ -108,13 +108,13 @@ done
 shift $((OPTIND - 1))
 
 cfg_srvopts="$@";
-if [ $cfg_dbg -ge 1 ]; then echo ' - given Options ['$cfg_srvopts']'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo " - given Options [$cfg_srvopts]"; fi;
 
 test $cfg_errorlog -gt 0 && COAST_LOGONCERR=$cfg_errorlog;
 test $cfg_logtimestamp -gt 0 && COAST_LOGONCERR_WITH_TIMESTAMP=1;
 test $cfg_syslog -gt 0 && COAST_DOLOG=$cfg_syslog;
 
-if [ $cfg_dbg -ge 1 ]; then echo ' - sourcing config.sh'; fi;
+if [ $cfg_dbg -ge 1 ]; then echo " - sourcing config.sh"; fi;
 . $mypath/config.sh $cfg_dbgopt
 
 test -n "${PERFTESTDIR}" || showhelp "ERROR: could not locate perftest directory, exiting !";
