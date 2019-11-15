@@ -77,7 +77,7 @@ while getopts "${myPrgOptions}" opt; do
 		;;
 	esac
 done
-shift `expr $OPTIND - 1`
+shift $((OPTIND - 1))
 
 if [ -n "$cfg_cfgdir" ]; then
 	COAST_PATH=${cfg_cfgdir};

@@ -97,7 +97,7 @@ while getopts "${myPrgOptions}" opt; do
 		;;
 	esac
 done
-shift `expr $OPTIND - 1`
+shift $((OPTIND - 1))
 
 cfg_srvopts="$@";
 
