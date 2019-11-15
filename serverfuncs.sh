@@ -513,7 +513,7 @@ sendSignalToServerAndWait()
 # output best matching run user
 determineRunUser()
 {
-	druRunUser="${1}";
+	druRunUser="${1:-}";
 	if [ -z "${druRunUser}" ]; then
 		test -f "${RUNUSERFILE}" && druRunUser=$(cat "${RUNUSERFILE}" 2>/dev/null);
 		druRunUser="${druRunUser:-${RUN_USER:-$(getUid)}}";

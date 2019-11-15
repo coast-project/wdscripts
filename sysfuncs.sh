@@ -287,10 +287,11 @@ isFunction()
 }
 
 # param 1: username to get id for, optional default current user
+# shellcheck disable=SC2120
 getUid()
 {
 	# shellcheck disable=SC2086
-	id -u ${1};
+	id -u ${1:-};
 }
 
 # param 1: pidfilename
