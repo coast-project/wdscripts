@@ -59,7 +59,7 @@ minimal_deref_link()
 }
 
 callCmd="${0}";
-derefd_name="`minimal_deref_link \"${callCmd}\"`"
+derefd_name="$(minimal_deref_link "${callCmd}")"
 bootScriptIsALinkReturn=$?
 if [ $bootScriptIsALinkReturn -eq 0 ]; then
 	link_name=${callCmd};
@@ -129,7 +129,7 @@ echoExit()
 exitWithStatus()
 {
 	ewsMessage="${1}";
-	ewsStatusEntry="${2:-`getServerAndKeepStatus ${RUN_USER:-$my_uid}`}"
+	ewsStatusEntry="${2:-$(getServerAndKeepStatus ${RUN_USER:-$my_uid})}"
 	ewsExitCode=${3:-$serverRunning};
 	ewsStatusToAppend="`printServerStatus \"${ewsStatusEntry}\" \":\" \"${ewsMessage}\"`"
 	echoExit "${ewsStatusToAppend}" $ewsExitCode
@@ -213,7 +213,7 @@ case "$Command" in
 		if [ $my_uid -eq 0 -a -n "${RUN_USER}" ]; then
 			outmsg="${outmsg} as ${RUN_USER}";
 		fi
-		pidOfKeep=`startWithKeep "${RUN_USER}" "${KEEP_SCRIPT}" "${RUNUSERFILE}" "${KEEPPIDFILE}" ${cfg_srvopts}`;
+		pidOfKeep=$(startWithKeep "${RUN_USER}" "${KEEP_SCRIPT}" "${RUNUSERFILE}" "${KEEPPIDFILE}" ${cfg_srvopts});
 		waitForStartedServer "${RUN_USER}" 20
 		exitWithStatus "${outmsg}"
 	;;
@@ -237,7 +237,7 @@ case "$Command" in
 				sendSignalToServerAndWait 15 "TERM" "`determineRunUser`" ${cfg_waitcount} 2>/dev/null
 				if [ $? -ne 0 ]; then
 					# try hardkill to ensure it died
-					sendSignalToServerAndWait 9 "KILL" "`determineRunUser`" ${cfg_waitcount} 2>/dev/null
+					sendSignalToServerAndWait 9 "KILL" "$(determineRunUser)" ${cfg_waitcount} 2>/dev/null
 				fi;
 			else
 				# no server and no keepwds
@@ -256,16 +256,16 @@ case "$Command" in
 		if [ "`getCSVValue \"${myStatusEntry}\" ${serverAndKeepStatusServerStatusColumnId} \":\"`" = "0" ]; then
 			# server is still running, if we kill using stop script
 			# the keepwds.sh script will automatically restart the server when it was down
-			sendSignalToServerAndWait 15 "TERM" "`determineRunUser`" ${cfg_waitcount}
+			sendSignalToServerAndWait 15 "TERM" "$(determineRunUser)" ${cfg_waitcount}
 			if [ $? -ne 0 ]; then
 				# try hardkill to ensure it died
-				sendSignalToServerAndWait 9 "KILL" "`determineRunUser`" ${cfg_waitcount}
+				sendSignalToServerAndWait 9 "KILL" "$(determineRunUser)" ${cfg_waitcount}
 			fi;
 		fi;
 		myStatusEntry="`getServerAndKeepStatus ${RUN_USER:-$my_uid}`";
 		if [ "`getCSVValue \"${myStatusEntry}\" ${serverAndKeepStatusKeepStatusColumnId} \":\"`" = "1" ]; then
 			# keepwds.sh was not present, start server again using keepwds.sh
-			pidOfKeep=`startWithKeep "${RUN_USER}" "${KEEP_SCRIPT}" "${RUNUSERFILE}" "${KEEPPIDFILE}" ${cfg_srvopts}`;
+			pidOfKeep=$(startWithKeep "${RUN_USER}" "${KEEP_SCRIPT}" "${RUNUSERFILE}" "${KEEPPIDFILE}" ${cfg_srvopts});
 			test $pidOfKeep -eq 0 && statusToAppend=$rc_failed;
 		fi;
 		waitForStartedServer "${RUN_USER}" 30

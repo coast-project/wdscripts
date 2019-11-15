@@ -103,7 +103,7 @@ myExit()
 
 exitproc()
 {
-	printf "%s %s: got SIG%s " "`date +%Y%m%d%H%M%S`" "${stopwdsScriptName}" "$1" | tee -a ${ServerMsgLog}
+	printf "%s %s: got SIG%s " "$(date +%Y%m%d%H%M%S)" "${stopwdsScriptName}" "$1" | tee -a "${ServerMsgLog}"
 	case $killStep in
 		0) printf "when I was initially checking the process!\n" | tee -a "${ServerMsgLog}" ;;
 		1) printf "when I was trying to send a signal to the process!\n" | tee -a "${ServerMsgLog}" ;;
