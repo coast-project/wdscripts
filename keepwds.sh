@@ -60,7 +60,7 @@ while getopts "${myPrgOptions}" opt; do
 			showhelp;
 		;;
 		e)
-			if [ ${OPTARG} -ge 0 2>/dev/null -a ${OPTARG} -le 5 ]; then
+			if [ ${OPTARG} -ge 0 -a ${OPTARG} -le 5 ]; then
 				cfg_errorlog="-e ${OPTARG}";
 			else
 				echo "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
