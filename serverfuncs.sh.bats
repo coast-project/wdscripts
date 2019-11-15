@@ -4,7 +4,7 @@
 _put=serverfuncs.sh
 setup() {
   tdir=$(mktemp -d)
-  # shellcheck source=./config.sh
+  # shellcheck source=./sysfuncs.sh
   . sysfuncs.sh
   # shellcheck source=./serverfuncs.sh
   . "$_put"

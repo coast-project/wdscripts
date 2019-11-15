@@ -76,6 +76,34 @@ teardown() {
   [ "${lines[0]}" = "$tdir/testDir" ]
 }
 
+@test "${_put}: searchBaseDirUp start:tdir/testDir segment:testDir" {
+  run searchBaseDirUp $tdir/testDir testDir
+  tree -d $tdir
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir" ]
+}
+
+@test "${_put}: searchBaseDirUp start:tdir segment:testDir" {
+  run searchBaseDirUp $tdir testDir
+  tree -d $tdir
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir" ]
+}
+
+@test "${_put}: searchBaseDirUp start:tdir/testDir segment:lnDir" {
+  run searchBaseDirUp $tdir/testDir lnDir
+  tree -d $tdir
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$tdir" ]
+}
+
+@test "${_put}: searchBaseDirUp inexistent segment, start:pwd segment:lnDir dflt:somedir" {
+  run searchBaseDirUp $(pwd) lnDir somedir
+  tree -d $tdir
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "somedir" ]
+}
+
 @test "${_put}: isFunction for function" {
   run isFunction isAbsPath
   [ "$status" -eq 0 ]
