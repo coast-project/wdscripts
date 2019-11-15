@@ -64,14 +64,14 @@ bootScriptIsALinkReturn=$?
 if [ $bootScriptIsALinkReturn -eq 0 ]; then
 	link_name=${callCmd};
 fi
-bootScriptPath=$(dirname $derefd_name);
+mypath=$(dirname $derefd_name);
 derefd_name=$(basename $derefd_name);
 bootScriptName=${derefd_name};
 
 [ ! "$bootScriptName" = "bootScript.sh" ] && { echo "This script cannot be sourced, aborting!"; exit 2; }
 
 # load global config
-. $bootScriptPath/config.sh $cfg_dbgopt
+. $mypath/config.sh $cfg_dbgopt
 
 my_uid=$(getUid)
 
