@@ -262,7 +262,13 @@ PROJECTNAME=$(basename "${PROJECTDIR}")
 
 # directory name of the log directory, may be overwritten in the project specific prjconfig.sh
 LOGDIR="$(SearchJoinedDir "$PROJECTDIR" "$PROJECTNAME" "log")"
-test -z "${LOGDIR}" && LOGDIR=$startpath;
+if [ -z "${LOGDIR}" ]; then
+	if [ "$PROJECTDIR" = "/" ]; then
+		LOGDIR=$startpath;
+	else
+		LOGDIR=$PROJECTDIR;
+	fi
+fi
 
 SetupLogDir
 
