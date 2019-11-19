@@ -7,33 +7,32 @@
 # the license that is included with this library/application in the file license.txt.
 #-----------------------------------------------------------------------------------------------------
 
-myVersion="$Id$"
-MYNAME=`basename $0`
+script_name=$(basename "$0")
 
-mypath=`dirname $0`
-test "/" = "`echo ${mypath} | cut -c1`" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
+mypath=$(dirname "$0")
+test "/" = "$(echo "${mypath}" | cut -c1)" || mypath="$(cd "${mypath}" 2>/dev/null && pwd)"
 
 showhelp()
 {
-	echo ''
-	echo 'usage: '$MYNAME' [options] <directories...>'
-	echo 'where options are:'
-	echo ' -c <zip|tar|tgz|tbz> : compression method, one of:'
-	echo '    zip : use zip compressor'
-	echo '    tgz : use tar archiver and gzip compressor'
-	echo '    tar : use tar archiver and no compressor'
-	echo '    tbz : use tar archiver and bzip2 compressor, default'
-	echo ' -m <0|1|2> : mode for sorting files before adding, one of:'
-	echo '    0 : files sorted by directory and extension'
-	echo '    1 : files sorted by extension'
-	echo '    2 : files sorted by extension, default, the filename will be taken as extension for files without extension'
-	echo ' -n <archivename> : specify another archive name, default is first directory name'
-	echo ' -f <filename> : use only files newer than given file'
-	echo ' -t [[CC]YY]MMDDhhmm[.ss] : use only files newer than timestamp given'
-	echo ' -x <files...> : additional files to be excluded from packing'
-	echo ' -X <dir...> : additional directories to be excluded from packing'
-	echo ' -D : print debugging information of scripts, sets PRINT_DBG variable to 1'
-	echo ''
+	echo ""
+	echo "usage: $script_name [options] <directories...>"
+	echo "where options are:"
+	echo " -c <zip|tar|tgz|tbz> : compression method, one of:"
+	echo "    zip : use zip compressor"
+	echo "    tgz : use tar archiver and gzip compressor"
+	echo "    tar : use tar archiver and no compressor"
+	echo "    tbz : use tar archiver and bzip2 compressor, default"
+	echo " -m <0|1|2> : mode for sorting files before adding, one of:"
+	echo "    0 : files sorted by directory and extension"
+	echo "    1 : files sorted by extension"
+	echo "    2 : files sorted by extension, default, the filename will be taken as extension for files without extension"
+	echo " -n <archivename> : specify another archive name, default is first directory name"
+	echo " -f <filename> : use only files newer than given file"
+	echo " -t [[CC]YY]MMDDhhmm[.ss] : use only files newer than timestamp given"
+	echo " -x <files...> : additional files to be excluded from packing"
+	echo " -X <dir...> : additional directories to be excluded from packing"
+	echo " -D : print debugging information of scripts, sets PRINT_DBG variable to 1"
+	echo ""
 	exit 4;
 }
 
@@ -44,6 +43,7 @@ newertime="";
 # default compressor settings
 cmprs='tar cf - -v -T ${locPackFiles} | bzip2 --repetitive-best > $outfile'
 cmprsext=.tar.bz2
+PRINT_DBG=0;
 
 # process command line options
 while getopts ":c:f:m:n:t:x:X:D" opt; do
@@ -66,33 +66,28 @@ while getopts ":c:f:m:n:t:x:X:D" opt; do
 		;;
 		m)
 			_mode="${OPTARG}";
-#			echo 'mode is ['$_mode']'
 		;;
 		n)
 			prjname="${OPTARG}";
-#			echo 'new project name is ['$prjname']'
 		;;
 		t)
 			newertime="${OPTARG}";
 		;;
 		x)
-			fileexcl=${fileexcl}" -o -name ${OPTARG}";
-#			echo 'file exclusion is ['$fileexcl']'
+			fileexcl="${fileexcl} -o -name ${OPTARG}";
 		;;
 		X)
-			pathexcl=${pathexcl}" -o -path '"${OPTARG}"'";
-#			echo 'path exclusion is ['$pathexcl']'
+			pathexcl="${pathexcl} -o -path '${OPTARG}'";
 		;;
 		D)
-			# propagating this option to config.sh
-			cfg_dbgopt="-D";
+			PRINT_DBG=1;
 		;;
 		\?)
 			showhelp;
 		;;
 	esac
 done
-shift `expr $OPTIND - 1`
+shift $((OPTIND - 1))
 
 dopath="$@"
 # if no project name is given take the first argument as name
@@ -102,7 +97,7 @@ fi
 
 # set defaults if nothing specified
 if [ -z "$prjname" -o "$prjname" = "." ]; then
-	prjname=`pwd`
+	prjname=$(pwd)
 	prjname=${prjname##*/}
 fi
 
@@ -115,32 +110,33 @@ if [ -z "$_mode" ]; then
 	export _mode
 fi
 
-if [ "$cfg_dbgopt" = "-D" ]; then
-	echo "directories:  ["$dopath"]"
-	echo "mode:         ["$_mode"]"
-	echo "prjname:      ["$prjname"]"
-	echo "file excludes:["$fileexcl"]"
-	echo "path excludes:["$pathexcl"]"
-	echo "compressor    ["$cmprs"]"
-	echo "extension     ["$cmprsext"]"
-	echo "newerfile     ["$newerfile"]"
-	echo "newertime     ["$newertime"]"
+if [ "${PRINT_DBG:-0}" -ge 1 ]; then
+	echo "directories:  [$dopath]"
+	echo "mode:         [$_mode]"
+	echo "prjname:      [$prjname]"
+	echo "file excludes:[$fileexcl]"
+	echo "path excludes:[$pathexcl]"
+	echo "compressor    [$cmprs]"
+	echo "extension     [$cmprsext]"
+	echo "newerfile     [$newerfile]"
+	echo "newertime     [$newertime]"
 fi
 
 # load os-specific settings and functions
-. ${mypath}/sysfuncs.sh
+# shellcheck source=./sysfuncs.sh
+. "$mypath"/sysfuncs.sh
 
 IS_GNUFIND=0; IS_GNUAWK=0;
-FINDEXE="`getFirstValidTool \"/usr/local/bin:/usr/bin:/bin\" gfind find`"
+FINDEXE="$(getFirstValidTool "/usr/local/bin:/usr/bin:/bin" gfind find)"
 hasVersionReturn "$FINDEXE" >/dev/null && IS_GNUFIND=1;
-AWKEXE="`getFirstValidTool \"/usr/local/bin:/usr/bin:/bin\" gawk awk`"
+AWKEXE="$(getFirstValidTool "/usr/local/bin:/usr/bin:/bin" gawk awk)"
 hasVersionReturn "$AWKEXE" >/dev/null && IS_GNUAWK=1;
 
-if [ $IS_GNUAWK -eq 0 -o $IS_GNUFIND -eq 0 ]; then
-	echo '';
-	echo 'ERROR:';
-	echo ' could not locate gawk and/or gfind executable!';
-	echo '';
+if [ $IS_GNUAWK -eq 0 ] || [ $IS_GNUFIND -eq 0 ]; then
+	echo ""
+	echo "ERROR:"
+	echo " could not locate gawk and/or gfind executable!"
+	echo ""
 	exit 4;
 fi
 
@@ -161,7 +157,8 @@ cleanup()
 }
 
 # install signal handlers
-. $mypath/trapsignalfuncs.sh
+# shellcheck source=./trapsignalfuncs.sh
+. "$mypath"/trapsignalfuncs.sh
 
 exitproc()
 {
@@ -172,21 +169,21 @@ exitproc()
 # lets start
 cleanup
 awkpar="-v mode=$_mode"
-outfile=${prjname}_`date +%Y%m%d%H%M`${cmprsext}
+outfile=${prjname}_$(date +%Y%m%d%H%M)${cmprsext}
 
 if [ -n "${newertime}" ]; then
-	touch -t ${newertime} ${locNewerFile}
-	if [ -f ${locNewerFile} ]; then
+	touch -t "${newertime}" "${locNewerFile}"
+	if [ -f "${locNewerFile}" ]; then
 		newerparam="-newer ${locNewerFile} "
 	fi
 elif [ -n "${newerfile}" ]; then
-	if [ -f ${newerfile} ]; then
+	if [ -f "${newerfile}" ]; then
 		newerparam="-newer ${newerfile} "
 	fi
 fi
 
 echo ""
-echo "Using Mode ["$_mode"] to pack contents of ["$dopath"] into ["$outfile"]"
+echo "Using Mode [$_mode] to pack contents of [$dopath] into [$outfile]"
 echo ""
 
 cat << EOF > ${locFilterFile}
@@ -208,7 +205,7 @@ BEGIN{
 }
 EOF
 
-${FINDEXE} $dopath "(" -path '*/i386_*' -o -path '*/.sniffdir' -o -path '*/.ProjectCache' -o -path '*/.RetrieverIndex' -o -path '*/.sniffdb' -o -path '*/sol_gcc_*' -o -path '*/CVS' $pathexcl ")" -prune -o ! "(" -name "*%" -o -name ".Sniff*" -o -name ".#*" -o -name "*.o"  -o -name "*.so" -o -name "*.pdb" -o -name "*.exp" -o -name "wdtest" -o -name "wdtest.exe" -o -name "*.opt" -o -name "*.plg" -o -name "*.ncb" -o -name "*.aps" -o -name "*.log.*" -o -name "*.bak*" -o -name "${locInfoFileName}" -o -name "${locFilterFileName}" -o -name '_teststderr.tx_' -o -name '_teststdout.tx_' -o -name '*.org[0-9]*' -o -name '*.rpl[0-9]*' ${fileexcl} ")" ${newerparam} -type f -print | ${AWKEXE} -f ${locFilterFile} > ${locInfoFile}
+${FINDEXE} "$dopath" "(" -path '*/i386_*' -o -path '*/.sniffdir' -o -path '*/.ProjectCache' -o -path '*/.RetrieverIndex' -o -path '*/.sniffdb' -o -path '*/sol_gcc_*' -o -path '*/CVS' $pathexcl ")" -prune -o ! "(" -name "*%" -o -name ".Sniff*" -o -name ".#*" -o -name "*.o"  -o -name "*.so" -o -name "*.pdb" -o -name "*.exp" -o -name "wdtest" -o -name "wdtest.exe" -o -name "*.opt" -o -name "*.plg" -o -name "*.ncb" -o -name "*.aps" -o -name "*.log.*" -o -name "*.bak*" -o -name "${locInfoFileName}" -o -name "${locFilterFileName}" -o -name '_teststderr.tx_' -o -name '_teststdout.tx_' -o -name '*.org[0-9]*' -o -name '*.rpl[0-9]*' ${fileexcl} ")" "${newerparam}" -type f -print | ${AWKEXE} -f ${locFilterFile} > ${locInfoFile}
 
 cat << EOF > ${locModusFile}
 BEGIN{
@@ -269,10 +266,10 @@ BEGIN{
 }
 EOF
 
-${AWKEXE} $awkpar -f ${locModusFile} ${locInfoFile}
+${AWKEXE} "$awkpar" -f ${locModusFile} ${locInfoFile}
 if [ ! -s ${locTmpFile2} ]; then
 	cleanup;
-	echo 'No files found to compress, exiting...';
+	echo "No files found to compress, exiting..."
 	exit 1;
 fi
 
@@ -305,5 +302,5 @@ EOF
 
 ${AWKEXE} -v outname="${locPackFiles}" -f ${locExtFile} ${locTmpFile1}
 
-eval $cmprs
+eval "$cmprs"
 cleanup

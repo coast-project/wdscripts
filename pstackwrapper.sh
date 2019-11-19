@@ -14,11 +14,11 @@
 showhelp()
 {
 	echo "usage: $0 -p <process> -f <outfile> [-s <sleepinterval>] [-a]"
-	echo 'options are:'
-	echo '-a          : append to outputfile, default overwrite'
-	echo '-f <name>   : file in which to output'
-	echo '-p <procid> : process id'
-	echo '-s <secs>   : seconds to sleep between pstack calls'
+	echo "options are:"
+	echo "-a          : append to outputfile, default overwrite"
+	echo "-f <name>   : file in which to output"
+	echo "-p <procid> : process id"
+	echo "-s <secs>   : seconds to sleep between pstack calls"
 	exit 1
 }
 do_append=0;
@@ -44,41 +44,41 @@ while getopts ":ap:f:s:" opt; do
                 ;;
         esac
 done
-shift `expr $OPTIND - 1`
+shift $((OPTIND - 1))
 
-if [ $proc -eq 0 -o -z "${outfile}" ]; then
+if [ "$proc" -eq 0 ] || [ -z "${outfile}" ]; then
 	showhelp;
 fi;
 
 echo "tracing process $proc"
 echo "Output in file  $outfile"
 echo "Sleepinterval   $sleepinterval"
-if [ $do_append -ne 1 ]; then
+if [ "$do_append" -ne 1 ]; then
 	echo "Emptying  file  $outfile now."
-	rm $outfile
-	touch $outfile
+	rm "$outfile"
+	touch "$outfile"
 fi;
 
 while true
 do
-	date >> $outfile
-	/usr/proc/bin/pmap $proc >> $outfile
-	echo "============================================================" >> $outfile
-	/usr/proc/bin/pflags $proc >> $outfile
-	echo "------------------------------------------------------------" >> $outfile
-	/usr/proc/bin/pfiles $proc >> $outfile
-	echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" >> $outfile
-	type -fP c++filt >/dev/null 2>&1;
-	if [ $? -eq 0 ]; then
-		/usr/proc/bin/pstack $proc | c++filt >> $outfile
-	else
-		/usr/proc/bin/pstack $proc >> $outfile
-	fi;
-	echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" >> $outfile
-	if [ $sleepinterval -eq 0 ]; then
+	{
+		date;
+		/usr/proc/bin/pmap "$proc";
+		echo "============================================================";
+		/usr/proc/bin/pflags "$proc";
+		echo "------------------------------------------------------------";
+		/usr/proc/bin/pfiles "$proc";
+		echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
+		if type -fP c++filt >/dev/null 2>&1; then
+			/usr/proc/bin/pstack "$proc" | c++filt;
+		else
+			/usr/proc/bin/pstack "$proc";
+		fi;
+		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+	} >> "$outfile"
+	if [ "$sleepinterval" -eq 0 ]; then
 		break;
 	fi;
 	echo "Sleeping $sleepinterval seconds..."
-	sleep $sleepinterval
+	sleep "$sleepinterval"
 done
-
