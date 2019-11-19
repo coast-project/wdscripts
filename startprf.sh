@@ -11,17 +11,25 @@
 #  in a *perftest* directory
 #
 
-startprfScriptName=$(basename $0)
+script_name=$(basename "$0")
 
-mypath=$(dirname $0)
-test "/" = "$(echo ${mypath} | cut -c1)" || mypath="$(cd ${mypath} 2>/dev/null && pwd)"
+mypath=$(dirname "$0")
+test "/" = "$(echo "${mypath}" | cut -c1)" || mypath="$(cd "${mypath}" 2>/dev/null && pwd)"
+
+# unset all functions to remove potential definitions
+# generated using $> sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p' startprf.sh | grep -v "\$$"
+unset -f showhelp
+unset -f nologExit
+unset -f myExit
+unset -f exitproc
 
 showhelp()
 {
-	. $mypath/config.sh >/dev/null 2>&1;
-	test -n "${1}" && echo "${1}";
+	# shellcheck source=./config.sh
+	. "$mypath"/config.sh >/dev/null 2>&1;
+	[ -n "${1}" ] && echo "${1}";
 	echo ""
-	echo "usage: $startprfScriptName [options] -- [perftest-params]..."
+	echo "usage: $script_name [options] -- [perftest-params]..."
 	echo "where options are:"
 	echo " -c <coresize> : maximum size of core file to produce, in 512Byte blocks!"
 	echo " -e <level>    : specify level of error-logging to console, default:4, see below for possible values"
@@ -39,10 +47,9 @@ showhelp()
 }
 
 locProcPid=0;
-cfg_dbgopt="";
 cfg_cfgdir="";
 cfg_handles="1024";
-cfg_dbg=0;
+PRINT_DBG=0;
 cfg_errorlog=0;
 cfg_syslog=0;
 cfg_logtimestamp=0;
@@ -61,14 +68,14 @@ while getopts "${myPrgOptions}" opt; do
 			showhelp "ERROR: -$OPTARG parameter missing, exiting!";
 		;;
 		e)
-			if [ ${OPTARG} -ge 0 2>/dev/null -a ${OPTARG} -le 5 ]; then
+			if [ "${OPTARG}" -ge 0 ] && [ "${OPTARG}" -le 5 ]; then
 				cfg_errorlog=${OPTARG};
 			else
 				showhelp "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
 			fi
 		;;
 		s)
-			if [ ${OPTARG} -ge 0 -a ${OPTARG} -le 5 ]; then
+			if [ "${OPTARG}" -ge 0 ] && [ "${OPTARG}" -le 5 ]; then
 				cfg_syslog=${OPTARG};
 			else
 				showhelp "ERROR: wrong argument [$OPTARG] to option -$opt specified!";
@@ -91,8 +98,7 @@ while getopts "${myPrgOptions}" opt; do
 		;;
 		D)
 			# propagating this option to config.sh
-			cfg_dbgopt="-D";
-			cfg_dbg=1;
+			PRINT_DBG=$((PRINT_DBG + 1));
 		;;
 		P)
 			cfg_fullPath=1;
@@ -108,14 +114,15 @@ done
 shift $((OPTIND - 1))
 
 cfg_srvopts="$@";
-if [ $cfg_dbg -ge 1 ]; then echo " - given Options [$cfg_srvopts]"; fi;
+[ "${PRINT_DBG:-0}" -ge 1 ] && echo " - service options [$cfg_srvopts]"
 
-test $cfg_errorlog -gt 0 && COAST_LOGONCERR=$cfg_errorlog;
-test $cfg_logtimestamp -gt 0 && COAST_LOGONCERR_WITH_TIMESTAMP=1;
-test $cfg_syslog -gt 0 && COAST_DOLOG=$cfg_syslog;
+test "$cfg_errorlog" -gt 0 && COAST_LOGONCERR=$cfg_errorlog;
+test "$cfg_logtimestamp" -gt 0 && COAST_LOGONCERR_WITH_TIMESTAMP=1;
+test "$cfg_syslog" -gt 0 && COAST_DOLOG=$cfg_syslog;
 
-if [ $cfg_dbg -ge 1 ]; then echo " - sourcing config.sh"; fi;
-. $mypath/config.sh $cfg_dbgopt
+[ "${PRINT_DBG:-0}" -ge 1 ] && echo " - sourcing config.sh"
+# shellcheck source=./config.sh
+. "$mypath"/config.sh
 
 test -n "${PERFTESTDIR}" || showhelp "ERROR: could not locate perftest directory, exiting !";
 test -d "${cfg_cfgdir}" || cfg_cfgdir="";
@@ -130,32 +137,37 @@ fi
 
 test -n "${cfg_cfgdir}" || showhelp "ERROR: could not locate config directory within perftest directory [${PERFTESTDIR}], exiting !";
 
-COAST_PATH="`prependPathEx \"${COAST_PATH:-${COAST_PATH}}\" \":\" \"${PERFTESTDIR}/${cfg_cfgdir}\"`";
+COAST_PATH="$(prependPathEx "${COAST_PATH:-${COAST_PATH}}" ":" "${PERFTESTDIR}/${cfg_cfgdir}")";
 SERVERNAME=${PERFTESTDIR}
 SetCOAST_PATH
 
-MYNAME=$startprfScriptName	# used within trapsignalfuncs/serverfuncs for logging
+MYNAME=$script_name	# used within trapsignalfuncs/serverfuncs for logging
+# install signal handlers
+# shellcheck source=./trapsignalfuncs.sh
+. "$mypath"/trapsignalfuncs.sh
+
 # source server handling funcs
-. $mypath/serverfuncs.sh
+# shellcheck source=./serverfuncs.sh
+. "$mypath"/serverfuncs.sh
 
 nologExit()
 {
 	locRetCode=${1:-4};
 	printf "%s\n" "${2}";
-	exit ${locRetCode};
+	exit "${locRetCode}";
 }
 
 myExit()
 {
 	locRetCode=${1:-4};
-	LogLeaveScript ${locRetCode}
-	exit ${locRetCode};
+	LogLeaveScript "${locRetCode}"
+	exit "${locRetCode}";
 }
 
 sigToSend=15;
 sigToSendName="TERM";
 
-if [ $cfg_fullPath -eq 1 ]; then
+if [ "$cfg_fullPath" -eq 1 ]; then
 	WDA_BIN=$WDA_BINABS;
 fi
 
@@ -170,15 +182,12 @@ if [ -z "$cfg_srvopts" ]; then
 	cfg_srvopts=${SERVERNAME};
 fi;
 
-test -w $(dirname ${ServerMsgLog}) || nologExit 1 "Cannot create/write into ${ServerMsgLog}, please ensure correct settings before continuing!";
-test -w $(dirname ${ServerErrLog}) || nologExit 1 "Cannot create/write into ${ServerErrLog}, please ensure correct settings before continuing!";
-
-# install signal handlers
-. $mypath/trapsignalfuncs.sh
+test -w "$(dirname "${ServerMsgLog}")" || nologExit 1 "Cannot create/write into ${ServerMsgLog}, please ensure correct settings before continuing!";
+test -w "$(dirname "${ServerErrLog}")" || nologExit 1 "Cannot create/write into ${ServerErrLog}, please ensure correct settings before continuing!";
 
 exitproc()
 {
-	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "$(determineRunUser)"
+	sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "$(determineRunUser)" "$WDA_BINABS" "$WDA_BIN"
 	myExit $?;
 }
 
@@ -190,25 +199,23 @@ test ${cfg_forceStart} -eq 1 || exitIfDisabledService "${outmsg}"
 
 echo ""
 echo "------------------------------------------------------------------------"
-echo "$startprfScriptName - script to start perftest [${SERVERNAME}] with configdir [${COAST_PATH}]"
+echo "$script_name - script to start perftest [${SERVERNAME}] with configdir [${COAST_PATH}]"
 echo ""
 
 LogEnterScript
 
 # set some limits
-ulimit -n ${cfg_handles:=1024}
-ulimit -c ${cfg_coresize:=20000}
+ulimit -n "${cfg_handles:=1024}"
+ulimit -c "${cfg_coresize:=20000}"
 
 LogScriptMessage "setting handles to $cfg_handles and coresize to $cfg_coresize blocks"
 LogScriptMessage "starting ${SERVERNAME} [$WDA_BIN] with options [$cfg_srvopts] on [${HOSTNAME}]";
 $WDA_BIN $cfg_srvopts &
 locProcPid=$!
-test $locProcPid -ne 0 && test -n "${PID_FILE}" && echo $locProcPid > $PID_FILE;
-if [ $? -ne 0 ]; then
-	LogScriptMessage "failed to start process!";
-	exit 3
+if [ "$locProcPid" -ne 0 ] && [ -n "${PID_FILE}" ]; then
+	echo "$locProcPid" > "$PID_FILE";
 fi
 LogScriptMessage "started process with pid $locProcPid";
 wait
-sendSignalToServerAndWait ${sigToSend} "${sigToSendName}" "$(determineRunUser)" 10
+sendSignalToServerAndWait "${sigToSend}" "${sigToSendName}" "$(determineRunUser)" 10 "$WDA_BINABS" "$WDA_BIN"
 myExit $?;

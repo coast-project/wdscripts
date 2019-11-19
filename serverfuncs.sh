@@ -24,6 +24,7 @@ unset -f removeOrphanedPidFile
 unset -f exitIfDisabledService
 unset -f getServerStatus
 unset -f getKeepwdsStatus
+unset -f quoteargs
 unset -f startWithKeep
 unset -f getServerAndKeepStatus
 unset -f waitForStartedServer
@@ -274,7 +275,6 @@ SignalToServer()
 		if [ -n "${kErrMsg}" ]; then
 			printf "\n Error(s) [%s]" "${kErrMsg}" | tee -a "${ServerMsgLog}";
 		fi
-		printf "\n" | tee -a "${ServerMsgLog}" "${ServerErrLog}";
 		if [ $stsDoFirst -eq 1 ]; then
 			printf "%s %s: " "$(date +%Y%m%d%H%M%S)" "${MYNAME}" >> "${ServerMsgLog}";
 			printf "process (%s) is not running anymore\n" "${stsBinName}" | tee -a "${ServerMsgLog}" >&2
@@ -383,6 +383,17 @@ getKeepwdsStatus()
 	return ${gksCheckStatus};
 }
 
+# quoteargs
+# param ...:
+# returns arguments properly double quoted
+quoteargs()
+{
+	for i in "$@"; do
+	  _qa="$_qa \"$i\""
+	done
+	echo "${_qa:-}"
+}
+
 # param 1: name of user to start as
 # param 2: path to keepwds.sh
 # param 3: path to file in which to store run user
@@ -401,8 +412,7 @@ startWithKeep()
 	test "${PRINT_DBG:-0}" -ge 1 && swkScriptDebug="-D"
 	swkAmIroot=0;
 	test "$(getUid)" -eq 0 && swkAmIroot=1;
-	#FIXME: SC2145, check if $* would also work
-	swkServerArguments="$@";
+    swkServerArguments="$(quoteargs "$@")"
 	if [ $swkAmIroot -eq 1 ] && [ -n "${swkRunUser}" ]; then
 		# must adjust the owner of the probably newly created server-log-files
 		if [ -n "${ServerMsgLog}" ] && [ -f "${ServerMsgLog}" ]; then chown "${swkRunUser}" "${ServerMsgLog}"; fi;
@@ -429,8 +439,8 @@ serverAndKeepStatusKeepStatusColumnId=4;
 
 # param 1: user name to find running instances for
 # param 2: separator, default ':'
-# param 3: separator, default $WDS_BINABS
-# param 4: separator, default $WDS_BIN
+# param 3: full path of process, default $WDS_BINABS
+# param 4: name of process, default $WDS_BIN
 #
 # required variables: PID_FILE, WDS_BINABS, WDS_BIN, SERVERNAME, KEEPPIDFILE, KEEP_SCRIPT
 #
@@ -449,21 +459,27 @@ getServerAndKeepStatus()
 
 # param 1: user to run server as
 # param 2: time to wait for startup, default 10s
+# param 3: full path of process, default $WDS_BINABS
+# param 4: name of process, default $WDS_BIN
 #
 # return 0 in case
 waitForStartedServer()
 {
 	wfssRunUser="${1}";
 	wfssWaitTime=${2:-10};
+	wfssBinAbs="${3:-$WDS_BINABS}";
+	wfssBin="${4:-$WDS_BIN}";
 	wfssSleepTime=2;
-	wfssStatusEntry="$(getServerAndKeepStatus "${wfssRunUser}" ":" "$WDS_BINABS" "$WDS_BIN")"
+	wfssStatusEntry="$(getServerAndKeepStatus "$wfssRunUser" ":" "$wfssBinAbs" "$wfssBin")"
 	wfssWaitCount=$((wfssWaitTime / wfssSleepTime));
 	while [ $wfssWaitCount -ge 0 ]; do
 		wfssWaitCount=$((wfssWaitCount - 1));
-		test "$(getCSVValue "${wfssStatusEntry}" ${serverAndKeepStatusServerStatusColumnId} ":")" = "0" && test "$(getCSVValue "${wfssStatusEntry}" ${serverAndKeepStatusKeepStatusColumnId} ":")" = "0" && return 0;
+		if [ "$(getCSVValue "${wfssStatusEntry}" ${serverAndKeepStatusServerStatusColumnId} ":")" = "0" ] && [ "$(getCSVValue "${wfssStatusEntry}" ${serverAndKeepStatusKeepStatusColumnId} ":")" = "0" ]; then
+			return 0;
+		fi
 		printf "." >&2
 		sleep $wfssSleepTime;
-		wfssStatusEntry="$(getServerAndKeepStatus "${wfssRunUser}" ":" "$WDS_BINABS" "$WDS_BIN")"
+		wfssStatusEntry="$(getServerAndKeepStatus "$wfssRunUser" ":" "$wfssBinAbs" "$wfssBin")"
 	done
 	return 1
 }
@@ -498,7 +514,7 @@ sendSignalToServerAndWait()
 		fi
 	fi;
 	termExitCode=0;
-	if [ $kswsawSigRet -eq 0 ] && [ -n "${kswsawKilledPid}" ] && [ "${kswsawWaitCount:-0}" -gt 0 ]; then
+	if [ "$kswsawSigRet" -eq 0 ] && [ -n "${kswsawKilledPid}" ] && [ "${kswsawWaitCount:-0}" -gt 0 ]; then
 		WaitOnTermination "${kswsawWaitCount}" "${kswsawKilledPid}"
 		termExitCode=$?;
 		test $termExitCode -eq 0 && removeFiles "${PID_FILE}" "${RUNUSERFILE}"

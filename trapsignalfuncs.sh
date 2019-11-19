@@ -11,7 +11,7 @@
 #
 
 # unset all functions to remove potential definitions
-# generated using $> cat trapsignalfuncs.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
+# generated using $> sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p' trapsignalfuncs.sh | grep -v "\$$"
 unset -f exitprocINT
 unset -f exitprocHUP
 unset -f exitprocTERM

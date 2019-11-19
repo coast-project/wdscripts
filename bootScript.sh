@@ -30,7 +30,7 @@ PRINT_DBG=${PRINT_DBG:=0}
 export PRINT_DBG
 
 # unset all functions to remove potential definitions
-# generated using $> cat bootScript.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
+# generated using $> sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p' bootScript.sh | grep -v "\$$"
 unset -f minimal_deref_link
 unset -f printServerStatus
 unset -f echoExit
@@ -65,9 +65,9 @@ if [ $bootScriptIsALinkReturn -eq 0 ]; then
 fi
 mypath=$(dirname "$derefd_name");
 derefd_name=$(basename "$derefd_name");
-bootScriptName=${derefd_name};
+script_name=${derefd_name};
 
-[ ! "$bootScriptName" = "bootScript.sh" ] && { echo "This script cannot be sourced, aborting!"; exit 2; }
+[ ! "$script_name" = "bootScript.sh" ] && { echo "This script cannot be sourced, aborting!"; exit 2; }
 
 # load global config
 # shellcheck source=./config.sh
@@ -82,7 +82,7 @@ if [ -z "${tmp_CfgDir}" ]; then
 	exit 11
 fi;
 
-MYNAME=$bootScriptName	# used within trapsignalfuncs/serverfuncs for logging
+MYNAME=$script_name	# used within trapsignalfuncs/serverfuncs for logging
 # shellcheck source=./serverfuncs.sh
 . "$SCRIPTDIR"/serverfuncs.sh
 
@@ -130,7 +130,7 @@ echoExit()
 exitWithStatus()
 {
 	ewsMessage="${1}";
-	ewsStatusEntry="${2:-$(getServerAndKeepStatus "${RUN_USER:-$my_uid}")}"
+	ewsStatusEntry="${2:-$(getServerAndKeepStatus "${RUN_USER:-$my_uid}" ":" "$WDS_BINABS" "$WDS_BIN")}"
 	ewsExitCode=${3:-$serverRunning};
 	ewsStatusToAppend="$(printServerStatus "${ewsStatusEntry}" ":" "${ewsMessage}")"
 	echoExit "${ewsStatusToAppend}" "$ewsExitCode"
@@ -141,7 +141,7 @@ cfg_waitcount=1200;
 
 if [ $PRINT_DBG -ge 1 ]; then
 	echo ""
-	for varname in link_name bootScriptName my_uid; do
+	for varname in link_name script_name my_uid; do
 		locVar="echo $"$varname;
 		locVarVal=$(eval "$locVar");
 		printf "%-16s: [%s]\n" $varname "$locVarVal"
@@ -215,7 +215,7 @@ case "$Command" in
 			outmsg="${outmsg} as ${RUN_USER}";
 		fi
 		pidOfKeep=$(startWithKeep "${RUN_USER}" "${KEEP_SCRIPT}" "${RUNUSERFILE}" "${KEEPPIDFILE}" ${cfg_srvopts});
-		waitForStartedServer "${RUN_USER}" 20
+		waitForStartedServer "${RUN_USER}" 20 "$WDS_BINABS" "$WDS_BIN"
 		exitWithStatus "${outmsg}"
 	;;
 	stop)
@@ -232,9 +232,9 @@ case "$Command" in
 		else
 			# server potentially running but keepwds is not
 			if [ "$(getCSVValue "${myStatusEntry}" ${serverAndKeepStatusServerStatusColumnId} ":")" = "0" ]; then
-				sendSignalToServerAndWait 15 "TERM" "$(determineRunUser)" "${cfg_waitcount}" 2>/dev/null || {
+				sendSignalToServerAndWait 15 "TERM" "$(determineRunUser)" "${cfg_waitcount}" "$WDS_BINABS" "$WDS_BIN" 2>/dev/null || {
 					# try hardkill to ensure it died
-					sendSignalToServerAndWait 9 "KILL" "$(determineRunUser)" "${cfg_waitcount}" 2>/dev/null
+					sendSignalToServerAndWait 9 "KILL" "$(determineRunUser)" "${cfg_waitcount}" "$WDS_BINABS" "$WDS_BIN" 2>/dev/null
 				}
 			else
 				# no server and no keepwds
@@ -253,9 +253,9 @@ case "$Command" in
 		if [ "$(getCSVValue "${myStatusEntry}" "${serverAndKeepStatusServerStatusColumnId}" ":")" = "0" ]; then
 			# server is still running, if we kill using stop script
 			# the keepwds.sh script will automatically restart the server when it was down
-			sendSignalToServerAndWait 15 "TERM" "$(determineRunUser)" "${cfg_waitcount}" || {
+			sendSignalToServerAndWait 15 "TERM" "$(determineRunUser)" "${cfg_waitcount}" "$WDS_BINABS" "$WDS_BIN" || {
 				# try hardkill to ensure it died
-				sendSignalToServerAndWait 9 "KILL" "$(determineRunUser)" "${cfg_waitcount}"
+				sendSignalToServerAndWait 9 "KILL" "$(determineRunUser)" "${cfg_waitcount}" "$WDS_BINABS" "$WDS_BIN"
 			}
 		fi;
 		myStatusEntry="$(getServerAndKeepStatus "${RUN_USER:-$my_uid}" ":" "$WDS_BINABS" "$WDS_BIN")";
@@ -264,14 +264,14 @@ case "$Command" in
 			pidOfKeep=$(startWithKeep "${RUN_USER}" "${KEEP_SCRIPT}" "${RUNUSERFILE}" "${KEEPPIDFILE}" "${cfg_srvopts}");
 			[ "$pidOfKeep" -eq 0 ] && statusToAppend=$rc_failed;
 		fi;
-		waitForStartedServer "${RUN_USER}" 30
+		waitForStartedServer "${RUN_USER}" 30 "$WDS_BINABS" "$WDS_BIN"
 		exitWithStatus "${outmsg}"
 	;;
 	reload)
 		myStatusEntry="$(getServerAndKeepStatus "${RUN_USER:-$my_uid}" ":" "$WDS_BINABS" "$WDS_BIN")";
 		# test if server is still running
 		if [ "$(getCSVValue "${myStatusEntry}" ${serverAndKeepStatusServerStatusColumnId} ":")" = "0" ]; then
-			sendSignalToServerAndWait 1 "HUP" "$(determineRunUser)" 0
+			sendSignalToServerAndWait 1 "HUP" "$(determineRunUser)" 0 "$WDS_BINABS" "$WDS_BIN"
 			exitWithStatus "${outmsg}"
 		else
 			# no server and no keepwds
@@ -279,9 +279,9 @@ case "$Command" in
 		fi;
 	;;
 	*)
-		outmsg="${CommandText}: ${bootScriptName} {start|stop|status|restart|reload} [(re-)start arguments...], given [$*]";
+		outmsg="${CommandText}: ${script_name} {start|stop|status|restart|reload} [(re-)start arguments...], given [$*]";
 		echo "$outmsg";
-		printf "%s %s: %s\n" "$(date +%Y%m%d%H%M%S)" "${bootScriptName}" "${outmsg}" >> "${ServerMsgLog}"
+		printf "%s %s: %s\n" "$(date +%Y%m%d%H%M%S)" "${script_name}" "${outmsg}" >> "${ServerMsgLog}"
 		exit 1
 	;;
 esac
