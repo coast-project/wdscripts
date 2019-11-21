@@ -1,3 +1,4 @@
+#!/bin/sh
 #-----------------------------------------------------------------------------------------------------
 # Copyright (c) 2005, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
 # All rights reserved.
@@ -18,7 +19,9 @@
 # overwrite this one ONLY if the LOGDIR variable points to the wrong place
 #LOGDIR=log
 
+# shellcheck disable=SC2034
 SERVERNAME="wdscripts"
+# shellcheck disable=SC2034
 PRJ_DESCRIPTION="Coast scripts"
 #PID_FILE=$LOGDIRABS/$SERVERNAME.PID
 

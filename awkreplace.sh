@@ -10,20 +10,20 @@
 # script to do a search and replace in files
 #
 
-MYNAME=`basename $0`
+script_name=$(basename "$0")
 
-mypath=`dirname $0`
-test "/" = "`echo ${mypath} | cut -c1`" || mypath=`pwd`/${mypath}
+mypath=$(dirname "$0")
+test "/" = "$(echo "${mypath}" | cut -c1)" || mypath="$(cd "${mypath}" 2>/dev/null && pwd)"
 
 showhelp()
 {
-	echo ''
-	echo 'usage: '$MYNAME' [options] <files...>'
-	echo 'where options are:'
-	echo ' -r <replace string> : specify replacement string'
-	echo ' -s <search string> : specify search string'
-	echo ' -T : test only, do not replace'
-	echo ''
+	echo ""
+	echo "usage: $script_name [options] <files...>"
+	echo "where options are:"
+	echo " -r <replace string> : specify replacement string"
+	echo " -s <search string> : specify search string"
+	echo " -T : test only, do not replace"
+	echo ""
 	exit 4;
 }
 
@@ -46,22 +46,23 @@ while getopts ":r:s:T" opt; do
 		;;
 	esac
 done
-shift `expr $OPTIND - 1`
+shift $((OPTIND - 1))
 
 # load os-specific settings and functions
-. ${mypath}/sysfuncs.sh
+# shellcheck source=./sysfuncs.sh
+. "$mypath"/sysfuncs.sh
 
 IS_GNUAWK=0;
-FINDEXE="`getFirstValidTool \"/usr/local/bin:/usr/bin:/bin\" gfind find`"
-AWKEXE="`getFirstValidTool \"/usr/local/bin:/usr/bin:/bin\" gawk awk`"
+FINDEXE="$(getFirstValidTool "/usr/local/bin:/usr/bin:/bin" gfind find)"
+AWKEXE="$(getFirstValidTool "/usr/local/bin:/usr/bin:/bin" gawk awk)"
 hasVersionReturn "$AWKEXE" >/dev/null && IS_GNUAWK=1;
 
 # check that we have GNU-awk available, otherways we can not execute the awk script
 if [ $IS_GNUAWK -eq 0 ]; then
-	echo '';
-	echo 'ERROR:';
-	echo ' could not locate gawk executable!';
-	echo '';
+	echo ""
+	echo "ERROR:"
+	echo " could not locate gawk executable!"
+	echo ""
 	exit 4;
 fi
 
@@ -70,9 +71,9 @@ while true; do
 	if [ -z "$1" ]; then break; fi;
 	echo "processing '$1' files..."
 	if [ $cfg_test -eq 0 ]; then
-		${FINDEXE} "`dirname "$1"`" -name "`basename "$1"`" -type f -exec ${AWKEXE} -v sstr="$sstr" -v iname="{}" 'BEGIN{found=0;}{ if (match($$0,sstr)) found=1; }END{ if (found) { print "+ replacing in " iname; exit 0;} else exit 1;}' "{}" \; -exec mv "{}" "{}.bak" \; -exec ${AWKEXE} -v sstr="$sstr" -v rstr="$rstr" -v iname="{}" "{ gsub(sstr,rstr); print > iname;}" "{}.bak" \;
+		${FINDEXE} "$(dirname "$1")" -name "$(basename "$1")" -type f -exec "${AWKEXE}" -v sstr="$sstr" -v iname="{}" 'BEGIN{found=0;}{ if (match($$0,sstr)) found=1; }END{ if (found) { print "+ replacing in " iname; exit 0;} else exit 1;}' "{}" \; -exec mv "{}" "{}.bak" \; -exec "${AWKEXE}" -v sstr="$sstr" -v rstr="$rstr" -v iname="{}" "{ gsub(sstr,rstr); print > iname;}" "{}.bak" \;
 	else
-		${FINDEXE} "`dirname "$1"`" -name "`basename "$1"`" -type f -exec ${AWKEXE} -v sstr="$sstr" -v iname="{}" 'BEGIN{found=0;}{ if (match($$0,sstr)) found=1; }END{ if (found) { print "+ TEST replacing in " iname; exit 0;} else exit 1;}' "{}" \;
+		${FINDEXE} "$(dirname "$1")" -name "$(basename "$1")" -type f -exec "${AWKEXE}" -v sstr="$sstr" -v iname="{}" 'BEGIN{found=0;}{ if (match($$0,sstr)) found=1; }END{ if (found) { print "+ TEST replacing in " iname; exit 0;} else exit 1;}' "{}" \;
 	fi;
 	shift;
 done

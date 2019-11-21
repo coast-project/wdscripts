@@ -10,10 +10,13 @@ default:
   before_script:
   - echo "Running as user [$(id -u)] on hostname [$(hostname)]"
   - python -V               # Print out python version for debugging
-  - type -fP tox || pip install tox
+  - which tox || pip install tox
   - tox --version
-  - sudo apt update
-  - sudo apt install --no-install-recommends --yes --quiet bats
+  - which bats || sudo npm -i --global bats
+  - bats --version
+  - which shellcheck || curl -sSL https://storage.googleapis.com/shellcheck/shellcheck-stable.linux.x86_64.tar.xz | sudo tar xJf - -C /usr/local/bin --strip-components=1
+  - shellcheck --version
+  - which tree || { sudo apt update && sudo apt install --yes --no-install-recommends --quiet tree; }
 
 #build:
 #  stage: build

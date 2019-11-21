@@ -1,3 +1,4 @@
+#!/bin/sh
 #-----------------------------------------------------------------------------------------------------
 # Copyright (c) 2006, Peter Sommerlad and IFS Institute for Software at HSR Rapperswil, Switzerland
 # All rights reserved.
@@ -10,11 +11,10 @@
 #
 
 # unset all functions to remove potential definitions
-# generated using $> cat trapsignalfuncs.sh | sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p'
+# generated using $> sed -n 's/^\([a-zA-Z][^(]*\)(.*$/unset -f \1/p' trapsignalfuncs.sh | grep -v "\$$"
 unset -f exitprocINT
 unset -f exitprocHUP
 unset -f exitprocTERM
-unset -f exitprocKILL
 unset -f exitproc
 
 exitprocINT()
@@ -29,20 +29,15 @@ exitprocTERM()
 {
 	exitproc "TERM"
 }
-exitprocKILL()
-{
-	exitproc "KILL"
-}
 
 # default func
 exitproc()
 {
 	locSigName=${1:-4};
-	printf "%s %s: got SIG%s but exitproc not overridden!" "`date +%Y%m%d%H%M%S`" "${MYNAME}" "${locSigName}"
+	printf "%s %s: got SIG%s but exitproc not overridden!" "$(date +%Y%m%d%H%M%S)" "${MYNAME}" "${locSigName}"
 	exit 0;
 }
 
 trap exitprocINT INT
 trap exitprocHUP HUP
 trap exitprocTERM TERM
-trap exitprocKILL KILL
