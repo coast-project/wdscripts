@@ -1,11 +1,137 @@
 = Changelog
 :ci_commit_link: link:/../commit/
 
+== tag: 1.18
+* Bumped version to 1.18.0 ({ci_commit_link}60fb321[60fb321])
+
+
+* Merge branch '7-bootscript-detect-projectdir' into 'master' ({ci_commit_link}00b0c2f[00b0c2f])
+
+
+* shellcheck based cleanup/correction of auxiliary scripts ({ci_commit_link}f1c4f9a[f1c4f9a])
+
+
+* shellcheck based cleanup/correction of scripts ({ci_commit_link}b93a2b4[b93a2b4])
+
+
+* corrected error in script code ({ci_commit_link}d11726d[d11726d])
+
+
+* shellcheck based corrections ({ci_commit_link}ccb50c9[ccb50c9])
+
+
+* minor shellcheck based corrections ({ci_commit_link}5a6ef87[5a6ef87])
+
+
+* more backtick to $() replacements ({ci_commit_link}0050a67[0050a67])
+
+
+* single to double quote replacements ({ci_commit_link}5df263b[5df263b])
+
+
+* replaced expr with $(()) ({ci_commit_link}37c9f33[37c9f33])
+
+
+* removed unused variable ({ci_commit_link}0ac63f2[0ac63f2])
+
+
+* prefer PROJECTDIR over startpath in case LOGDIR is unset ({ci_commit_link}0a9c856[0a9c856])
+
+
+* changed scripts pathname variable to be able to source config.sh ({ci_commit_link}0054171[0054171])
+
+
+* added more tests for sysfuncs ({ci_commit_link}0835b0d[0835b0d])
+
+
+* added helper script for testing config.sh ({ci_commit_link}d9809df[d9809df])
+
+
+* shellcheck based cleanup and corrections ({ci_commit_link}a8549af[a8549af])
+
+
+* shellcheck cleanup of serverfuncs ({ci_commit_link}168e6b1[168e6b1])
+
+
+* shellcheck based cleanup of sysfuncs.sh ({ci_commit_link}aab82b0[aab82b0])
+
+
+* changed backticks to $() (SC2006) ({ci_commit_link}634dc5e[634dc5e])
+
+
+* replaced non-sh here strings (SC2039) ({ci_commit_link}9986d5e[9986d5e])
+
+
+* simplified echo sections by using double quotes only ({ci_commit_link}82bf2b5[82bf2b5])
+
+
+* removed trapping SIGKILL as it is undefined behavior ({ci_commit_link}a725839[a725839])
+
+
+* added hash bang line (for shellcheck) ({ci_commit_link}848be5d[848be5d])
+
+
+* simplified usage blocks by using double quoting only ({ci_commit_link}a1d2533[a1d2533])
+
+
+* bats test functions dry'ed ({ci_commit_link}2e53563[2e53563])
+
+
+* removed set -h as it is not supported ({ci_commit_link}d778436[d778436])
+
+
+* added missing semicolon at end of commands ({ci_commit_link}cb610d8[cb610d8])
+
+
+* tree utility added for listing of directories ({ci_commit_link}989b3cd[989b3cd])
+
+
+* prepared image to run bats and shellcheck tests ({ci_commit_link}2529a72[2529a72])
+
+
+* bootScript tests added ({ci_commit_link}b8ae882[b8ae882])
+
+
+* moved directory creation into setup function ({ci_commit_link}ba0a6be[ba0a6be])
+
+
+* refactored and simplified bootScript ({ci_commit_link}228201d[228201d])
+
+
+* refactored and isolated projectdir dependent path movements ({ci_commit_link}d40238e[d40238e])
+
+
+* added two helper functions ({ci_commit_link}93fff5b[93fff5b])
+
+
+* limited search depth of find commands to two levels at max ({ci_commit_link}234c1fa[234c1fa])
+
+
+* redirecting output of `cd` commands to `/dev/null` ({ci_commit_link}a1b0f6b[a1b0f6b])
+
+
+* added bats tests to verify config.sh ({ci_commit_link}fa17318[fa17318])
+
+
+* mypath now contains the real path to the started script ({ci_commit_link}beeae89[beeae89])
+
+
+* Merge tag '1.17.1' into develop ({ci_commit_link}e2342af[e2342af])
+
 == tag: 1.17.1
+* Minor update which affects gitlab ci only ({ci_commit_link}6ac23f2[6ac23f2])
+
+
+* updated changelog ({ci_commit_link}a82d42e[a82d42e])
+
+
 * got rid of unused deploy stage ({ci_commit_link}03f0caf[03f0caf])
 
 
 * Bumped version to 1.17.1 ({ci_commit_link}34899a0[34899a0])
+
+
+* Merge tag '1.17.0' into develop ({ci_commit_link}13cf31a[13cf31a])
 
 == tag: 1.17.0
 * This release fixes several smaller issues and adds bats tests ({ci_commit_link}417e58a[417e58a])
